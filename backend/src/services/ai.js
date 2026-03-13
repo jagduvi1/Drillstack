@@ -1,17 +1,20 @@
 /**
  * Provider-agnostic AI completion service for authoring assistance.
+ * Provider and model resolved at runtime from SiteConfig (super admin editable).
  */
-const { getAIConfig } = require("../config/ai");
+const { getAISettings } = require("../config/aiConfig");
 
 async function complete(systemPrompt, userPrompt) {
-  const cfg = getAIConfig();
+  const settings = await getAISettings();
+  const provider = settings.ai_provider;
+  const model = settings.ai_model;
 
-  switch (cfg.provider) {
+  switch (provider) {
     case "openai": {
       const OpenAI = require("openai");
-      const client = new OpenAI({ apiKey: cfg.apiKey });
+      const client = new OpenAI({ apiKey: process.env.AI_API_KEY });
       const res = await client.chat.completions.create({
-        model: cfg.model,
+        model,
         messages: [
           { role: "system", content: systemPrompt },
           { role: "user", content: userPrompt },
@@ -26,11 +29,11 @@ async function complete(systemPrompt, userPrompt) {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          "x-api-key": cfg.apiKey,
+          "x-api-key": process.env.AI_API_KEY,
           "anthropic-version": "2023-06-01",
         },
         body: JSON.stringify({
-          model: cfg.model,
+          model,
           max_tokens: 2048,
           system: systemPrompt,
           messages: [{ role: "user", content: userPrompt }],
@@ -47,7 +50,7 @@ async function complete(systemPrompt, userPrompt) {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            model: cfg.model,
+            model,
             messages: [
               { role: "system", content: systemPrompt },
               { role: "user", content: userPrompt },
@@ -61,7 +64,7 @@ async function complete(systemPrompt, userPrompt) {
     }
 
     default:
-      throw new Error(`Unsupported AI provider: ${cfg.provider}`);
+      throw new Error(`Unsupported AI provider: ${provider}`);
   }
 }
 

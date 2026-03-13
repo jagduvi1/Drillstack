@@ -1,6 +1,6 @@
 import { NavLink } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
-import { FiGrid, FiPlay, FiCalendar, FiSearch, FiSettings, FiLogOut } from "react-icons/fi";
+import { FiGrid, FiPlay, FiCalendar, FiSearch, FiSettings, FiShield, FiLogOut } from "react-icons/fi";
 
 export default function Sidebar() {
   const { user, logout } = useAuth();
@@ -27,6 +27,11 @@ export default function Sidebar() {
         <NavLink to="/taxonomy">
           <FiSettings /> Taxonomy
         </NavLink>
+        {user?.isSuperAdmin && (
+          <NavLink to="/superadmin">
+            <FiShield /> Super Admin
+          </NavLink>
+        )}
       </nav>
       <div style={{ padding: "1rem", borderTop: "1px solid var(--color-border)" }}>
         <div className="text-sm text-muted" style={{ marginBottom: "0.5rem" }}>
