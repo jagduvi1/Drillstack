@@ -1,39 +1,6 @@
 const mongoose = require("mongoose");
 const { Schema } = mongoose;
 
-const tagRefSchema = new Schema(
-  {
-    category: { type: String, required: true },
-    taxonomy: { type: Schema.Types.ObjectId, ref: "Taxonomy", required: true },
-  },
-  { _id: false }
-);
-
-const variationSchema = new Schema(
-  {
-    title: { type: String, required: true },
-    description: { type: String, default: "" },
-    tags: [tagRefSchema],
-  },
-  { _id: true }
-);
-
-const mistakeSchema = new Schema(
-  {
-    mistake: { type: String, required: true },
-    correction: { type: String, required: true },
-  },
-  { _id: false }
-);
-
-const zoneSchema = new Schema(
-  {
-    name: { type: String },
-    rules: { type: String },
-  },
-  { _id: false }
-);
-
 const reflectionSchema = new Schema(
   {
     date: { type: Date, default: Date.now },
@@ -42,67 +9,54 @@ const reflectionSchema = new Schema(
   { _id: true }
 );
 
+const aiMessageSchema = new Schema(
+  {
+    role: { type: String, enum: ["user", "assistant"], required: true },
+    content: { type: String, required: true },
+    timestamp: { type: Date, default: Date.now },
+  },
+  { _id: false }
+);
+
 const drillSchema = new Schema(
   {
+    // ── Core: the description drives everything ─────────────────────────────
     title: { type: String, required: true, trim: true },
-    purpose: { type: String, required: true },
+    description: { type: String, required: true },
     sport: { type: String, default: null, index: true },
 
-    tags: [tagRefSchema],
-
-    // Exactly one active instruction focus at a time
-    instructionFocus: {
-      active: {
-        taxonomy: { type: Schema.Types.ObjectId, ref: "Taxonomy", default: null },
-        description: { type: String, default: "" },
-      },
-      history: [
-        {
-          taxonomy: { type: Schema.Types.ObjectId, ref: "Taxonomy" },
-          description: String,
-          activatedAt: Date,
-          deactivatedAt: Date,
-        },
-      ],
+    // ── AI-generated structured content (editable by coach) ─────────────────
+    setup: {
+      players: { type: String, default: "" },
+      space: { type: String, default: "" },
+      equipment: [{ type: String }],
+      duration: { type: String, default: "" },
     },
 
-    guidedQuestions: [{ type: String }],
-    rules: [{ type: String }],
+    howItWorks: { type: String, default: "" },
+    coachingPoints: [{ type: String }],
+    variations: [{ type: String }],
+    commonMistakes: [{ type: String }],
 
-    successCriteria: [
-      {
-        type: { type: String },
-        description: { type: String },
-      },
-    ],
-
-    variations: [variationSchema],
-
-    commonMistakes: [mistakeSchema],
-
-    space: {
-      dimensions: { type: String, default: "" },
-      shape: { type: String, default: "" },
-      zones: [zoneSchema],
+    intensity: {
+      type: String,
+      enum: ["low", "medium", "high"],
+      default: "medium",
     },
 
-    gameForm: {
-      format: { type: String, default: "" }, // e.g. "4v4", "3v3+1"
-      goalkeepers: { type: Boolean, default: false },
+    // ── AI conversation history ─────────────────────────────────────────────
+    aiConversation: [aiMessageSchema],
+
+    // ── Embedding status ───────────────────────────────────────────────────
+    embeddingStatus: {
+      type: String,
+      enum: ["pending", "processing", "indexed", "failed"],
+      default: "pending",
     },
+    embeddingError: { type: String, default: null },
 
-    equipment: [
-      {
-        taxonomy: { type: Schema.Types.ObjectId, ref: "Taxonomy" },
-        quantity: { type: Number, default: 1 },
-      },
-    ],
-
-    duration: { type: Number, default: 0 }, // minutes
-    intensity: { type: String, default: "medium" },
-
-    diagrams: [{ type: String }], // file paths / URLs
-
+    // ── Media & reflections ─────────────────────────────────────────────────
+    diagrams: [{ type: String }],
     reflectionNotes: [reflectionSchema],
 
     createdBy: { type: Schema.Types.ObjectId, ref: "User", required: true },
@@ -110,6 +64,6 @@ const drillSchema = new Schema(
   { timestamps: true }
 );
 
-drillSchema.index({ title: "text", purpose: "text" });
+drillSchema.index({ title: "text", description: "text", howItWorks: "text" });
 
 module.exports = mongoose.model("Drill", drillSchema);

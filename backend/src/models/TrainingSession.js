@@ -1,18 +1,12 @@
 const mongoose = require("mongoose");
 const { Schema } = mongoose;
 
-const SECTION_TYPES = [
-  "information",
-  "warmup",
-  "train_the_purpose",
-  "cooldown",
-  "reflection",
-];
+const SECTION_TYPES = ["warmup", "main", "cooldown"];
 
 const sectionDrillSchema = new Schema(
   {
     drill: { type: Schema.Types.ObjectId, ref: "Drill", required: true },
-    duration: { type: Number, required: true }, // minutes override
+    duration: { type: Number, required: true },
     notes: { type: String, default: "" },
   },
   { _id: false }
@@ -27,30 +21,17 @@ const sectionSchema = new Schema(
   { _id: true }
 );
 
-const warningSchema = new Schema(
-  {
-    type: { type: String },
-    message: { type: String },
-  },
-  { _id: false }
-);
-
 const sessionSchema = new Schema(
   {
     title: { type: String, required: true, trim: true },
+    description: { type: String, default: "" },
     date: { type: Date },
     sport: { type: String, default: null, index: true },
 
     sections: [sectionSchema],
 
     totalDuration: { type: Number, default: 0 },
-    equipmentSummary: [
-      {
-        name: { type: String },
-        quantity: { type: Number },
-      },
-    ],
-    warnings: [warningSchema],
+    equipmentSummary: [{ type: String }],
 
     createdBy: { type: Schema.Types.ObjectId, ref: "User", required: true },
   },

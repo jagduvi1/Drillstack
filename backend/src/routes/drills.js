@@ -4,7 +4,7 @@ const validate = require("../middleware/validate");
 const { authenticate } = require("../middleware/auth");
 const upload = require("../middleware/upload");
 const Drill = require("../models/Drill");
-const { indexDrill, removeDrill } = require("../services/sync");
+const { indexDrill, removeDrill, getQueueStatus } = require("../services/sync");
 
 // GET /api/drills
 router.get("/", authenticate, async (req, res, next) => {
@@ -19,8 +19,6 @@ router.get("/", authenticate, async (req, res, next) => {
 
     const [drills, total] = await Promise.all([
       Drill.find(filter)
-        .populate("tags.taxonomy", "name category")
-        .populate("instructionFocus.active.taxonomy", "name category")
         .sort({ updatedAt: -1 })
         .skip(skip)
         .limit(limit),
@@ -32,13 +30,15 @@ router.get("/", authenticate, async (req, res, next) => {
   }
 });
 
+// GET /api/drills/embedding-status — global embedding queue status
+router.get("/embedding-status", authenticate, (req, res) => {
+  res.json(getQueueStatus());
+});
+
 // GET /api/drills/:id
 router.get("/:id", authenticate, async (req, res, next) => {
   try {
     const drill = await Drill.findById(req.params.id)
-      .populate("tags.taxonomy")
-      .populate("instructionFocus.active.taxonomy")
-      .populate("equipment.taxonomy", "name")
       .populate("createdBy", "name");
     if (!drill) return res.status(404).json({ error: "Drill not found" });
     res.json(drill);
@@ -51,12 +51,11 @@ router.get("/:id", authenticate, async (req, res, next) => {
 router.post(
   "/",
   authenticate,
-  [body("title").trim().notEmpty(), body("purpose").trim().notEmpty()],
+  [body("title").trim().notEmpty(), body("description").trim().notEmpty()],
   validate,
   async (req, res, next) => {
     try {
       const drill = await Drill.create({ ...req.body, createdBy: req.user._id });
-      // Async index — don't block response
       indexDrill(drill).catch((e) => console.error("Index error:", e.message));
       res.status(201).json(drill);
     } catch (err) {
@@ -96,7 +95,22 @@ router.delete("/:id", authenticate, async (req, res, next) => {
   }
 });
 
-// POST /api/drills/:id/diagrams — upload diagram image
+// POST /api/drills/:id/retry-embedding — retry a failed embedding
+router.post("/:id/retry-embedding", authenticate, async (req, res, next) => {
+  try {
+    const drill = await Drill.findOne({
+      _id: req.params.id,
+      createdBy: req.user._id,
+    });
+    if (!drill) return res.status(404).json({ error: "Drill not found" });
+    indexDrill(drill).catch((e) => console.error("Retry index error:", e.message));
+    res.json({ message: "Re-queued for embedding", embeddingStatus: "pending" });
+  } catch (err) {
+    next(err);
+  }
+});
+
+// POST /api/drills/:id/diagrams
 router.post(
   "/:id/diagrams",
   authenticate,
@@ -117,7 +131,7 @@ router.post(
   }
 );
 
-// POST /api/drills/:id/reflections — add reflection note
+// POST /api/drills/:id/reflections
 router.post(
   "/:id/reflections",
   authenticate,

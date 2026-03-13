@@ -16,7 +16,6 @@ app.use("/uploads", express.static(path.join(__dirname, "..", "uploads")));
 
 // ── Routes ──────────────────────────────────────────────────────────────────
 app.use("/api/auth", require("./routes/auth"));
-app.use("/api/taxonomy", require("./routes/taxonomy"));
 app.use("/api/drills", require("./routes/drills"));
 app.use("/api/sessions", require("./routes/sessions"));
 app.use("/api/plans", require("./routes/plans"));
