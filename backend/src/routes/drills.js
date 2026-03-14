@@ -5,7 +5,7 @@ const { authenticate } = require("../middleware/auth");
 const upload = require("../middleware/upload");
 const Drill = require("../models/Drill");
 const User = require("../models/User");
-const { indexDrill, removeDrill, getQueueStatus, checkEmbeddingSimilarity } = require("../services/sync");
+const { indexDrill, removeDrill, getQueueStatus, checkEmbeddingSimilarity, findSimilarDrills } = require("../services/sync");
 
 // GET /api/drills — public: returns ALL drills (no createdBy filter)
 router.get("/", authenticate, async (req, res, next) => {
@@ -187,6 +187,47 @@ router.post("/:id/check-similarity", authenticate, async (req, res, next) => {
     const parentId = drill.parentDrill || drill._id;
     const result = await checkEmbeddingSimilarity(parentId, req.body);
     res.json(result);
+  } catch (err) {
+    next(err);
+  }
+});
+
+// POST /api/drills/:id/find-similar — find existing drills similar to this one
+router.post("/:id/find-similar", authenticate, async (req, res, next) => {
+  try {
+    const drill = await Drill.findById(req.params.id);
+    if (!drill) return res.status(404).json({ error: "Drill not found" });
+
+    const similar = await findSimilarDrills(drill, drill._id.toString());
+    res.json({ similar });
+  } catch (err) {
+    next(err);
+  }
+});
+
+// POST /api/drills/:id/convert-to-version — convert a standalone drill into a version of another
+router.post("/:id/convert-to-version", authenticate, async (req, res, next) => {
+  try {
+    const { parentDrillId } = req.body;
+    if (!parentDrillId) return res.status(400).json({ error: "parentDrillId required" });
+
+    const drill = await Drill.findOne({ _id: req.params.id, createdBy: req.user._id });
+    if (!drill) return res.status(404).json({ error: "Drill not found or not yours" });
+
+    const parent = await Drill.findById(parentDrillId);
+    if (!parent) return res.status(404).json({ error: "Parent drill not found" });
+
+    const rootId = parent.parentDrill || parent._id;
+    const versionCount = await Drill.countDocuments({
+      $or: [{ _id: rootId }, { parentDrill: rootId }],
+    });
+
+    drill.parentDrill = rootId;
+    drill.version = versionCount + 1;
+    drill.forkedBy = req.user._id;
+    await drill.save();
+
+    res.json(drill);
   } catch (err) {
     next(err);
   }

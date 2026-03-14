@@ -115,10 +115,11 @@ export default function DrillFormPage() {
       };
       if (isEdit) {
         await updateDrill(id, form);
+        navigate("/drills");
       } else {
-        await createDrill(payload);
+        const res = await createDrill(payload);
+        navigate(`/drills/${res.data._id}`);
       }
-      navigate("/drills");
     } catch (err) {
       setError(err.response?.data?.error || "Save failed");
     } finally {

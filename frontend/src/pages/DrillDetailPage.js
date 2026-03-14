@@ -2,9 +2,9 @@ import { useState, useRef, useEffect } from "react";
 import { useParams, Link, useNavigate } from "react-router-dom";
 import useFetch from "../hooks/useFetch";
 import { useAuth } from "../context/AuthContext";
-import { getDrill, deleteDrill, uploadDiagram, addReflection, retryEmbedding, toggleStar, forkDrill, getVersions, setDefaultVersion } from "../api/drills";
+import { getDrill, deleteDrill, uploadDiagram, addReflection, retryEmbedding, toggleStar, forkDrill, getVersions, setDefaultVersion, findSimilar, convertToVersion } from "../api/drills";
 import { refineDrill, generateDiagram } from "../api/ai";
-import { FiEdit, FiTrash2, FiSend, FiMessageCircle, FiLoader, FiAlertCircle, FiRefreshCw, FiImage, FiStar, FiCopy, FiGitBranch, FiUser, FiCheck } from "react-icons/fi";
+import { FiEdit, FiTrash2, FiSend, FiMessageCircle, FiLoader, FiAlertCircle, FiRefreshCw, FiImage, FiStar, FiCopy, FiGitBranch, FiUser, FiCheck, FiLink } from "react-icons/fi";
 
 export default function DrillDetailPage() {
   const { id } = useParams();
@@ -19,6 +19,11 @@ export default function DrillDetailPage() {
   const [diagramLoading, setDiagramLoading] = useState(false);
   const [showVersions, setShowVersions] = useState(false);
   const [versions, setVersions] = useState(null);
+  const [similarDrills, setSimilarDrills] = useState(null);
+  const [similarDismissed, setSimilarDismissed] = useState(false);
+  const [embeddingElapsed, setEmbeddingElapsed] = useState(0);
+  const similarChecked = useRef(false);
+  const embeddingStartRef = useRef(null);
   const chatEndRef = useRef(null);
 
   useEffect(() => {
@@ -32,10 +37,37 @@ export default function DrillDetailPage() {
     const active =
       drill?.embeddingStatus === "pending" ||
       drill?.embeddingStatus === "processing";
-    if (!active) return;
-    const iv = setInterval(refetch, 3000);
+    if (!active) {
+      embeddingStartRef.current = null;
+      setEmbeddingElapsed(0);
+      return;
+    }
+    if (!embeddingStartRef.current) embeddingStartRef.current = Date.now();
+    const iv = setInterval(() => {
+      refetch();
+      setEmbeddingElapsed(Math.floor((Date.now() - embeddingStartRef.current) / 1000));
+    }, 1000);
     return () => clearInterval(iv);
   }, [drill?.embeddingStatus, refetch]);
+
+  // Check for similar drills once embedding is indexed (only for new drills without a parent)
+  useEffect(() => {
+    if (
+      drill?.embeddingStatus === "indexed" &&
+      !drill?.parentDrill &&
+      !similarChecked.current &&
+      !similarDismissed
+    ) {
+      similarChecked.current = true;
+      findSimilar(id)
+        .then((res) => {
+          if (res.data.similar?.length > 0) {
+            setSimilarDrills(res.data.similar);
+          }
+        })
+        .catch(() => {}); // silently ignore
+    }
+  }, [drill?.embeddingStatus, drill?.parentDrill, id, similarDismissed]);
 
   if (loading) return <div className="loading">Loading...</div>;
   if (!drill) return <div className="alert alert-danger">Drill not found</div>;
@@ -89,6 +121,22 @@ export default function DrillDetailPage() {
     } finally {
       setDiagramLoading(false);
     }
+  };
+
+  const handleConvertToVersion = async (parentDrillId) => {
+    try {
+      await convertToVersion(id, parentDrillId);
+      setSimilarDrills(null);
+      refetch();
+    } catch {
+      alert("Failed to convert to version.");
+    }
+  };
+
+  const handleDiscardDrill = async () => {
+    if (!window.confirm("Delete this drill since it already exists?")) return;
+    await deleteDrill(id);
+    navigate("/drills");
   };
 
   const handleRetryEmbedding = async () => {
@@ -201,19 +249,96 @@ export default function DrillDetailPage() {
           </div>
         )}
 
-        {/* Embedding status banner */}
+        {/* Embedding status with progress */}
         {drill.embeddingStatus && drill.embeddingStatus !== "indexed" && (
-          <div className={`embedding-status-banner embedding-status-${drill.embeddingStatus} mb-1`}>
-            {drill.embeddingStatus === "pending" && <><FiLoader /> Queued for search indexing (free tier — may take ~20s)...</>}
-            {drill.embeddingStatus === "processing" && <><FiLoader className="spin" /> Indexing for search — please wait...</>}
-            {drill.embeddingStatus === "failed" && (
-              <>
-                <FiAlertCircle /> Search indexing failed{isAdmin && drill.embeddingError ? `: ${drill.embeddingError}` : ""}
-                <button className="btn btn-secondary btn-sm" style={{ marginLeft: "auto" }} onClick={handleRetryEmbedding}>
+          <div className="embedding-progress-detail mb-1">
+            {drill.embeddingStatus === "failed" ? (
+              <div className="flex-between">
+                <span>
+                  <FiAlertCircle style={{ color: "var(--color-danger)" }} /> Search indexing failed{isAdmin && drill.embeddingError ? `: ${drill.embeddingError}` : ""}
+                </span>
+                <button className="btn btn-secondary btn-sm" onClick={handleRetryEmbedding}>
                   <FiRefreshCw /> Retry
                 </button>
+              </div>
+            ) : (
+              <>
+                <div className="flex-between">
+                  <span>
+                    <FiLoader className="spin" />{" "}
+                    {drill.embeddingStatus === "pending"
+                      ? "Queued for search indexing..."
+                      : "Indexing for search — checking for similar drills..."
+                    }
+                  </span>
+                  <span className="text-sm text-muted embedding-timer">
+                    {embeddingElapsed > 0 && `${embeddingElapsed}s`}
+                    {embeddingElapsed < 25 && ` · ~${Math.max(0, 25 - embeddingElapsed)}s remaining`}
+                  </span>
+                </div>
+                <div className="progress-bar" style={{ marginTop: "0.5rem" }}>
+                  <div
+                    className="progress-bar-fill"
+                    style={{ width: `${Math.min(95, (embeddingElapsed / 25) * 100)}%` }}
+                  />
+                </div>
+                <p className="text-sm text-muted" style={{ marginTop: "0.35rem" }}>
+                  Free tier — drills are indexed one at a time (~20-25s each)
+                </p>
               </>
             )}
+          </div>
+        )}
+
+        {/* Similar drills found — post-creation deduplication */}
+        {similarDrills && similarDrills.length > 0 && (
+          <div className="card mb-1 similar-drills-banner">
+            <div className="flex gap-sm" style={{ alignItems: "flex-start" }}>
+              <FiLink style={{ marginTop: "0.2rem", flexShrink: 0, color: "var(--color-primary)" }} />
+              <div style={{ flex: 1 }}>
+                <strong>Similar drills already exist</strong>
+                <p className="text-sm text-muted" style={{ margin: "0.25rem 0 0.75rem" }}>
+                  We found drills that look similar to this one. You can add yours as a version of an existing drill, keep it as a separate drill, or discard it.
+                </p>
+                {similarDrills.map((s) => (
+                  <div key={s._id} className="similar-drill-item">
+                    <div style={{ flex: 1 }}>
+                      <Link to={`/drills/${s._id}`}>
+                        <strong>{s.title}</strong>
+                      </Link>
+                      <span className="text-sm text-muted" style={{ marginLeft: "0.5rem" }}>
+                        {Math.round(s.similarity * 100)}% similar
+                      </span>
+                      {s.description && (
+                        <p className="text-sm text-muted" style={{ margin: "0.15rem 0 0" }}>
+                          {s.description.slice(0, 100)}{s.description.length > 100 ? "..." : ""}
+                        </p>
+                      )}
+                    </div>
+                    <button
+                      className="btn btn-primary btn-sm"
+                      onClick={() => handleConvertToVersion(s._id)}
+                    >
+                      <FiGitBranch /> Add as Version
+                    </button>
+                  </div>
+                ))}
+                <div className="flex gap-sm mt-1">
+                  <button
+                    className="btn btn-secondary btn-sm"
+                    onClick={() => { setSimilarDrills(null); setSimilarDismissed(true); }}
+                  >
+                    Keep as Separate Drill
+                  </button>
+                  <button
+                    className="btn btn-danger btn-sm"
+                    onClick={handleDiscardDrill}
+                  >
+                    <FiTrash2 /> Discard My Drill
+                  </button>
+                </div>
+              </div>
+            </div>
           </div>
         )}
 

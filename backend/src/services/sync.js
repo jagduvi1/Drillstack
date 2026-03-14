@@ -269,6 +269,57 @@ async function checkEmbeddingSimilarity(parentDrillId, newDrillData) {
   };
 }
 
+// ── Find similar drills via Qdrant vector search ─────────────────────────────
+async function findSimilarDrills(drillData, excludeDrillId, limit = 5) {
+  const text = drillToEmbeddingText(drillData);
+  let vector;
+  try {
+    vector = await getEmbedding(text);
+  } catch {
+    return []; // If embedding fails, skip similarity search
+  }
+
+  const qdrant = getQdrantClient();
+  const SIMILARITY_THRESHOLD = 0.80;
+
+  try {
+    const results = await qdrant.search(COLLECTION, {
+      vector,
+      limit: limit + 1, // fetch extra in case we need to exclude self
+      score_threshold: SIMILARITY_THRESHOLD,
+      with_payload: true,
+    });
+
+    // Filter out the drill itself and map to useful data
+    const similar = [];
+    for (const hit of results) {
+      const mongoId = hit.payload?.mongoId;
+      if (mongoId === excludeDrillId?.toString()) continue;
+      if (similar.length >= limit) break;
+
+      const drill = await Drill.findById(mongoId)
+        .select("title description sport intensity parentDrill version")
+        .populate("parentDrill", "title");
+      if (!drill) continue;
+
+      similar.push({
+        _id: drill._id,
+        title: drill.title,
+        description: drill.description,
+        sport: drill.sport,
+        intensity: drill.intensity,
+        parentDrill: drill.parentDrill,
+        version: drill.version,
+        similarity: Math.round(hit.score * 1000) / 1000,
+      });
+    }
+
+    return similar;
+  } catch {
+    return []; // Qdrant not available — skip
+  }
+}
+
 module.exports = {
   indexDrill,
   indexSession,
@@ -276,5 +327,6 @@ module.exports = {
   removeDrill,
   getQueueStatus,
   checkEmbeddingSimilarity,
+  findSimilarDrills,
   pointId,
 };
