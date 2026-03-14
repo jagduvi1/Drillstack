@@ -256,8 +256,10 @@ async function checkEmbeddingSimilarity(parentDrillId, newDrillData) {
   const magB = Math.sqrt(newVector.reduce((sum, v) => sum + v * v, 0));
   const similarity = magA && magB ? dot / (magA * magB) : 0;
 
-  // Threshold: below 0.82 = fundamentally different drill
-  const THRESHOLD = 0.82;
+  // Threshold: below 0.90 = fundamentally different drill
+  // (embeddings also capture purpose/goals, so drills training the same skills
+  //  but using different exercises can score ~0.80-0.85 — only match true variants)
+  const THRESHOLD = 0.90;
   const isSameDrill = similarity >= THRESHOLD;
 
   return {
@@ -280,7 +282,9 @@ async function findSimilarDrills(drillData, excludeDrillId, limit = 5) {
   }
 
   const qdrant = getQdrantClient();
-  const SIMILARITY_THRESHOLD = 0.80;
+  // High threshold: only match drills that are truly the same exercise,
+  // not just drills with similar purpose/learning goals
+  const SIMILARITY_THRESHOLD = 0.92;
 
   try {
     const results = await qdrant.search(COLLECTION, {
