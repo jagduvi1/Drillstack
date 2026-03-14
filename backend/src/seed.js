@@ -10,20 +10,20 @@ const User = require("./models/User");
 async function seed() {
   await connectDB();
 
-  // Ensure a demo coach user exists
-  const demoEmail = "coach@example.com";
-  const existing = await User.findOne({ email: demoEmail });
-  if (!existing) {
-    await User.create({
-      name: "Demo Coach",
-      email: demoEmail,
-      password: "coach123",
-      role: "coach",
-      sports: ["football"],
-    });
-    console.log("Demo user created: coach@example.com / coach123");
-  } else {
-    console.log("Demo user already exists");
+  // Ensure demo users exist
+  const users = [
+    { name: "Demo Coach", email: "coach@example.com", password: "coach123", role: "coach", sports: ["football"] },
+    { name: "Test Coach", email: "test@example.com", password: "test1234", role: "coach", sports: ["football", "handball"] },
+  ];
+
+  for (const u of users) {
+    const existing = await User.findOne({ email: u.email });
+    if (!existing) {
+      await User.create(u);
+      console.log(`User created: ${u.email} / ${u.password}`);
+    } else {
+      console.log(`User already exists: ${u.email}`);
+    }
   }
 
   await mongoose.disconnect();
