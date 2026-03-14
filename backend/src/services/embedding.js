@@ -80,7 +80,7 @@ async function voyageEmbedding(text, model) {
         "Content-Type": "application/json",
         Authorization: `Bearer ${apiKey}`,
       },
-      body: JSON.stringify({ model, input: [text], input_type: "document" }),
+      body: JSON.stringify({ model, input: [text] }),
     });
 
     if (res.status === 429) {

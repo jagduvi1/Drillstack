@@ -16,7 +16,7 @@ const DEFAULTS = {
 
   // Embedding
   embedding_provider: process.env.EMBEDDING_PROVIDER || "voyage",
-  embedding_model: process.env.EMBEDDING_MODEL || "voyage-3-lite",
+  embedding_model: process.env.EMBEDDING_MODEL || "voyage-4-lite",
   embedding_dimensions: parseInt(process.env.EMBEDDING_DIMENSIONS, 10) || 1024,
 
   // System prompt for AI assistance
