@@ -126,6 +126,7 @@ router.post(
 );
 
 // POST /api/ai/suggest-session — suggest a session plan
+// Uses starred drills by default, or all drills if ?useAll=true
 router.post(
   "/suggest-session",
   authenticate,
@@ -133,8 +134,20 @@ router.post(
   validate,
   async (req, res, next) => {
     try {
-      const drills = await Drill.find({ createdBy: req.user._id })
-        .select("title description intensity setup")
+      const User = require("../models/User");
+      let drillFilter = {};
+
+      if (!req.body.useAll) {
+        // Default: use only starred drills
+        const user = await User.findById(req.user._id).select("starredDrills");
+        if (user?.starredDrills?.length > 0) {
+          drillFilter._id = { $in: user.starredDrills };
+        }
+        // If no starred drills, fall back to all drills
+      }
+
+      const drills = await Drill.find(drillFilter)
+        .select("title description intensity setup sport")
         .limit(50)
         .sort({ updatedAt: -1 });
 
@@ -142,7 +155,7 @@ router.post(
         req.body.description,
         drills
       );
-      res.json({ suggestion, availableDrills: drills });
+      res.json({ suggestion, availableDrills: drills, usedStarred: !req.body.useAll });
     } catch (err) {
       next(err);
     }

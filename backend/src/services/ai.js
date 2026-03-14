@@ -459,6 +459,41 @@ Please adapt this session for today's conditions.`;
   }
 }
 
+// ── Similarity check for versioning ──────────────────────────────────────────
+
+const SIMILARITY_PROMPT = `You are a sports coaching assistant. Compare an ORIGINAL drill with an EDITED version and determine if they are still fundamentally the same drill (a variation/tweak) or if the edits have created something entirely different (a new drill).
+
+Consider:
+- Same core mechanic/exercise = same drill (even with different player counts, space, intensity)
+- Changed rules, goals, or fundamental structure = new drill
+- Adding/removing a phase or completely changing the flow = new drill
+- Minor tweaks to setup, coaching points, or wording = same drill
+
+Return ONLY valid JSON:
+{
+  "isSameDrill": true | false,
+  "reason": "1-2 sentence explanation"
+}`;
+
+async function checkSimilarity(originalDrill, editedData) {
+  const prompt = `ORIGINAL DRILL:
+Title: ${originalDrill.title}
+Description: ${originalDrill.description}
+How it works: ${originalDrill.howItWorks || ""}
+
+EDITED VERSION:
+Title: ${editedData.title || originalDrill.title}
+Description: ${editedData.description || originalDrill.description}
+How it works: ${editedData.howItWorks || originalDrill.howItWorks || ""}`;
+
+  const raw = await complete(SIMILARITY_PROMPT, prompt);
+  try {
+    return parseJSON(raw);
+  } catch {
+    return { isSameDrill: true, reason: "Could not determine — assuming same drill." };
+  }
+}
+
 module.exports = {
   complete,
   completeChat,
@@ -469,4 +504,5 @@ module.exports = {
   generateTrainingProgram,
   refineTrainingProgram,
   adaptSession,
+  checkSimilarity,
 };

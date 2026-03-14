@@ -15,8 +15,9 @@ const MAX_BACKOFF_MS = 120_000; // 2 min cap
 const JITTER_FACTOR = 0.3; // ±30 %
 
 // Per-provider minimum interval between calls (simple throttle)
+// Free tier allows ~3 req/min → space calls ~21 s apart
 let lastVoyageCall = 0;
-const VOYAGE_MIN_INTERVAL = 1_200; // ms – ~50 req/min ceiling, well within free tier
+const VOYAGE_MIN_INTERVAL = 21_000; // ms – keeps us under 3 req/min free-tier limit
 
 function backoffMs(attempt) {
   const base = Math.min(INITIAL_BACKOFF_MS * 2 ** attempt, MAX_BACKOFF_MS);
@@ -89,7 +90,11 @@ async function voyageEmbedding(text, model) {
           `Voyage AI rate limit: still 429 after ${MAX_RETRIES} retries`
         );
       }
-      const delay = backoffMs(attempt);
+      // Honour Retry-After header if present, otherwise use exponential backoff
+      const retryAfter = res.headers.get("retry-after");
+      const delay = retryAfter
+        ? parseInt(retryAfter, 10) * 1000
+        : backoffMs(attempt);
       console.warn(
         `Voyage 429 — retry ${attempt + 1}/${MAX_RETRIES} in ${delay}ms`
       );

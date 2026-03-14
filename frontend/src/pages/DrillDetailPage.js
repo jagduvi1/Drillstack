@@ -1,19 +1,24 @@
 import { useState, useRef, useEffect } from "react";
 import { useParams, Link, useNavigate } from "react-router-dom";
 import useFetch from "../hooks/useFetch";
-import { getDrill, deleteDrill, uploadDiagram, addReflection, retryEmbedding } from "../api/drills";
+import { useAuth } from "../context/AuthContext";
+import { getDrill, deleteDrill, uploadDiagram, addReflection, retryEmbedding, toggleStar, forkDrill, getVersions, setDefaultVersion } from "../api/drills";
 import { refineDrill, generateDiagram } from "../api/ai";
-import { FiEdit, FiTrash2, FiSend, FiMessageCircle, FiLoader, FiAlertCircle, FiCheck, FiRefreshCw, FiImage } from "react-icons/fi";
+import { FiEdit, FiTrash2, FiSend, FiMessageCircle, FiLoader, FiAlertCircle, FiRefreshCw, FiImage, FiStar, FiCopy, FiGitBranch, FiUser, FiCheck } from "react-icons/fi";
 
 export default function DrillDetailPage() {
   const { id } = useParams();
   const navigate = useNavigate();
+  const { user } = useAuth();
+  const isAdmin = user?.role === "admin" || user?.isSuperAdmin;
   const { data: drill, loading, refetch } = useFetch(() => getDrill(id), [id]);
   const [reflectionNote, setReflectionNote] = useState("");
   const [chatMessage, setChatMessage] = useState("");
   const [chatLoading, setChatLoading] = useState(false);
   const [showChat, setShowChat] = useState(false);
   const [diagramLoading, setDiagramLoading] = useState(false);
+  const [showVersions, setShowVersions] = useState(false);
+  const [versions, setVersions] = useState(null);
   const chatEndRef = useRef(null);
 
   useEffect(() => {
@@ -39,6 +44,30 @@ export default function DrillDetailPage() {
     if (!window.confirm("Delete this drill?")) return;
     await deleteDrill(id);
     navigate("/drills");
+  };
+
+  const handleStar = async () => {
+    await toggleStar(id);
+    refetch();
+  };
+
+  const handleFork = async () => {
+    const res = await forkDrill(id);
+    navigate(`/drills/${res.data._id}/edit`);
+  };
+
+  const handleShowVersions = async () => {
+    if (!showVersions) {
+      const res = await getVersions(id);
+      setVersions(res.data);
+    }
+    setShowVersions(!showVersions);
+  };
+
+  const handleSetDefault = async (versionId) => {
+    await setDefaultVersion(versionId);
+    const res = await getVersions(id);
+    setVersions(res.data);
   };
 
   const handleDiagramUpload = async (e) => {
@@ -99,24 +128,87 @@ export default function DrillDetailPage() {
     <div className="drill-detail-layout">
       <div className="drill-detail-main">
         <div className="flex-between mb-1">
-          <h1>{drill.title}</h1>
+          <div>
+            <h1 style={{ marginBottom: "0.25rem" }}>{drill.title}</h1>
+            <div className="flex gap-sm" style={{ alignItems: "center" }}>
+              {drill.createdBy?.name && (
+                <span className="text-sm text-muted"><FiUser style={{ fontSize: "0.75rem" }} /> {drill.createdBy.name}</span>
+              )}
+              {drill.parentDrill && (
+                <span className="text-sm text-muted">
+                  <FiGitBranch style={{ fontSize: "0.75rem" }} /> v{drill.version} of{" "}
+                  <Link to={`/drills/${drill.parentDrill._id}`}>{drill.parentDrill.title}</Link>
+                </span>
+              )}
+              {drill.versionCount > 1 && (
+                <button className="btn-link text-sm" onClick={handleShowVersions}>
+                  <FiGitBranch /> {drill.versionCount} versions
+                </button>
+              )}
+            </div>
+          </div>
           <div className="flex gap-sm">
+            <button
+              className={`btn btn-sm ${drill.isStarred ? "btn-star-active" : "btn-secondary"}`}
+              onClick={handleStar}
+              title={drill.isStarred ? "Unstar" : "Star this drill"}
+            >
+              <FiStar /> {drill.isStarred ? "Starred" : "Star"}
+            </button>
             <button className="btn btn-secondary" onClick={() => setShowChat(!showChat)}>
               <FiMessageCircle /> {showChat ? "Hide Chat" : "Refine with AI"}
             </button>
-            <Link to={`/drills/${id}/edit`} className="btn btn-secondary"><FiEdit /> Edit</Link>
-            <button className="btn btn-danger" onClick={handleDelete}><FiTrash2 /> Delete</button>
+            {drill.isOwner ? (
+              <Link to={`/drills/${id}/edit`} className="btn btn-secondary"><FiEdit /> Edit</Link>
+            ) : (
+              <button className="btn btn-secondary" onClick={handleFork}><FiCopy /> Fork & Edit</button>
+            )}
+            {(drill.isOwner || isAdmin) && (
+              <button className="btn btn-danger" onClick={handleDelete}><FiTrash2 /> Delete</button>
+            )}
           </div>
         </div>
+
+        {/* Versions panel */}
+        {showVersions && versions && (
+          <div className="card mb-1">
+            <h3>Versions</h3>
+            <div className="versions-list">
+              {versions.versions.map((v) => (
+                <div key={v._id} className={`version-item ${v._id === id ? "version-item-current" : ""}`}>
+                  <div className="flex-between">
+                    <div>
+                      <Link to={`/drills/${v._id}`}>
+                        <strong>v{v.version}</strong> — {v.title}
+                      </Link>
+                      <span className="text-sm text-muted" style={{ marginLeft: "0.5rem" }}>
+                        by {v.forkedBy?.name || v.createdBy?.name || "Unknown"}
+                      </span>
+                    </div>
+                    <div className="flex gap-sm">
+                      {versions.defaultVersionId === v._id.toString() ? (
+                        <span className="tag tag-success"><FiCheck /> Default</span>
+                      ) : (
+                        <button className="btn btn-secondary btn-sm" onClick={() => handleSetDefault(v._id)}>
+                          Set as default
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
 
         {/* Embedding status banner */}
         {drill.embeddingStatus && drill.embeddingStatus !== "indexed" && (
           <div className={`embedding-status-banner embedding-status-${drill.embeddingStatus} mb-1`}>
-            {drill.embeddingStatus === "pending" && <><FiLoader /> Queued for search indexing...</>}
-            {drill.embeddingStatus === "processing" && <><FiLoader className="spin" /> Indexing for search...</>}
+            {drill.embeddingStatus === "pending" && <><FiLoader /> Queued for search indexing (free tier — may take ~20s)...</>}
+            {drill.embeddingStatus === "processing" && <><FiLoader className="spin" /> Indexing for search — please wait...</>}
             {drill.embeddingStatus === "failed" && (
               <>
-                <FiAlertCircle /> Search indexing failed{drill.embeddingError ? `: ${drill.embeddingError}` : ""}
+                <FiAlertCircle /> Search indexing failed{isAdmin && drill.embeddingError ? `: ${drill.embeddingError}` : ""}
                 <button className="btn btn-secondary btn-sm" style={{ marginLeft: "auto" }} onClick={handleRetryEmbedding}>
                   <FiRefreshCw /> Retry
                 </button>

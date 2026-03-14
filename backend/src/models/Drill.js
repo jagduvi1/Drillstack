@@ -55,6 +55,11 @@ const drillSchema = new Schema(
     },
     embeddingError: { type: String, default: null },
 
+    // ── Versioning ─────────────────────────────────────────────────────────
+    parentDrill: { type: Schema.Types.ObjectId, ref: "Drill", default: null },
+    version: { type: Number, default: 1 },
+    forkedBy: { type: Schema.Types.ObjectId, ref: "User", default: null },
+
     // ── Media & reflections ─────────────────────────────────────────────────
     diagrams: [{ type: String }],
     reflectionNotes: [reflectionSchema],
@@ -65,5 +70,6 @@ const drillSchema = new Schema(
 );
 
 drillSchema.index({ title: "text", description: "text", howItWorks: "text" });
+drillSchema.index({ parentDrill: 1 });
 
 module.exports = mongoose.model("Drill", drillSchema);

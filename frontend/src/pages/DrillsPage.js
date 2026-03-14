@@ -1,8 +1,8 @@
 import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import useFetch from "../hooks/useFetch";
-import { getDrills, deleteDrill, getEmbeddingStatus } from "../api/drills";
-import { FiPlus, FiTrash2, FiEdit, FiZap, FiLoader, FiCheck, FiAlertCircle } from "react-icons/fi";
+import { getDrills, deleteDrill, getEmbeddingStatus, toggleStar } from "../api/drills";
+import { FiPlus, FiTrash2, FiEdit, FiZap, FiLoader, FiCheck, FiAlertCircle, FiStar, FiUser } from "react-icons/fi";
 
 const STATUS_LABELS = {
   pending: "Queued",
@@ -29,9 +29,10 @@ function EmbeddingBadge({ status }) {
 export default function DrillsPage() {
   const [page, setPage] = useState(1);
   const [sport, setSport] = useState("");
+  const [starredOnly, setStarredOnly] = useState(false);
   const { data, loading, refetch } = useFetch(
-    () => getDrills({ page, sport: sport || undefined }),
-    [page, sport]
+    () => getDrills({ page, sport: sport || undefined, starred: starredOnly || undefined }),
+    [page, sport, starredOnly]
   );
 
   // Poll embedding queue status while any drill is pending/processing
@@ -60,6 +61,13 @@ export default function DrillsPage() {
     refetch();
   };
 
+  const handleStar = async (e, id) => {
+    e.preventDefault();
+    e.stopPropagation();
+    await toggleStar(id);
+    refetch();
+  };
+
   const queueTotal = queue?.total || 0;
   const queueDone = (queue?.completed || 0) + (queue?.failed || 0);
   const queuePct = queueTotal > 0 ? Math.round((queueDone / queueTotal) * 100) : 0;
@@ -76,7 +84,7 @@ export default function DrillsPage() {
         <div className="embedding-progress mb-1">
           <div className="embedding-progress-header">
             <FiLoader className="spin" />
-            <span>Indexing drills for search... {queueDone}/{queueTotal}</span>
+            <span>Indexing drills for search... {queueDone}/{queueTotal} (free tier — ~20s per drill)</span>
           </div>
           <div className="progress-bar">
             <div className="progress-bar-fill" style={{ width: `${queuePct}%` }} />
@@ -84,7 +92,7 @@ export default function DrillsPage() {
         </div>
       )}
 
-      <div className="flex gap-sm mb-1">
+      <div className="flex gap-sm mb-1" style={{ alignItems: "center" }}>
         <input
           className="form-control"
           placeholder="Filter by sport..."
@@ -92,6 +100,12 @@ export default function DrillsPage() {
           value={sport}
           onChange={(e) => { setSport(e.target.value); setPage(1); }}
         />
+        <button
+          className={`btn btn-sm ${starredOnly ? "btn-primary" : "btn-secondary"}`}
+          onClick={() => { setStarredOnly(!starredOnly); setPage(1); }}
+        >
+          <FiStar /> {starredOnly ? "Starred" : "All"}
+        </button>
       </div>
 
       {loading ? (
@@ -104,17 +118,28 @@ export default function DrillsPage() {
                 <Link key={d._id} to={`/drills/${d._id}`} className="drill-card card">
                   <div className="flex-between" style={{ marginBottom: "0.5rem" }}>
                     <h3 style={{ fontSize: "1rem", margin: 0 }}>{d.title}</h3>
-                    <span className={`tag tag-${d.intensity === "high" ? "danger" : d.intensity === "low" ? "" : "warning"}`}>
-                      {d.intensity}
-                    </span>
+                    <div className="flex gap-sm" style={{ alignItems: "center" }}>
+                      <button
+                        className={`star-btn ${d.isStarred ? "star-btn-active" : ""}`}
+                        onClick={(e) => handleStar(e, d._id)}
+                        title={d.isStarred ? "Unstar" : "Star"}
+                      >
+                        <FiStar />
+                      </button>
+                      <span className={`tag tag-${d.intensity === "high" ? "danger" : d.intensity === "low" ? "" : "warning"}`}>
+                        {d.intensity}
+                      </span>
+                    </div>
                   </div>
                   <p className="text-sm text-muted" style={{ marginBottom: "0.75rem", lineHeight: 1.4 }}>
                     {d.description?.slice(0, 120)}{d.description?.length > 120 ? "..." : ""}
                   </p>
-                  <div className="flex gap-sm" style={{ flexWrap: "wrap" }}>
+                  <div className="flex gap-sm" style={{ flexWrap: "wrap", alignItems: "center" }}>
                     {d.sport && <span className="tag">{d.sport}</span>}
                     {d.setup?.duration && <span className="tag">{d.setup.duration}</span>}
-                    {d.setup?.players && <span className="tag">{d.setup.players.split(",")[0]}</span>}
+                    {d.createdBy?.name && (
+                      <span className="tag tag-creator"><FiUser style={{ fontSize: "0.7rem" }} /> {d.createdBy.name}</span>
+                    )}
                     <EmbeddingBadge status={d.embeddingStatus} />
                   </div>
                   <div className="drill-card-actions" onClick={(e) => e.preventDefault()}>
@@ -127,8 +152,10 @@ export default function DrillsPage() {
           ) : (
             <div className="card" style={{ textAlign: "center", padding: "3rem" }}>
               <FiZap style={{ fontSize: "2rem", color: "var(--color-muted)", marginBottom: "1rem" }} />
-              <p className="text-muted">No drills yet. Create your first drill to get started.</p>
-              <Link to="/drills/new" className="btn btn-primary mt-1"><FiPlus /> Create Drill</Link>
+              <p className="text-muted">
+                {starredOnly ? "No starred drills yet. Star some drills to see them here." : "No drills yet. Create your first drill to get started."}
+              </p>
+              {!starredOnly && <Link to="/drills/new" className="btn btn-primary mt-1"><FiPlus /> Create Drill</Link>}
             </div>
           )}
 
