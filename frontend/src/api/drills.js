@@ -11,3 +11,6 @@ export const uploadDiagram = (id, formData) =>
   });
 export const addReflection = (id, note) =>
   api.post(`/drills/${id}/reflections`, { note });
+export const getEmbeddingStatus = () => api.get("/drills/embedding-status");
+export const retryEmbedding = (id) =>
+  api.post(`/drills/${id}/retry-embedding`);

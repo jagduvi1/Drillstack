@@ -1,7 +1,31 @@
 import api from "./client";
 
-export const suggestTags = (text) => api.post("/ai/suggest-tags", { text });
-export const suggestGuidedQuestions = (text) => api.post("/ai/guided-questions", { text });
-export const suggestMistakes = (text) => api.post("/ai/common-mistakes", { text });
-export const suggestVariations = (text) => api.post("/ai/variations", { text });
-export const summarizeDrill = (drill) => api.post("/ai/summarize", { drill });
+export const generateDrill = (description, sport) =>
+  api.post("/ai/generate", { description, sport });
+
+export const generateAndSaveDrill = (description, sport) =>
+  api.post("/ai/generate-and-save", { description, sport });
+
+export const refineDrill = (id, message) =>
+  api.post(`/ai/refine/${id}`, { message });
+
+export const suggestSession = (description) =>
+  api.post("/ai/suggest-session", { description });
+
+export const summarizeDrill = (drill) =>
+  api.post("/ai/summarize", { drill });
+
+export const generateProgram = (data) =>
+  api.post("/ai/generate-program", data);
+
+export const generateAndSaveProgram = (data) =>
+  api.post("/ai/generate-and-save-program", data);
+
+export const refineProgram = (id, message) =>
+  api.post(`/ai/refine-program/${id}`, { message });
+
+export const adaptSession = (session, constraints) =>
+  api.post("/ai/adapt-session", { session, constraints });
+
+export const generateDiagram = (drillId) =>
+  api.post(`/ai/generate-diagram/${drillId}`);

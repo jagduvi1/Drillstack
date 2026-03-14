@@ -1,13 +1,24 @@
 const mongoose = require("mongoose");
 const { Schema } = mongoose;
 
-const focusBlockSchema = new Schema(
+const aiMessageSchema = new Schema(
   {
-    name: { type: String, required: true },
-    tags: [{ type: Schema.Types.ObjectId, ref: "Taxonomy" }],
-    startWeek: { type: Number, required: true },
-    endWeek: { type: Number, required: true },
-    priority: { type: String, enum: ["primary", "secondary", "maintenance"], default: "primary" },
+    role: { type: String, enum: ["user", "assistant"], required: true },
+    content: { type: String, required: true },
+    timestamp: { type: Date, default: Date.now },
+  },
+  { _id: false }
+);
+
+const sessionOutlineSchema = new Schema(
+  {
+    dayOfWeek: { type: String, default: "" },
+    title: { type: String, default: "" },
+    focus: { type: String, default: "" },
+    intensity: { type: String, enum: ["low", "medium", "high"], default: "medium" },
+    durationMinutes: { type: Number, default: 60 },
+    notes: { type: String, default: "" },
+    linkedSession: { type: Schema.Types.ObjectId, ref: "TrainingSession", default: null },
   },
   { _id: true }
 );
@@ -15,8 +26,9 @@ const focusBlockSchema = new Schema(
 const weeklyPlanSchema = new Schema(
   {
     week: { type: Number, required: true },
-    sessions: [{ type: Schema.Types.ObjectId, ref: "TrainingSession" }],
-    observationNotes: { type: String, default: "" },
+    theme: { type: String, default: "" },
+    sessions: [sessionOutlineSchema],
+    notes: { type: String, default: "" },
   },
   { _id: true }
 );
@@ -24,14 +36,20 @@ const weeklyPlanSchema = new Schema(
 const periodPlanSchema = new Schema(
   {
     title: { type: String, required: true, trim: true },
+    description: { type: String, default: "" },
     sport: { type: String, default: null, index: true },
     startDate: { type: Date, required: true },
     endDate: { type: Date, required: true },
 
-    focusBlocks: [focusBlockSchema],
+    // Program parameters
+    sessionsPerWeek: { type: Number, default: 3 },
+    goals: [{ type: String }],
+    focusAreas: [{ type: String }],
+
     weeklyPlans: [weeklyPlanSchema],
 
-    coverageTracking: { type: Schema.Types.Mixed, default: {} },
+    // AI conversation for refinement
+    aiConversation: [aiMessageSchema],
 
     createdBy: { type: Schema.Types.ObjectId, ref: "User", required: true },
   },

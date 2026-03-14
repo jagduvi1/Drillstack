@@ -2,6 +2,7 @@ const router = require("express").Router();
 const { body } = require("express-validator");
 const validate = require("../middleware/validate");
 const { signToken, authenticate } = require("../middleware/auth");
+const { checkIsSuperAdmin } = require("../middleware/superAdmin");
 const User = require("../models/User");
 
 // POST /api/auth/register
@@ -48,7 +49,9 @@ router.post(
 
 // GET /api/auth/me
 router.get("/me", authenticate, (req, res) => {
-  res.json({ user: req.user });
+  const user = req.user.toJSON();
+  user.isSuperAdmin = checkIsSuperAdmin(req.user);
+  res.json({ user });
 });
 
 module.exports = router;

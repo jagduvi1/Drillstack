@@ -49,6 +49,7 @@ a {
   padding: 1rem 0;
   display: flex;
   flex-direction: column;
+  flex-shrink: 0;
 }
 
 .app-sidebar h2 {
@@ -81,6 +82,7 @@ a {
   flex: 1;
   padding: 1.5rem 2rem;
   max-width: 1200px;
+  min-width: 0;
 }
 
 /* ── Cards ─────────────────────────────────────────── */
@@ -287,4 +289,254 @@ th {
 .section-block h4 {
   text-transform: capitalize;
   margin-bottom: 0.5rem;
+}
+
+/* ── Drill Grid ────────────────────────────────────── */
+.drill-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: 1rem;
+}
+
+.drill-card {
+  position: relative;
+  display: block;
+  color: var(--color-text);
+  transition: box-shadow 0.15s, transform 0.1s;
+  cursor: pointer;
+}
+
+.drill-card:hover {
+  box-shadow: var(--shadow-md);
+  transform: translateY(-1px);
+  color: var(--color-text);
+}
+
+.drill-card-actions {
+  display: flex;
+  gap: 0.5rem;
+  margin-top: 0.75rem;
+  padding-top: 0.75rem;
+  border-top: 1px solid var(--color-border);
+}
+
+/* ── Drill Detail Layout with Chat ─────────────────── */
+.drill-detail-layout {
+  display: flex;
+  gap: 1.5rem;
+  align-items: flex-start;
+}
+
+.drill-detail-main {
+  flex: 1;
+  min-width: 0;
+}
+
+/* ── Chat Panel ────────────────────────────────────── */
+.chat-panel {
+  width: 380px;
+  flex-shrink: 0;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-md);
+  display: flex;
+  flex-direction: column;
+  max-height: calc(100vh - 4rem);
+  position: sticky;
+  top: 1.5rem;
+}
+
+.chat-header {
+  padding: 1rem;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.chat-header h3 {
+  margin-bottom: 0.25rem;
+}
+
+.chat-messages {
+  flex: 1;
+  overflow-y: auto;
+  padding: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  min-height: 200px;
+  max-height: 500px;
+}
+
+.chat-msg {
+  max-width: 90%;
+}
+
+.chat-msg-user {
+  align-self: flex-end;
+}
+
+.chat-msg-assistant {
+  align-self: flex-start;
+}
+
+.chat-msg-label {
+  font-size: 0.7rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  color: var(--color-muted);
+  margin-bottom: 0.2rem;
+}
+
+.chat-msg-content {
+  padding: 0.6rem 0.9rem;
+  border-radius: var(--radius);
+  font-size: 0.875rem;
+  line-height: 1.5;
+  white-space: pre-wrap;
+}
+
+.chat-msg-user .chat-msg-content {
+  background: var(--color-primary);
+  color: #fff;
+  border-bottom-right-radius: 2px;
+}
+
+.chat-msg-assistant .chat-msg-content {
+  background: var(--color-bg);
+  color: var(--color-text);
+  border: 1px solid var(--color-border);
+  border-bottom-left-radius: 2px;
+}
+
+.chat-input {
+  padding: 1rem;
+  border-top: 1px solid var(--color-border);
+  display: flex;
+  gap: 0.5rem;
+  align-items: flex-end;
+}
+
+.chat-input textarea {
+  flex: 1;
+  min-height: 40px;
+  max-height: 100px;
+  resize: none;
+}
+
+.chat-input .btn {
+  flex-shrink: 0;
+}
+
+/* ── Embedding Progress & Status ───────────────────── */
+.embedding-progress {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  padding: 0.75rem 1rem;
+}
+
+.embedding-progress-header {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.85rem;
+  color: var(--color-muted);
+  margin-bottom: 0.5rem;
+}
+
+.progress-bar {
+  width: 100%;
+  height: 6px;
+  background: var(--color-border);
+  border-radius: 999px;
+  overflow: hidden;
+}
+
+.progress-bar-fill {
+  height: 100%;
+  background: var(--color-primary);
+  border-radius: 999px;
+  transition: width 0.4s ease;
+}
+
+.embedding-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.1rem 0.45rem;
+  border-radius: 999px;
+  font-size: 0.7rem;
+  font-weight: 500;
+}
+
+.embedding-badge-pending {
+  background: #dbeafe;
+  color: #1e40af;
+}
+
+.embedding-badge-failed {
+  background: #fee2e2;
+  color: #991b1b;
+}
+
+.embedding-status-banner {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.6rem 1rem;
+  border-radius: var(--radius);
+  font-size: 0.85rem;
+}
+
+.embedding-status-pending,
+.embedding-status-processing {
+  background: #dbeafe;
+  color: #1e40af;
+}
+
+.embedding-status-failed {
+  background: #fee2e2;
+  color: #991b1b;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+.spin {
+  animation: spin 1s linear infinite;
+}
+
+/* ── Adapt Session Panel ──────────────────────────── */
+.adapt-panel {
+  margin-top: 0.5rem;
+  padding: 1rem;
+  background: var(--color-surface);
+  border: 1px solid var(--color-primary);
+  border-radius: var(--radius);
+}
+
+.adapt-result {
+  margin-top: 0.5rem;
+  padding: 1rem;
+  background: #f0fdf4;
+  border: 1px solid #86efac;
+  border-radius: var(--radius);
+}
+
+/* ── Responsive ────────────────────────────────────── */
+@media (max-width: 900px) {
+  .drill-detail-layout {
+    flex-direction: column;
+  }
+
+  .chat-panel {
+    width: 100%;
+    position: static;
+    max-height: 400px;
+  }
+
+  .drill-grid {
+    grid-template-columns: 1fr;
+  }
 }

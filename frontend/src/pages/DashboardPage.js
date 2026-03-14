@@ -4,6 +4,7 @@ import { getDrills } from "../api/drills";
 import { getSessions } from "../api/sessions";
 import { getPlans } from "../api/plans";
 import { Link } from "react-router-dom";
+import { FiZap, FiPlay, FiCalendar, FiSearch } from "react-icons/fi";
 
 export default function DashboardPage() {
   const { user } = useAuth();
@@ -15,43 +16,54 @@ export default function DashboardPage() {
     <div>
       <h1 style={{ marginBottom: "1.5rem" }}>Welcome, {user?.name}</h1>
 
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: "1rem", marginBottom: "2rem" }}>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: "1rem", marginBottom: "2rem" }}>
         <div className="card">
-          <div className="text-muted text-sm">Drills</div>
+          <div className="flex gap-sm" style={{ alignItems: "center", marginBottom: "0.5rem" }}>
+            <FiPlay style={{ color: "var(--color-primary)" }} />
+            <span className="text-muted text-sm">Drills</span>
+          </div>
           <div style={{ fontSize: "2rem", fontWeight: 700 }}>{drillData?.total ?? "..."}</div>
-          <Link to="/drills/new" className="btn btn-primary btn-sm mt-1">New Drill</Link>
+          <Link to="/drills/new" className="btn btn-primary btn-sm mt-1"><FiZap /> Create with AI</Link>
         </div>
         <div className="card">
-          <div className="text-muted text-sm">Sessions</div>
+          <div className="flex gap-sm" style={{ alignItems: "center", marginBottom: "0.5rem" }}>
+            <FiCalendar style={{ color: "var(--color-primary)" }} />
+            <span className="text-muted text-sm">Sessions</span>
+          </div>
           <div style={{ fontSize: "2rem", fontWeight: 700 }}>{sessionData?.total ?? "..."}</div>
           <Link to="/sessions/new" className="btn btn-primary btn-sm mt-1">New Session</Link>
         </div>
         <div className="card">
-          <div className="text-muted text-sm">Period Plans</div>
+          <div className="flex gap-sm" style={{ alignItems: "center", marginBottom: "0.5rem" }}>
+            <FiCalendar style={{ color: "var(--color-primary)" }} />
+            <span className="text-muted text-sm">Plans</span>
+          </div>
           <div style={{ fontSize: "2rem", fontWeight: 700 }}>{planData?.length ?? "..."}</div>
           <Link to="/plans/new" className="btn btn-primary btn-sm mt-1">New Plan</Link>
+        </div>
+        <div className="card">
+          <div className="flex gap-sm" style={{ alignItems: "center", marginBottom: "0.5rem" }}>
+            <FiSearch style={{ color: "var(--color-primary)" }} />
+            <span className="text-muted text-sm">Search</span>
+          </div>
+          <p className="text-sm text-muted" style={{ marginTop: "0.5rem" }}>Find drills by describing what you need</p>
+          <Link to="/search" className="btn btn-secondary btn-sm mt-1">Search Drills</Link>
         </div>
       </div>
 
       <h2 style={{ marginBottom: "1rem" }}>Recent Drills</h2>
       {drillData?.drills?.length ? (
-        <div className="card">
-          <div className="table-wrap">
-            <table>
-              <thead>
-                <tr><th>Title</th><th>Intensity</th><th>Duration</th></tr>
-              </thead>
-              <tbody>
-                {drillData.drills.map((d) => (
-                  <tr key={d._id}>
-                    <td><Link to={`/drills/${d._id}`}>{d.title}</Link></td>
-                    <td><span className="tag">{d.intensity}</span></td>
-                    <td>{d.duration} min</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+        <div className="drill-grid">
+          {drillData.drills.map((d) => (
+            <Link key={d._id} to={`/drills/${d._id}`} className="drill-card card">
+              <h3 style={{ fontSize: "1rem", marginBottom: "0.5rem" }}>{d.title}</h3>
+              <p className="text-sm text-muted">{d.description?.slice(0, 100)}{d.description?.length > 100 ? "..." : ""}</p>
+              <div className="flex gap-sm mt-1" style={{ flexWrap: "wrap" }}>
+                {d.sport && <span className="tag">{d.sport}</span>}
+                <span className={`tag tag-${d.intensity === "high" ? "danger" : d.intensity === "low" ? "" : "warning"}`}>{d.intensity}</span>
+              </div>
+            </Link>
+          ))}
         </div>
       ) : (
         <p className="text-muted">No drills yet. Create your first drill to get started.</p>

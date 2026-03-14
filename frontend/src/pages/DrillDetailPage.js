@@ -1,14 +1,36 @@
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useParams, Link, useNavigate } from "react-router-dom";
 import useFetch from "../hooks/useFetch";
-import { getDrill, deleteDrill, uploadDiagram, addReflection } from "../api/drills";
-import TagBadge from "../components/common/TagBadge";
+import { getDrill, deleteDrill, uploadDiagram, addReflection, retryEmbedding } from "../api/drills";
+import { refineDrill, generateDiagram } from "../api/ai";
+import { FiEdit, FiTrash2, FiSend, FiMessageCircle, FiLoader, FiAlertCircle, FiCheck, FiRefreshCw, FiImage } from "react-icons/fi";
 
 export default function DrillDetailPage() {
   const { id } = useParams();
   const navigate = useNavigate();
   const { data: drill, loading, refetch } = useFetch(() => getDrill(id), [id]);
   const [reflectionNote, setReflectionNote] = useState("");
+  const [chatMessage, setChatMessage] = useState("");
+  const [chatLoading, setChatLoading] = useState(false);
+  const [showChat, setShowChat] = useState(false);
+  const [diagramLoading, setDiagramLoading] = useState(false);
+  const chatEndRef = useRef(null);
+
+  useEffect(() => {
+    if (chatEndRef.current) {
+      chatEndRef.current.scrollIntoView({ behavior: "smooth" });
+    }
+  }, [drill?.aiConversation]);
+
+  // Poll while embedding is pending/processing
+  useEffect(() => {
+    const active =
+      drill?.embeddingStatus === "pending" ||
+      drill?.embeddingStatus === "processing";
+    if (!active) return;
+    const iv = setInterval(refetch, 3000);
+    return () => clearInterval(iv);
+  }, [drill?.embeddingStatus, refetch]);
 
   if (loading) return <div className="loading">Loading...</div>;
   if (!drill) return <div className="alert alert-danger">Drill not found</div>;
@@ -28,6 +50,23 @@ export default function DrillDetailPage() {
     refetch();
   };
 
+  const handleGenerateDiagram = async () => {
+    setDiagramLoading(true);
+    try {
+      await generateDiagram(id);
+      refetch();
+    } catch {
+      alert("Diagram generation failed. Check your AI provider configuration.");
+    } finally {
+      setDiagramLoading(false);
+    }
+  };
+
+  const handleRetryEmbedding = async () => {
+    await retryEmbedding(id);
+    refetch();
+  };
+
   const handleAddReflection = async () => {
     if (!reflectionNote.trim()) return;
     await addReflection(id, reflectionNote.trim());
@@ -35,128 +74,202 @@ export default function DrillDetailPage() {
     refetch();
   };
 
+  const handleChatSend = async () => {
+    if (!chatMessage.trim() || chatLoading) return;
+    setChatLoading(true);
+    try {
+      await refineDrill(id, chatMessage.trim());
+      setChatMessage("");
+      refetch();
+    } catch {
+      alert("AI refinement failed. Check your AI provider config.");
+    } finally {
+      setChatLoading(false);
+    }
+  };
+
+  const handleChatKeyDown = (e) => {
+    if (e.key === "Enter" && !e.shiftKey) {
+      e.preventDefault();
+      handleChatSend();
+    }
+  };
+
   return (
-    <div>
-      <div className="flex-between mb-1">
-        <h1>{drill.title}</h1>
-        <div className="flex gap-sm">
-          <Link to={`/drills/${id}/edit`} className="btn btn-secondary">Edit</Link>
-          <button className="btn btn-danger" onClick={handleDelete}>Delete</button>
+    <div className="drill-detail-layout">
+      <div className="drill-detail-main">
+        <div className="flex-between mb-1">
+          <h1>{drill.title}</h1>
+          <div className="flex gap-sm">
+            <button className="btn btn-secondary" onClick={() => setShowChat(!showChat)}>
+              <FiMessageCircle /> {showChat ? "Hide Chat" : "Refine with AI"}
+            </button>
+            <Link to={`/drills/${id}/edit`} className="btn btn-secondary"><FiEdit /> Edit</Link>
+            <button className="btn btn-danger" onClick={handleDelete}><FiTrash2 /> Delete</button>
+          </div>
         </div>
-      </div>
 
-      <div className="card mb-1">
-        <h3>Purpose</h3>
-        <p>{drill.purpose}</p>
-        <div className="flex gap-sm mt-1" style={{ flexWrap: "wrap" }}>
-          {drill.sport && <TagBadge name={drill.sport} category="sport" />}
-          <TagBadge name={drill.intensity} category="intensity" />
-          <TagBadge name={`${drill.duration} min`} category="duration" />
-          {drill.gameForm?.format && <TagBadge name={drill.gameForm.format} category="game form" />}
-        </div>
-      </div>
+        {/* Embedding status banner */}
+        {drill.embeddingStatus && drill.embeddingStatus !== "indexed" && (
+          <div className={`embedding-status-banner embedding-status-${drill.embeddingStatus} mb-1`}>
+            {drill.embeddingStatus === "pending" && <><FiLoader /> Queued for search indexing...</>}
+            {drill.embeddingStatus === "processing" && <><FiLoader className="spin" /> Indexing for search...</>}
+            {drill.embeddingStatus === "failed" && (
+              <>
+                <FiAlertCircle /> Search indexing failed{drill.embeddingError ? `: ${drill.embeddingError}` : ""}
+                <button className="btn btn-secondary btn-sm" style={{ marginLeft: "auto" }} onClick={handleRetryEmbedding}>
+                  <FiRefreshCw /> Retry
+                </button>
+              </>
+            )}
+          </div>
+        )}
 
-      {drill.instructionFocus?.active?.taxonomy && (
+        {/* Description & meta */}
         <div className="card mb-1">
-          <h3>Instruction Focus</h3>
-          <p><strong>{drill.instructionFocus.active.taxonomy.name}</strong></p>
-          {drill.instructionFocus.active.description && <p className="text-muted">{drill.instructionFocus.active.description}</p>}
+          <h3>Description</h3>
+          <p style={{ marginTop: "0.5rem" }}>{drill.description}</p>
+          <div className="flex gap-sm mt-1" style={{ flexWrap: "wrap" }}>
+            {drill.sport && <span className="tag">{drill.sport}</span>}
+            <span className={`tag tag-${drill.intensity === "high" ? "danger" : drill.intensity === "low" ? "" : "warning"}`}>{drill.intensity}</span>
+            {drill.setup?.duration && <span className="tag">{drill.setup.duration}</span>}
+          </div>
         </div>
-      )}
 
-      {drill.tags?.length > 0 && (
+        {/* Setup */}
+        {(drill.setup?.players || drill.setup?.space || drill.setup?.equipment?.length > 0) && (
+          <div className="card mb-1">
+            <h3>Setup</h3>
+            {drill.setup.players && <p style={{ marginTop: "0.5rem" }}><strong>Players:</strong> {drill.setup.players}</p>}
+            {drill.setup.space && <p><strong>Space:</strong> {drill.setup.space}</p>}
+            {drill.setup.equipment?.length > 0 && (
+              <div style={{ marginTop: "0.5rem" }}>
+                <strong>Equipment:</strong>
+                <div className="flex gap-sm mt-1" style={{ flexWrap: "wrap" }}>
+                  {drill.setup.equipment.map((eq, i) => <span key={i} className="tag">{eq}</span>)}
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* How It Works */}
+        {drill.howItWorks && (
+          <div className="card mb-1">
+            <h3>How It Works</h3>
+            <p style={{ marginTop: "0.5rem", whiteSpace: "pre-wrap" }}>{drill.howItWorks}</p>
+          </div>
+        )}
+
+        {/* Coaching Points */}
+        {drill.coachingPoints?.length > 0 && (
+          <div className="card mb-1">
+            <h3>Coaching Points</h3>
+            <ul style={{ paddingLeft: "1.25rem", marginTop: "0.5rem" }}>
+              {drill.coachingPoints.map((p, i) => <li key={i}>{p}</li>)}
+            </ul>
+          </div>
+        )}
+
+        {/* Variations */}
+        {drill.variations?.length > 0 && (
+          <div className="card mb-1">
+            <h3>Variations</h3>
+            <ul style={{ paddingLeft: "1.25rem", marginTop: "0.5rem" }}>
+              {drill.variations.map((v, i) => <li key={i}>{v}</li>)}
+            </ul>
+          </div>
+        )}
+
+        {/* Common Mistakes */}
+        {drill.commonMistakes?.length > 0 && (
+          <div className="card mb-1">
+            <h3>Common Mistakes</h3>
+            <ul style={{ paddingLeft: "1.25rem", marginTop: "0.5rem" }}>
+              {drill.commonMistakes.map((m, i) => <li key={i}>{m}</li>)}
+            </ul>
+          </div>
+        )}
+
+        {/* Diagrams */}
         <div className="card mb-1">
-          <h3>Tags</h3>
-          <div className="flex gap-sm" style={{ flexWrap: "wrap", marginTop: "0.5rem" }}>
-            {drill.tags.map((t, i) => (
-              <TagBadge key={i} category={t.category} name={t.taxonomy?.name || t.category} />
+          <div className="flex-between">
+            <h3>Diagrams</h3>
+            <button
+              className="btn btn-primary btn-sm"
+              onClick={handleGenerateDiagram}
+              disabled={diagramLoading}
+            >
+              {diagramLoading ? <><FiLoader className="spin" /> Generating...</> : <><FiImage /> Generate with AI</>}
+            </button>
+          </div>
+          {diagramLoading && (
+            <p className="text-sm text-muted mt-1">
+              AI is creating a tactical diagram for this drill. This may take a few seconds...
+            </p>
+          )}
+          <div className="flex gap-sm mt-1" style={{ flexWrap: "wrap" }}>
+            {drill.diagrams?.map((d, i) => (
+              <img key={i} src={d} alt={`Diagram ${i + 1}`} style={{ maxWidth: 400, borderRadius: "var(--radius)", border: "1px solid var(--color-border)" }} />
             ))}
           </div>
-        </div>
-      )}
-
-      {drill.guidedQuestions?.length > 0 && (
-        <div className="card mb-1">
-          <h3>Guided Discovery Questions</h3>
-          <ul style={{ paddingLeft: "1.25rem", marginTop: "0.5rem" }}>
-            {drill.guidedQuestions.map((q, i) => <li key={i}>{q}</li>)}
-          </ul>
-        </div>
-      )}
-
-      {drill.rules?.length > 0 && (
-        <div className="card mb-1">
-          <h3>Rules & Constraints</h3>
-          <ul style={{ paddingLeft: "1.25rem", marginTop: "0.5rem" }}>
-            {drill.rules.map((r, i) => <li key={i}>{r}</li>)}
-          </ul>
-        </div>
-      )}
-
-      {drill.successCriteria?.length > 0 && (
-        <div className="card mb-1">
-          <h3>Success Criteria</h3>
-          {drill.successCriteria.map((sc, i) => (
-            <div key={i} className="mb-1"><strong>{sc.type}:</strong> {sc.description}</div>
-          ))}
-        </div>
-      )}
-
-      {drill.commonMistakes?.length > 0 && (
-        <div className="card mb-1">
-          <h3>Common Mistakes</h3>
-          <div className="table-wrap">
-            <table>
-              <thead><tr><th>Mistake</th><th>Correction</th></tr></thead>
-              <tbody>
-                {drill.commonMistakes.map((m, i) => (
-                  <tr key={i}><td>{m.mistake}</td><td>{m.correction}</td></tr>
-                ))}
-              </tbody>
-            </table>
+          <div className="mt-1">
+            <label className="text-sm text-muted" style={{ marginRight: "0.5rem" }}>Or upload your own:</label>
+            <input type="file" accept="image/*" onChange={handleDiagramUpload} />
           </div>
         </div>
-      )}
 
-      {drill.variations?.length > 0 && (
+        {/* Reflection Notes */}
         <div className="card mb-1">
-          <h3>Variations & Progressions</h3>
-          {drill.variations.map((v, i) => (
+          <h3>Reflection Notes</h3>
+          {drill.reflectionNotes?.map((r, i) => (
             <div key={i} className="section-block">
-              <h4>{v.title}</h4>
-              <p className="text-sm">{v.description}</p>
+              <div className="text-sm text-muted">{new Date(r.date).toLocaleDateString()}</div>
+              <p>{r.note}</p>
             </div>
           ))}
+          <div className="flex gap-sm mt-1">
+            <textarea className="form-control" placeholder="Add a reflection..." value={reflectionNote} onChange={(e) => setReflectionNote(e.target.value)} style={{ minHeight: 60 }} />
+            <button className="btn btn-primary btn-sm" onClick={handleAddReflection}>Add</button>
+          </div>
+        </div>
+      </div>
+
+      {/* AI Chat Panel */}
+      {showChat && (
+        <div className="chat-panel">
+          <div className="chat-header">
+            <h3>Refine with AI</h3>
+            <p className="text-sm text-muted">Tell the AI how you want to change this drill</p>
+          </div>
+          <div className="chat-messages">
+            {drill.aiConversation?.map((msg, i) => (
+              <div key={i} className={`chat-msg chat-msg-${msg.role}`}>
+                <div className="chat-msg-label">{msg.role === "user" ? "You" : "AI"}</div>
+                <div className="chat-msg-content">{msg.content}</div>
+              </div>
+            ))}
+            <div ref={chatEndRef} />
+          </div>
+          <div className="chat-input">
+            <textarea
+              className="form-control"
+              placeholder="e.g. 'Make it harder by reducing space' or 'Add a goalkeeper'"
+              value={chatMessage}
+              onChange={(e) => setChatMessage(e.target.value)}
+              onKeyDown={handleChatKeyDown}
+              rows={2}
+            />
+            <button
+              className="btn btn-primary"
+              onClick={handleChatSend}
+              disabled={chatLoading || !chatMessage.trim()}
+            >
+              <FiSend /> {chatLoading ? "..." : "Send"}
+            </button>
+          </div>
         </div>
       )}
-
-      {/* Diagrams */}
-      <div className="card mb-1">
-        <h3>Diagrams</h3>
-        <div className="flex gap-sm mt-1" style={{ flexWrap: "wrap" }}>
-          {drill.diagrams?.map((d, i) => (
-            <img key={i} src={d} alt={`Diagram ${i + 1}`} style={{ maxWidth: 300, borderRadius: "var(--radius)", border: "1px solid var(--color-border)" }} />
-          ))}
-        </div>
-        <div className="mt-1">
-          <input type="file" accept="image/*" onChange={handleDiagramUpload} />
-        </div>
-      </div>
-
-      {/* Reflection Notes */}
-      <div className="card mb-1">
-        <h3>Reflection Notes</h3>
-        {drill.reflectionNotes?.map((r, i) => (
-          <div key={i} className="section-block">
-            <div className="text-sm text-muted">{new Date(r.date).toLocaleDateString()}</div>
-            <p>{r.note}</p>
-          </div>
-        ))}
-        <div className="flex gap-sm mt-1">
-          <textarea className="form-control" placeholder="Add a reflection..." value={reflectionNote} onChange={(e) => setReflectionNote(e.target.value)} style={{ minHeight: 60 }} />
-          <button className="btn btn-primary btn-sm" onClick={handleAddReflection}>Add</button>
-        </div>
-      </div>
     </div>
   );
 }

@@ -16,12 +16,12 @@ app.use("/uploads", express.static(path.join(__dirname, "..", "uploads")));
 
 // ── Routes ──────────────────────────────────────────────────────────────────
 app.use("/api/auth", require("./routes/auth"));
-app.use("/api/taxonomy", require("./routes/taxonomy"));
 app.use("/api/drills", require("./routes/drills"));
 app.use("/api/sessions", require("./routes/sessions"));
 app.use("/api/plans", require("./routes/plans"));
 app.use("/api/search", require("./routes/search"));
 app.use("/api/ai", require("./routes/ai"));
+app.use("/api/superadmin", require("./routes/superadmin"));
 
 // Health check
 app.get("/api/health", (_req, res) => res.json({ status: "ok" }));

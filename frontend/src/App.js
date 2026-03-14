@@ -14,7 +14,7 @@ import PlansPage from "./pages/PlansPage";
 import PlanFormPage from "./pages/PlanFormPage";
 import PlanDetailPage from "./pages/PlanDetailPage";
 import SearchPage from "./pages/SearchPage";
-import TaxonomyPage from "./pages/TaxonomyPage";
+import SuperAdminPage from "./pages/SuperAdminPage";
 import { useAuth } from "./context/AuthContext";
 
 export default function App() {
@@ -22,7 +22,6 @@ export default function App() {
 
   if (loading) return <div className="loading">Loading...</div>;
 
-  // Unauthenticated routes
   if (!user) {
     return (
       <Routes>
@@ -52,7 +51,9 @@ export default function App() {
           <Route path="/plans/:id" element={<ProtectedRoute><PlanDetailPage /></ProtectedRoute>} />
           <Route path="/plans/:id/edit" element={<ProtectedRoute><PlanFormPage /></ProtectedRoute>} />
           <Route path="/search" element={<ProtectedRoute><SearchPage /></ProtectedRoute>} />
-          <Route path="/taxonomy" element={<ProtectedRoute><TaxonomyPage /></ProtectedRoute>} />
+          {user.isSuperAdmin && (
+            <Route path="/superadmin" element={<ProtectedRoute><SuperAdminPage /></ProtectedRoute>} />
+          )}
         </Routes>
       </main>
     </div>

@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import * as searchApi from "../api/search";
+import { FiSearch } from "react-icons/fi";
 
 export default function SearchPage() {
   const [query, setQuery] = useState("");
@@ -47,25 +48,28 @@ export default function SearchPage() {
 
   return (
     <div>
-      <h1 style={{ marginBottom: "1rem" }}>Search</h1>
+      <h1 style={{ marginBottom: "0.5rem" }}>Search</h1>
+      <p className="text-muted" style={{ marginBottom: "1rem" }}>
+        Describe what you're looking for — the AI will find matching drills using semantic search.
+      </p>
 
       <form onSubmit={handleSearch}>
         <div className="card mb-1">
           <div className="search-bar">
             <input
               className="form-control"
-              placeholder="Search drills, sessions, plans..."
+              placeholder="e.g. 'passing drill for beginners with small goals' or 'high intensity 1v1 dribbling'"
               value={query}
               onChange={(e) => setQuery(e.target.value)}
             />
-            <select className="form-control" style={{ width: 150 }} value={mode} onChange={(e) => setMode(e.target.value)}>
+            <select className="form-control" style={{ width: 130 }} value={mode} onChange={(e) => setMode(e.target.value)}>
               <option value="hybrid">Hybrid</option>
               <option value="semantic">Semantic</option>
               <option value="keyword">Keyword</option>
             </select>
-            <input className="form-control" style={{ width: 140 }} placeholder="Sport filter" value={sport} onChange={(e) => setSport(e.target.value)} />
+            <input className="form-control" style={{ width: 130 }} placeholder="Sport filter" value={sport} onChange={(e) => setSport(e.target.value)} />
             <button className="btn btn-primary" type="submit" disabled={loading}>
-              {loading ? "..." : "Search"}
+              <FiSearch /> {loading ? "..." : "Search"}
             </button>
           </div>
         </div>
@@ -77,13 +81,13 @@ export default function SearchPage() {
         <div className="card">
           <div className="table-wrap">
             <table>
-              <thead><tr><th>Title</th><th>Type</th><th>Score</th></tr></thead>
+              <thead><tr><th>Title</th><th>Type</th><th>Match</th></tr></thead>
               <tbody>
                 {results.map((r, i) => (
                   <tr key={i}>
                     <td><Link to={linkFor(r)}>{r.title || r.id}</Link></td>
                     <td><span className="tag">{r.type}</span></td>
-                    <td className="text-sm">{(r.score * 100).toFixed(1)}%</td>
+                    <td className="text-sm">{(r.score * 100).toFixed(0)}%</td>
                   </tr>
                 ))}
               </tbody>
@@ -93,7 +97,7 @@ export default function SearchPage() {
       )}
 
       {!loading && results.length === 0 && query && (
-        <p className="text-muted">No results found. Try a different query or search mode.</p>
+        <p className="text-muted">No results found. Try describing what you need differently.</p>
       )}
     </div>
   );

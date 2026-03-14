@@ -2,11 +2,13 @@ import { useState, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { getSession, createSession, updateSession } from "../api/sessions";
 import { getDrills } from "../api/drills";
+import { FiPlus, FiTrash2 } from "react-icons/fi";
 
-const SECTION_TYPES = ["information", "warmup", "train_the_purpose", "cooldown", "reflection"];
+const SECTION_TYPES = ["warmup", "main", "cooldown"];
 
 const EMPTY_SESSION = {
   title: "",
+  description: "",
   date: "",
   sport: "",
   sections: SECTION_TYPES.map((type) => ({ type, drills: [], notes: "" })),
@@ -27,13 +29,13 @@ export default function SessionFormPage() {
     if (isEdit) {
       getSession(id).then((res) => {
         const s = res.data;
-        // Ensure all section types exist
         const sections = SECTION_TYPES.map((type) => {
           const existing = s.sections?.find((sec) => sec.type === type);
           return existing || { type, drills: [], notes: "" };
         });
         setForm({
           title: s.title || "",
+          description: s.description || "",
           date: s.date ? s.date.slice(0, 10) : "",
           sport: s.sport || "",
           sections: sections.map((sec) => ({
@@ -58,10 +60,11 @@ export default function SessionFormPage() {
   const addDrillToSection = (sectionIdx, drillId) => {
     const drill = availableDrills.find((d) => d._id === drillId);
     if (!drill) return;
+    const duration = parseInt(drill.setup?.duration, 10) || 10;
     const updated = [...form.sections];
     updated[sectionIdx].drills = [
       ...updated[sectionIdx].drills,
-      { drill: drillId, duration: drill.duration || 10, notes: "" },
+      { drill: drillId, duration, notes: "" },
     ];
     setForm({ ...form, sections: updated });
   };
@@ -121,13 +124,17 @@ export default function SessionFormPage() {
               <input className="form-control" placeholder="e.g. football" value={form.sport} onChange={(e) => setForm({ ...form, sport: e.target.value })} />
             </div>
           </div>
+          <div className="form-group">
+            <label>Description</label>
+            <textarea className="form-control" placeholder="What's the goal of this session?" value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} style={{ minHeight: 50 }} />
+          </div>
           <div className="text-sm text-muted">Total duration: <strong>{totalDuration} min</strong></div>
         </div>
 
         {form.sections.map((section, sIdx) => (
           <div key={section.type} className="card mb-1">
             <h3 style={{ textTransform: "capitalize", marginBottom: "0.75rem" }}>
-              {section.type.replace(/_/g, " ")}
+              {section.type}
             </h3>
 
             {section.drills.map((d, dIdx) => {
@@ -159,16 +166,16 @@ export default function SessionFormPage() {
                       setForm({ ...form, sections: updated });
                     }}
                   />
-                  <button type="button" className="btn btn-danger btn-sm" onClick={() => removeDrillFromSection(sIdx, dIdx)}>&times;</button>
+                  <button type="button" className="btn btn-danger btn-sm" onClick={() => removeDrillFromSection(sIdx, dIdx)}><FiTrash2 /></button>
                 </div>
               );
             })}
 
             <div className="flex gap-sm">
               <select className="form-control" style={{ maxWidth: 300 }} defaultValue="" onChange={(e) => { if (e.target.value) { addDrillToSection(sIdx, e.target.value); e.target.value = ""; } }}>
-                <option value="">+ Add drill...</option>
+                <option value=""><FiPlus /> Add drill...</option>
                 {availableDrills.map((d) => (
-                  <option key={d._id} value={d._id}>{d.title} ({d.duration}min)</option>
+                  <option key={d._id} value={d._id}>{d.title}</option>
                 ))}
               </select>
             </div>

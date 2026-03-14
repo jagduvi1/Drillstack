@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Link } from "react-router-dom";
 import useFetch from "../hooks/useFetch";
 import { getSessions, deleteSession } from "../api/sessions";
+import { FiPlus } from "react-icons/fi";
 
 export default function SessionsPage() {
   const [page, setPage] = useState(1);
@@ -17,7 +18,7 @@ export default function SessionsPage() {
     <div>
       <div className="flex-between mb-1">
         <h1>Training Sessions</h1>
-        <Link to="/sessions/new" className="btn btn-primary">+ New Session</Link>
+        <Link to="/sessions/new" className="btn btn-primary"><FiPlus /> New Session</Link>
       </div>
 
       {loading ? (
@@ -27,7 +28,7 @@ export default function SessionsPage() {
           <div className="table-wrap">
             <table>
               <thead>
-                <tr><th>Title</th><th>Date</th><th>Duration</th><th>Warnings</th><th></th></tr>
+                <tr><th>Title</th><th>Date</th><th>Duration</th><th></th></tr>
               </thead>
               <tbody>
                 {data?.sessions?.map((s) => (
@@ -35,11 +36,6 @@ export default function SessionsPage() {
                     <td><Link to={`/sessions/${s._id}`}>{s.title}</Link></td>
                     <td>{s.date ? new Date(s.date).toLocaleDateString() : "-"}</td>
                     <td>{s.totalDuration} min</td>
-                    <td>
-                      {s.warnings?.length > 0 && (
-                        <span className="tag tag-warning">{s.warnings.length} warning(s)</span>
-                      )}
-                    </td>
                     <td>
                       <div className="flex gap-sm">
                         <Link to={`/sessions/${s._id}/edit`} className="btn btn-secondary btn-sm">Edit</Link>
@@ -49,7 +45,7 @@ export default function SessionsPage() {
                   </tr>
                 ))}
                 {!data?.sessions?.length && (
-                  <tr><td colSpan={5} className="text-muted" style={{ textAlign: "center" }}>No sessions found</td></tr>
+                  <tr><td colSpan={4} className="text-muted" style={{ textAlign: "center" }}>No sessions found</td></tr>
                 )}
               </tbody>
             </table>

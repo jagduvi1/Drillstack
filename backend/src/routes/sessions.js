@@ -8,51 +8,16 @@ const { indexSession } = require("../services/sync");
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
-async function computeWarnings(session) {
-  const warnings = [];
-  const drillIds = session.sections.flatMap((s) => s.drills.map((d) => d.drill));
-  const drills = await Drill.find({ _id: { $in: drillIds } }).populate(
-    "instructionFocus.active.taxonomy"
-  );
-
-  // Check for conflicting instruction focus
-  const focuses = drills
-    .map((d) => d.instructionFocus?.active?.taxonomy?.name)
-    .filter(Boolean);
-  const uniqueFocuses = [...new Set(focuses)];
-  if (uniqueFocuses.length > 1) {
-    warnings.push({
-      type: "instruction_focus_conflict",
-      message: `Multiple instruction focuses detected: ${uniqueFocuses.join(", ")}`,
-    });
-  }
-
-  // Check intensity overload
-  const highCount = drills.filter((d) => d.intensity === "high").length;
-  if (highCount > drills.length * 0.6) {
-    warnings.push({
-      type: "intensity_overload",
-      message: `${highCount} of ${drills.length} drills are high intensity`,
-    });
-  }
-
-  return warnings;
-}
-
 async function computeEquipment(session) {
   const drillIds = session.sections.flatMap((s) => s.drills.map((d) => d.drill));
-  const drills = await Drill.find({ _id: { $in: drillIds } }).populate(
-    "equipment.taxonomy",
-    "name"
-  );
-  const map = new Map();
+  const drills = await Drill.find({ _id: { $in: drillIds } });
+  const equipmentSet = new Set();
   for (const drill of drills) {
-    for (const eq of drill.equipment || []) {
-      const name = eq.taxonomy?.name || "Unknown";
-      map.set(name, (map.get(name) || 0) + eq.quantity);
+    for (const item of drill.setup?.equipment || []) {
+      equipmentSet.add(item);
     }
   }
-  return [...map.entries()].map(([name, quantity]) => ({ name, quantity }));
+  return [...equipmentSet];
 }
 
 // ── Routes ───────────────────────────────────────────────────────────────────
@@ -69,7 +34,7 @@ router.get("/", authenticate, async (req, res, next) => {
 
     const [sessions, total] = await Promise.all([
       TrainingSession.find(filter)
-        .populate("sections.drills.drill", "title duration intensity")
+        .populate("sections.drills.drill", "title intensity setup")
         .sort({ date: -1 })
         .skip(skip)
         .limit(limit),
@@ -85,13 +50,7 @@ router.get("/", authenticate, async (req, res, next) => {
 router.get("/:id", authenticate, async (req, res, next) => {
   try {
     const session = await TrainingSession.findById(req.params.id)
-      .populate({
-        path: "sections.drills.drill",
-        populate: [
-          { path: "tags.taxonomy", select: "name category" },
-          { path: "equipment.taxonomy", select: "name" },
-        ],
-      })
+      .populate("sections.drills.drill")
       .populate("createdBy", "name");
     if (!session) return res.status(404).json({ error: "Session not found" });
     res.json(session);
@@ -110,11 +69,7 @@ router.post(
     try {
       const data = { ...req.body, createdBy: req.user._id };
       const session = new TrainingSession(data);
-
-      // Compute derived fields
-      session.warnings = await computeWarnings(session);
       session.equipmentSummary = await computeEquipment(session);
-
       await session.save();
       indexSession(session).catch((e) => console.error("Index error:", e.message));
       res.status(201).json(session);
@@ -134,7 +89,6 @@ router.put("/:id", authenticate, async (req, res, next) => {
     if (!session) return res.status(404).json({ error: "Session not found" });
 
     Object.assign(session, req.body);
-    session.warnings = await computeWarnings(session);
     session.equipmentSummary = await computeEquipment(session);
     await session.save();
     indexSession(session).catch((e) => console.error("Index error:", e.message));
