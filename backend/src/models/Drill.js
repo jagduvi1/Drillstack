@@ -58,6 +58,7 @@ const drillSchema = new Schema(
     // ── Versioning ─────────────────────────────────────────────────────────
     parentDrill: { type: Schema.Types.ObjectId, ref: "Drill", default: null },
     version: { type: Number, default: 1 },
+    versionName: { type: String, default: "", trim: true },
     forkedBy: { type: Schema.Types.ObjectId, ref: "User", default: null },
 
     // ── Media & reflections ─────────────────────────────────────────────────

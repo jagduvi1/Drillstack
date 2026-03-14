@@ -707,3 +707,10 @@ th {
 .embedding-timer {
   font-variant-numeric: tabular-nums;
 }
+
+/* ── Version Name ────────────────────────────────── */
+.version-name-subtitle {
+  font-size: 0.7em;
+  font-weight: 400;
+  color: var(--color-muted);
+}

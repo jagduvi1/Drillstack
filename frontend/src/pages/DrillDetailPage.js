@@ -177,7 +177,12 @@ export default function DrillDetailPage() {
       <div className="drill-detail-main">
         <div className="flex-between mb-1">
           <div>
-            <h1 style={{ marginBottom: "0.25rem" }}>{drill.title}</h1>
+            <h1 style={{ marginBottom: "0.25rem" }}>
+              {drill.title}
+              {drill.versionName && (
+                <span className="version-name-subtitle"> — {drill.versionName}</span>
+              )}
+            </h1>
             <div className="flex gap-sm" style={{ alignItems: "center" }}>
               {drill.createdBy?.name && (
                 <span className="text-sm text-muted"><FiUser style={{ fontSize: "0.75rem" }} /> {drill.createdBy.name}</span>
@@ -227,7 +232,7 @@ export default function DrillDetailPage() {
                   <div className="flex-between">
                     <div>
                       <Link to={`/drills/${v._id}`}>
-                        <strong>v{v.version}</strong> — {v.title}
+                        <strong>v{v.version}</strong>{v.versionName ? ` — ${v.versionName}` : ` — ${v.title}`}
                       </Link>
                       <span className="text-sm text-muted" style={{ marginLeft: "0.5rem" }}>
                         by {v.forkedBy?.name || v.createdBy?.name || "Unknown"}

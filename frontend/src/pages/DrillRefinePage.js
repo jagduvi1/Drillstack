@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
 import useFetch from "../hooks/useFetch";
-import { getDrill, checkSimilarity, createDrill } from "../api/drills";
+import { getDrill, checkSimilarity, createDrill, updateDrill } from "../api/drills";
 import { refineDrill } from "../api/ai";
 import { FiSend, FiSave, FiX, FiLoader, FiGitBranch, FiAlertCircle } from "react-icons/fi";
 
@@ -211,12 +211,14 @@ export default function DrillRefinePage() {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
   const [similarityWarning, setSimilarityWarning] = useState(null);
+  const [versionName, setVersionName] = useState("");
   const chatEndRef = useRef(null);
   const originalDrill = useRef(null);
 
-  // Capture the original drill state on first load (before any AI changes)
+  // Capture the original drill state on first load and init version name
   useEffect(() => {
     if (drill && !originalDrill.current) {
+      setVersionName(drill.versionName || "");
       originalDrill.current = {
         title: drill.title,
         description: drill.description,
@@ -286,6 +288,13 @@ export default function DrillRefinePage() {
       setSaving(false);
     }
 
+    // Save version name if set
+    if (versionName.trim() !== (drill.versionName || "")) {
+      try {
+        await updateDrill(id, { versionName: versionName.trim() });
+      } catch { /* ignore */ }
+    }
+
     navigate(`/drills/${id}`);
   };
 
@@ -348,6 +357,23 @@ export default function DrillRefinePage() {
               <FiX /> Cancel
             </button>
           </div>
+        </div>
+
+        {/* Version name input */}
+        <div className="card mb-1">
+          <label style={{ fontWeight: 600, marginBottom: "0.35rem", display: "block" }}>
+            Name your version
+          </label>
+          <p className="text-sm text-muted" style={{ marginBottom: "0.5rem" }}>
+            Give this version a short name to distinguish it, e.g. "Med halvtidsbyte" or "Utan kö"
+          </p>
+          <input
+            className="form-control"
+            placeholder="e.g. Enklare variant, Med målvakt..."
+            value={versionName}
+            onChange={(e) => setVersionName(e.target.value)}
+            style={{ maxWidth: 400 }}
+          />
         </div>
 
         {error && <div className="alert alert-danger">{error}</div>}
