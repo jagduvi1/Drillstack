@@ -603,3 +603,96 @@ th {
   padding: 1rem;
   border-radius: var(--radius);
 }
+
+/* ── Refine Page Layout ──────────────────────────── */
+.refine-layout {
+  display: grid;
+  grid-template-columns: 1fr 360px;
+  gap: 1.5rem;
+  align-items: start;
+}
+.refine-main {
+  min-width: 0;
+}
+
+/* Changes banner */
+.refine-changes-banner {
+  background: #eff6ff;
+  color: #1e40af;
+  border: 1px solid #93c5fd;
+  padding: 0.75rem 1rem;
+  border-radius: var(--radius);
+  font-size: 0.875rem;
+}
+
+/* Section card with change indicator */
+.refine-section-changed {
+  border-left: 3px solid var(--color-primary) !important;
+}
+.refine-section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.5rem;
+}
+.refine-changed-badge {
+  background: var(--color-primary);
+  color: white;
+  font-size: 0.7rem;
+  font-weight: 600;
+  padding: 0.15rem 0.5rem;
+  border-radius: 999px;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+/* Before / After diff view */
+.refine-diff {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  gap: 0.75rem;
+  margin-top: 0.5rem;
+  align-items: start;
+}
+.refine-diff-old {
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  border-radius: var(--radius);
+  padding: 0.75rem;
+  font-size: 0.875rem;
+}
+.refine-diff-new {
+  background: #f0fdf4;
+  border: 1px solid #bbf7d0;
+  border-radius: var(--radius);
+  padding: 0.75rem;
+  font-size: 0.875rem;
+}
+.refine-diff-arrow {
+  display: flex;
+  align-items: center;
+  color: var(--color-muted);
+  padding-top: 1.5rem;
+}
+.refine-diff-label {
+  font-size: 0.7rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--color-muted);
+  margin-bottom: 0.35rem;
+}
+
+/* Responsive: stack on smaller screens */
+@media (max-width: 900px) {
+  .refine-layout {
+    grid-template-columns: 1fr;
+  }
+  .refine-diff {
+    grid-template-columns: 1fr;
+  }
+  .refine-diff-arrow {
+    justify-content: center;
+    padding-top: 0;
+  }
+}

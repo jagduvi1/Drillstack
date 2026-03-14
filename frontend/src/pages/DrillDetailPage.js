@@ -53,7 +53,7 @@ export default function DrillDetailPage() {
 
   const handleFork = async () => {
     const res = await forkDrill(id);
-    navigate(`/drills/${res.data._id}/edit`);
+    navigate(`/drills/${res.data._id}/refine`);
   };
 
   const handleShowVersions = async () => {

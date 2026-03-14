@@ -224,10 +224,57 @@ async function removeDrill(drillId) {
   }
 }
 
+// ── Embedding similarity check ────────────────────────────────────────────────
+async function checkEmbeddingSimilarity(parentDrillId, newDrillData) {
+  const qdrant = getQdrantClient();
+  const parentPointId = pointId(parentDrillId);
+
+  // Retrieve the parent drill's vector from Qdrant
+  let parentVector;
+  try {
+    const points = await qdrant.getPoints(COLLECTION, {
+      ids: [parentPointId],
+      with_vector: true,
+    });
+    parentVector = points?.[0]?.vector;
+  } catch {
+    // Parent not indexed yet — can't compare
+    return { isSameDrill: true, similarity: 1, reason: "Parent drill not yet indexed." };
+  }
+
+  if (!parentVector) {
+    return { isSameDrill: true, similarity: 1, reason: "Parent drill not yet indexed." };
+  }
+
+  // Compute embedding for the new/modified drill text
+  const text = drillToEmbeddingText(newDrillData);
+  const newVector = await getEmbedding(text);
+
+  // Cosine similarity (vectors are normalized by Voyage, but compute properly just in case)
+  const dot = parentVector.reduce((sum, v, i) => sum + v * newVector[i], 0);
+  const magA = Math.sqrt(parentVector.reduce((sum, v) => sum + v * v, 0));
+  const magB = Math.sqrt(newVector.reduce((sum, v) => sum + v * v, 0));
+  const similarity = magA && magB ? dot / (magA * magB) : 0;
+
+  // Threshold: below 0.82 = fundamentally different drill
+  const THRESHOLD = 0.82;
+  const isSameDrill = similarity >= THRESHOLD;
+
+  return {
+    isSameDrill,
+    similarity: Math.round(similarity * 1000) / 1000,
+    reason: isSameDrill
+      ? "The drill is still a variation of the original."
+      : "The changes are significant enough that this looks like a different drill. Consider saving it as a new drill instead.",
+  };
+}
+
 module.exports = {
   indexDrill,
   indexSession,
   indexPlan,
   removeDrill,
   getQueueStatus,
+  checkEmbeddingSimilarity,
+  pointId,
 };

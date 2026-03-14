@@ -5,7 +5,7 @@ const { authenticate } = require("../middleware/auth");
 const upload = require("../middleware/upload");
 const Drill = require("../models/Drill");
 const User = require("../models/User");
-const { indexDrill, removeDrill, getQueueStatus } = require("../services/sync");
+const { indexDrill, removeDrill, getQueueStatus, checkEmbeddingSimilarity } = require("../services/sync");
 
 // GET /api/drills — public: returns ALL drills (no createdBy filter)
 router.get("/", authenticate, async (req, res, next) => {
@@ -178,14 +178,14 @@ router.put("/:id", authenticate, async (req, res, next) => {
   }
 });
 
-// POST /api/drills/:id/check-similarity — AI checks if edits differ too much from original
+// POST /api/drills/:id/check-similarity — embedding-based check if edits differ too much
 router.post("/:id/check-similarity", authenticate, async (req, res, next) => {
   try {
     const drill = await Drill.findById(req.params.id);
     if (!drill) return res.status(404).json({ error: "Drill not found" });
 
-    const { checkSimilarity } = require("../services/ai");
-    const result = await checkSimilarity(drill, req.body);
+    const parentId = drill.parentDrill || drill._id;
+    const result = await checkEmbeddingSimilarity(parentId, req.body);
     res.json(result);
   } catch (err) {
     next(err);

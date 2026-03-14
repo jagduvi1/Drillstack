@@ -7,6 +7,7 @@ import DashboardPage from "./pages/DashboardPage";
 import DrillsPage from "./pages/DrillsPage";
 import DrillFormPage from "./pages/DrillFormPage";
 import DrillDetailPage from "./pages/DrillDetailPage";
+import DrillRefinePage from "./pages/DrillRefinePage";
 import SessionsPage from "./pages/SessionsPage";
 import SessionFormPage from "./pages/SessionFormPage";
 import SessionDetailPage from "./pages/SessionDetailPage";
@@ -42,6 +43,7 @@ export default function App() {
           <Route path="/drills/new" element={<ProtectedRoute><DrillFormPage /></ProtectedRoute>} />
           <Route path="/drills/:id" element={<ProtectedRoute><DrillDetailPage /></ProtectedRoute>} />
           <Route path="/drills/:id/edit" element={<ProtectedRoute><DrillFormPage /></ProtectedRoute>} />
+          <Route path="/drills/:id/refine" element={<ProtectedRoute><DrillRefinePage /></ProtectedRoute>} />
           <Route path="/sessions" element={<ProtectedRoute><SessionsPage /></ProtectedRoute>} />
           <Route path="/sessions/new" element={<ProtectedRoute><SessionFormPage /></ProtectedRoute>} />
           <Route path="/sessions/:id" element={<ProtectedRoute><SessionDetailPage /></ProtectedRoute>} />
