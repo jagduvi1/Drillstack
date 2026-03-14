@@ -3,9 +3,73 @@ import { useParams, useNavigate, Link } from "react-router-dom";
 import useFetch from "../hooks/useFetch";
 import { getDrill, checkSimilarity, createDrill } from "../api/drills";
 import { refineDrill } from "../api/ai";
-import { FiSend, FiSave, FiX, FiLoader, FiGitBranch, FiAlertCircle, FiArrowRight } from "react-icons/fi";
+import { FiSend, FiSave, FiX, FiLoader, FiGitBranch, FiAlertCircle } from "react-icons/fi";
 
-// Sections we track for change highlighting
+// ── Word-level diff ─────────────────────────────────────────────────────────
+// Uses LCS to produce inline highlights: removed (red strikethrough) and added (green)
+function lcs(a, b) {
+  const m = a.length, n = b.length;
+  const dp = Array.from({ length: m + 1 }, () => new Array(n + 1).fill(0));
+  for (let i = 1; i <= m; i++)
+    for (let j = 1; j <= n; j++)
+      dp[i][j] = a[i - 1] === b[j - 1] ? dp[i - 1][j - 1] + 1 : Math.max(dp[i - 1][j], dp[i][j - 1]);
+  const result = [];
+  let i = m, j = n;
+  while (i > 0 && j > 0) {
+    if (a[i - 1] === b[j - 1]) { result.unshift(a[i - 1]); i--; j--; }
+    else if (dp[i - 1][j] > dp[i][j - 1]) i--;
+    else j--;
+  }
+  return result;
+}
+
+function wordDiff(oldText, newText) {
+  if (!oldText && !newText) return [];
+  if (!oldText) return [{ type: "add", text: newText }];
+  if (!newText) return [{ type: "del", text: oldText }];
+  if (oldText === newText) return [{ type: "same", text: oldText }];
+
+  const oldWords = oldText.split(/(\s+)/);
+  const newWords = newText.split(/(\s+)/);
+  const common = lcs(oldWords, newWords);
+
+  const ops = [];
+  let oi = 0, ni = 0, ci = 0;
+
+  while (ci < common.length) {
+    const delWords = [];
+    while (oi < oldWords.length && oldWords[oi] !== common[ci]) delWords.push(oldWords[oi++]);
+    const addWords = [];
+    while (ni < newWords.length && newWords[ni] !== common[ci]) addWords.push(newWords[ni++]);
+
+    if (delWords.length) ops.push({ type: "del", text: delWords.join("") });
+    if (addWords.length) ops.push({ type: "add", text: addWords.join("") });
+    ops.push({ type: "same", text: common[ci] });
+    oi++; ni++; ci++;
+  }
+  // Remaining
+  const delTail = oldWords.slice(oi);
+  const addTail = newWords.slice(ni);
+  if (delTail.length) ops.push({ type: "del", text: delTail.join("") });
+  if (addTail.length) ops.push({ type: "add", text: addTail.join("") });
+
+  return ops;
+}
+
+function InlineDiff({ oldText, newText }) {
+  const ops = wordDiff(oldText || "", newText || "");
+  return (
+    <span style={{ whiteSpace: "pre-wrap" }}>
+      {ops.map((op, i) => {
+        if (op.type === "del") return <span key={i} className="diff-del">{op.text}</span>;
+        if (op.type === "add") return <span key={i} className="diff-add">{op.text}</span>;
+        return <span key={i}>{op.text}</span>;
+      })}
+    </span>
+  );
+}
+
+// ── Sections config ─────────────────────────────────────────────────────────
 const SECTIONS = [
   { key: "title", label: "Title", type: "text" },
   { key: "description", label: "Description", type: "text" },
@@ -38,35 +102,105 @@ function hasChanged(original, current, key, type) {
   return (original[key] || "") !== (current[key] || "");
 }
 
-function SetupDisplay({ setup }) {
-  if (!setup) return <span className="text-muted">-</span>;
+// ── Diff-aware section renderers ────────────────────────────────────────────
+
+function SetupDiff({ oldSetup, newSetup }) {
+  const o = oldSetup || {};
+  const n = newSetup || {};
+  const fields = [
+    { label: "Players", key: "players" },
+    { label: "Space", key: "space" },
+    { label: "Duration", key: "duration" },
+  ];
   return (
     <div>
-      {setup.players && <p><strong>Players:</strong> {setup.players}</p>}
-      {setup.space && <p><strong>Space:</strong> {setup.space}</p>}
-      {setup.duration && <p><strong>Duration:</strong> {setup.duration}</p>}
-      {setup.equipment?.length > 0 && (
-        <p><strong>Equipment:</strong> {setup.equipment.join(", ")}</p>
+      {fields.map((f) => {
+        if (!o[f.key] && !n[f.key]) return null;
+        return (
+          <p key={f.key}>
+            <strong>{f.label}:</strong>{" "}
+            <InlineDiff oldText={o[f.key] || ""} newText={n[f.key] || ""} />
+          </p>
+        );
+      })}
+      {(o.equipment?.length > 0 || n.equipment?.length > 0) && (
+        <p>
+          <strong>Equipment:</strong>{" "}
+          <InlineDiff
+            oldText={(o.equipment || []).join(", ")}
+            newText={(n.equipment || []).join(", ")}
+          />
+        </p>
       )}
     </div>
   );
 }
 
-function ListDisplay({ items }) {
-  if (!items?.length) return <span className="text-muted">-</span>;
+function ListDiff({ oldList, newList }) {
+  const o = oldList || [];
+  const n = newList || [];
+  const maxLen = Math.max(o.length, n.length);
+  if (maxLen === 0) return <span className="text-muted">-</span>;
+
   return (
     <ul style={{ paddingLeft: "1.25rem", margin: 0 }}>
-      {items.map((item, i) => <li key={i}>{item}</li>)}
+      {Array.from({ length: maxLen }, (_, i) => {
+        const oldItem = o[i];
+        const newItem = n[i];
+        if (oldItem === undefined) {
+          // Added item
+          return <li key={i}><span className="diff-add">{newItem}</span></li>;
+        }
+        if (newItem === undefined) {
+          // Removed item
+          return <li key={i}><span className="diff-del">{oldItem}</span></li>;
+        }
+        if (oldItem === newItem) {
+          return <li key={i}>{newItem}</li>;
+        }
+        return <li key={i}><InlineDiff oldText={oldItem} newText={newItem} /></li>;
+      })}
     </ul>
   );
 }
 
-function SectionValue({ section, drill }) {
-  if (section.type === "setup") return <SetupDisplay setup={drill.setup} />;
-  if (section.type === "list") return <ListDisplay items={drill[section.key]} />;
-  return <span>{drill[section.key] || <span className="text-muted">-</span>}</span>;
+function SectionContent({ section, original, current, changed }) {
+  if (!changed) {
+    // Unchanged — render current value plainly
+    if (section.type === "setup") {
+      const s = current.setup || {};
+      return (
+        <div>
+          {s.players && <p><strong>Players:</strong> {s.players}</p>}
+          {s.space && <p><strong>Space:</strong> {s.space}</p>}
+          {s.duration && <p><strong>Duration:</strong> {s.duration}</p>}
+          {s.equipment?.length > 0 && <p><strong>Equipment:</strong> {s.equipment.join(", ")}</p>}
+        </div>
+      );
+    }
+    if (section.type === "list") {
+      const items = current[section.key] || [];
+      if (!items.length) return <span className="text-muted">-</span>;
+      return (
+        <ul style={{ paddingLeft: "1.25rem", margin: 0 }}>
+          {items.map((item, i) => <li key={i}>{item}</li>)}
+        </ul>
+      );
+    }
+    return <span style={{ whiteSpace: "pre-wrap" }}>{current[section.key] || <span className="text-muted">-</span>}</span>;
+  }
+
+  // Changed — render with inline diff highlights
+  if (section.type === "setup") {
+    return <SetupDiff oldSetup={original.setup} newSetup={current.setup} />;
+  }
+  if (section.type === "list") {
+    return <ListDiff oldList={original[section.key]} newList={current[section.key]} />;
+  }
+  return <InlineDiff oldText={original[section.key] || ""} newText={current[section.key] || ""} />;
 }
 
+// ── Main page ───────────────────────────────────────────────────────────────
 export default function DrillRefinePage() {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -185,7 +319,7 @@ export default function DrillRefinePage() {
 
   return (
     <div className="refine-layout">
-      {/* Main content: drill sections with change highlights */}
+      {/* Main content: drill sections with inline change highlights */}
       <div className="refine-main">
         <div className="flex-between mb-1">
           <div>
@@ -253,7 +387,7 @@ export default function DrillRefinePage() {
           </div>
         )}
 
-        {/* Drill sections with change indicators */}
+        {/* Drill sections with inline diff highlights */}
         {SECTIONS.map((section) => {
           const changed = hasChanged(original, drill, section.key, section.type);
           return (
@@ -265,26 +399,14 @@ export default function DrillRefinePage() {
                 <h3>{section.label}</h3>
                 {changed && <span className="refine-changed-badge">Changed</span>}
               </div>
-
-              {changed ? (
-                <div className="refine-diff">
-                  <div className="refine-diff-old">
-                    <div className="refine-diff-label">Before</div>
-                    <SectionValue section={section} drill={original} />
-                  </div>
-                  <div className="refine-diff-arrow">
-                    <FiArrowRight />
-                  </div>
-                  <div className="refine-diff-new">
-                    <div className="refine-diff-label">After</div>
-                    <SectionValue section={section} drill={drill} />
-                  </div>
-                </div>
-              ) : (
-                <div style={{ marginTop: "0.5rem" }}>
-                  <SectionValue section={section} drill={drill} />
-                </div>
-              )}
+              <div style={{ marginTop: "0.5rem" }}>
+                <SectionContent
+                  section={section}
+                  original={original}
+                  current={drill}
+                  changed={changed}
+                />
+              </div>
             </div>
           );
         })}
