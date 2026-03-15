@@ -5,6 +5,7 @@ const { authenticate } = require("../middleware/auth");
 const upload = require("../middleware/upload");
 const Drill = require("../models/Drill");
 const User = require("../models/User");
+const Notification = require("../models/Notification");
 const { indexDrill, removeDrill, getQueueStatus, checkEmbeddingSimilarity, findSimilarDrills } = require("../services/sync");
 
 // GET /api/drills — public: returns ALL drills (no createdBy filter)
@@ -42,6 +43,11 @@ router.get("/", authenticate, async (req, res, next) => {
       obj.isStarred = starredSet.has(d._id.toString());
       return obj;
     });
+
+    // If starredFirst=true, sort starred drills to the top
+    if (req.query.starredFirst === "true") {
+      enriched.sort((a, b) => (b.isStarred ? 1 : 0) - (a.isStarred ? 1 : 0));
+    }
 
     res.json({ drills: enriched, total, page, pages: Math.ceil(total / limit) });
   } catch (err) {
@@ -165,12 +171,49 @@ router.post("/:id/fork", authenticate, async (req, res, next) => {
 // PUT /api/drills/:id — only owner can edit in place
 router.put("/:id", authenticate, async (req, res, next) => {
   try {
-    const drill = await Drill.findOneAndUpdate(
-      { _id: req.params.id, createdBy: req.user._id },
-      req.body,
-      { new: true, runValidators: true }
-    );
-    if (!drill) return res.status(404).json({ error: "Drill not found or not yours to edit" });
+    // Load current drill BEFORE applying changes (for snapshot)
+    const before = await Drill.findOne({ _id: req.params.id, createdBy: req.user._id });
+    if (!before) return res.status(404).json({ error: "Drill not found or not yours to edit" });
+
+    // Find all users who starred this drill (excluding the owner)
+    const starredUsers = await User.find({
+      starredDrills: before._id,
+      _id: { $ne: req.user._id },
+    }).select("_id");
+
+    // If others have starred it, create notifications with a snapshot of the old version
+    if (starredUsers.length > 0) {
+      const snapshot = {
+        title: before.title,
+        description: before.description,
+        sport: before.sport,
+        intensity: before.intensity,
+        setup: before.setup ? before.setup.toObject() : {},
+        howItWorks: before.howItWorks,
+        coachingPoints: [...before.coachingPoints],
+        variations: [...before.variations],
+        commonMistakes: [...before.commonMistakes],
+        diagrams: [...before.diagrams],
+      };
+
+      const notifications = starredUsers.map((u) => ({
+        userId: u._id,
+        type: "drill_changed",
+        drillId: before._id,
+        message: `"${before.title}" was updated by its owner. You can create your own version from the previous state.`,
+        snapshot,
+      }));
+
+      Notification.insertMany(notifications).catch((e) =>
+        console.error("Notification insert error:", e.message)
+      );
+    }
+
+    // Now apply the update
+    const drill = await Drill.findByIdAndUpdate(req.params.id, req.body, {
+      new: true,
+      runValidators: true,
+    });
     indexDrill(drill).catch((e) => console.error("Index error:", e.message));
     res.json(drill);
   } catch (err) {

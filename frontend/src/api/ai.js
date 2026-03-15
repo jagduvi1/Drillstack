@@ -9,8 +9,8 @@ export const generateAndSaveDrill = (description, sport) =>
 export const refineDrill = (id, message) =>
   api.post(`/ai/refine/${id}`, { message });
 
-export const suggestSession = (description) =>
-  api.post("/ai/suggest-session", { description });
+export const suggestSession = (data) =>
+  api.post("/ai/suggest-session", data);
 
 export const summarizeDrill = (drill) =>
   api.post("/ai/summarize", { drill });
@@ -29,3 +29,9 @@ export const adaptSession = (session, constraints) =>
 
 export const generateDiagram = (drillId) =>
   api.post(`/ai/generate-diagram/${drillId}`);
+
+export const refineSession = (id, message) =>
+  api.post(`/ai/refine-session/${id}`, { message });
+
+export const checkSessionFeasibility = (id, actualPlayers, actualTrainers) =>
+  api.post(`/ai/check-session-feasibility/${id}`, { actualPlayers, actualTrainers });

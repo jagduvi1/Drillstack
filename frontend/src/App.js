@@ -16,6 +16,7 @@ import PlanFormPage from "./pages/PlanFormPage";
 import PlanDetailPage from "./pages/PlanDetailPage";
 import SearchPage from "./pages/SearchPage";
 import SuperAdminPage from "./pages/SuperAdminPage";
+import NotificationsPage from "./pages/NotificationsPage";
 import { useAuth } from "./context/AuthContext";
 
 export default function App() {
@@ -53,6 +54,7 @@ export default function App() {
           <Route path="/plans/:id" element={<ProtectedRoute><PlanDetailPage /></ProtectedRoute>} />
           <Route path="/plans/:id/edit" element={<ProtectedRoute><PlanFormPage /></ProtectedRoute>} />
           <Route path="/search" element={<ProtectedRoute><SearchPage /></ProtectedRoute>} />
+          <Route path="/notifications" element={<ProtectedRoute><NotificationsPage /></ProtectedRoute>} />
           {user.isSuperAdmin && (
             <Route path="/superadmin" element={<ProtectedRoute><SuperAdminPage /></ProtectedRoute>} />
           )}

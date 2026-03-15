@@ -2,7 +2,8 @@ import { useState, useEffect, useRef } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { getDrill, createDrill, updateDrill, checkSimilarity } from "../api/drills";
 import { generateDrill } from "../api/ai";
-import { FiZap, FiSave, FiX, FiPlus, FiTrash2, FiAlertCircle } from "react-icons/fi";
+import DebugPanel from "../components/common/DebugPanel";
+import { FiZap, FiSave, FiX, FiPlus, FiTrash2, FiAlertCircle, FiCode } from "react-icons/fi";
 
 const EMPTY_DRILL = {
   title: "",
@@ -29,6 +30,8 @@ export default function DrillFormPage() {
   const [generated, setGenerated] = useState(false);
   const [similarityWarning, setSimilarityWarning] = useState(null);
   const [checking, setChecking] = useState(false);
+  const [debugOpen, setDebugOpen] = useState(false);
+  const [debugEntries, setDebugEntries] = useState([]);
   const originalDrill = useRef(null);
 
   useEffect(() => {
@@ -63,6 +66,12 @@ export default function DrillFormPage() {
     try {
       const res = await generateDrill(aiPrompt, form.sport || undefined);
       const drill = res.data.drill;
+      if (res.data.debug) {
+        setDebugEntries((prev) => [
+          ...prev,
+          { label: "Drill Generation", debug: res.data.debug },
+        ]);
+      }
       setForm({
         title: drill.title || "",
         description: drill.description || aiPrompt,
@@ -158,8 +167,20 @@ export default function DrillFormPage() {
 
   return (
     <div>
-      <h1>{isEdit ? "Edit Drill" : "Create a Drill"}</h1>
+      <div className="flex-between mb-1">
+        <h1>{isEdit ? "Edit Drill" : "Create a Drill"}</h1>
+        {debugEntries.length > 0 && (
+          <button
+            type="button"
+            className={`btn ${debugOpen ? "btn-primary" : "btn-secondary"}`}
+            onClick={() => setDebugOpen(!debugOpen)}
+          >
+            <FiCode /> Debug ({debugEntries.length})
+          </button>
+        )}
+      </div>
       {error && <div className="alert alert-danger">{error}</div>}
+      {debugOpen && <DebugPanel entries={debugEntries} />}
 
       {/* Similarity warning — drill changed too much */}
       {similarityWarning && (

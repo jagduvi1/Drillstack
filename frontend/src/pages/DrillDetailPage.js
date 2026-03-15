@@ -4,7 +4,8 @@ import useFetch from "../hooks/useFetch";
 import { useAuth } from "../context/AuthContext";
 import { getDrill, deleteDrill, uploadDiagram, addReflection, retryEmbedding, toggleStar, forkDrill, getVersions, setDefaultVersion, findSimilar, convertToVersion } from "../api/drills";
 import { refineDrill, generateDiagram } from "../api/ai";
-import { FiEdit, FiTrash2, FiSend, FiMessageCircle, FiLoader, FiAlertCircle, FiRefreshCw, FiImage, FiStar, FiCopy, FiGitBranch, FiUser, FiCheck, FiLink } from "react-icons/fi";
+import DebugPanel from "../components/common/DebugPanel";
+import { FiEdit, FiTrash2, FiSend, FiMessageCircle, FiLoader, FiAlertCircle, FiRefreshCw, FiImage, FiStar, FiCopy, FiGitBranch, FiUser, FiCheck, FiLink, FiCode } from "react-icons/fi";
 
 export default function DrillDetailPage() {
   const { id } = useParams();
@@ -22,6 +23,8 @@ export default function DrillDetailPage() {
   const [similarDrills, setSimilarDrills] = useState(null);
   const [similarDismissed, setSimilarDismissed] = useState(false);
   const [embeddingElapsed, setEmbeddingElapsed] = useState(0);
+  const [debugOpen, setDebugOpen] = useState(false);
+  const [debugEntries, setDebugEntries] = useState([]);
   const similarChecked = useRef(false);
   const embeddingStartRef = useRef(null);
   const chatEndRef = useRef(null);
@@ -114,7 +117,13 @@ export default function DrillDetailPage() {
   const handleGenerateDiagram = async () => {
     setDiagramLoading(true);
     try {
-      await generateDiagram(id);
+      const res = await generateDiagram(id);
+      if (res.data.debug) {
+        setDebugEntries((prev) => [
+          ...prev,
+          { label: "Diagram Generation", debug: res.data.debug },
+        ]);
+      }
       refetch();
     } catch {
       alert("Diagram generation failed. Check your AI provider configuration.");
@@ -153,9 +162,16 @@ export default function DrillDetailPage() {
 
   const handleChatSend = async () => {
     if (!chatMessage.trim() || chatLoading) return;
+    const msg = chatMessage.trim();
     setChatLoading(true);
     try {
-      await refineDrill(id, chatMessage.trim());
+      const res = await refineDrill(id, msg);
+      if (res.data.debug) {
+        setDebugEntries((prev) => [
+          ...prev,
+          { label: `Refine: "${msg.slice(0, 40)}${msg.length > 40 ? "..." : ""}"`, debug: res.data.debug },
+        ]);
+      }
       setChatMessage("");
       refetch();
     } catch {
@@ -208,9 +224,19 @@ export default function DrillDetailPage() {
             >
               <FiStar /> {drill.isStarred ? "Starred" : "Star"}
             </button>
-            <button className="btn btn-secondary" onClick={() => setShowChat(!showChat)}>
-              <FiMessageCircle /> {showChat ? "Hide Chat" : "Refine with AI"}
-            </button>
+            {debugEntries.length > 0 && (
+              <button
+                className={`btn ${debugOpen ? "btn-primary" : "btn-secondary"}`}
+                onClick={() => setDebugOpen(!debugOpen)}
+              >
+                <FiCode /> Debug ({debugEntries.length})
+              </button>
+            )}
+            {drill.isOwner && (
+              <button className="btn btn-secondary" onClick={() => setShowChat(!showChat)}>
+                <FiMessageCircle /> {showChat ? "Hide Chat" : "Refine with AI"}
+              </button>
+            )}
             {drill.isOwner ? (
               <Link to={`/drills/${id}/edit`} className="btn btn-secondary"><FiEdit /> Edit</Link>
             ) : (
@@ -345,6 +371,11 @@ export default function DrillDetailPage() {
               </div>
             </div>
           </div>
+        )}
+
+        {/* Debug Panel */}
+        {debugOpen && debugEntries.length > 0 && (
+          <DebugPanel entries={debugEntries} />
         )}
 
         {/* Description & meta */}
