@@ -58,8 +58,9 @@ function extractSVG(raw) {
   const svgMatch = raw.match(/<svg[\s\S]*<\/svg>/i);
   if (svgMatch) return svgMatch[0];
 
-  // If no SVG found, throw
-  throw new Error("AI did not return valid SVG content");
+  // If no SVG found, throw with a snippet of what was returned for debugging
+  const preview = raw ? raw.slice(0, 200) : "(empty response)";
+  throw new Error(`AI did not return valid SVG content. Response preview: ${preview}`);
 }
 
 /**

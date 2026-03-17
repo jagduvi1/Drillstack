@@ -34,12 +34,15 @@ async function complete(systemPrompt, userPrompt) {
         },
         body: JSON.stringify({
           model,
-          max_tokens: 4096,
+          max_tokens: 8192,
           system: systemPrompt,
           messages: [{ role: "user", content: userPrompt }],
         }),
       });
       const data = await res.json();
+      if (data.error) {
+        throw new Error(`Anthropic API error: ${data.error.type} — ${data.error.message}`);
+      }
       return data.content?.[0]?.text || "";
     }
 

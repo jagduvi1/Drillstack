@@ -660,10 +660,7 @@ router.post(
   authenticate,
   async (req, res, next) => {
     try {
-      const drill = await Drill.findOne({
-        _id: req.params.id,
-        createdBy: req.user._id,
-      });
+      const drill = await Drill.findById(req.params.id);
       if (!drill) return res.status(404).json({ error: "Drill not found" });
 
       const { path: diagramPath, debug } = await generateDiagram(drill);

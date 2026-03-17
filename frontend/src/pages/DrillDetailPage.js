@@ -20,6 +20,7 @@ export default function DrillDetailPage() {
   const [chatLoading, setChatLoading] = useState(false);
   const [showChat, setShowChat] = useState(false);
   const [diagramLoading, setDiagramLoading] = useState(false);
+  const [diagramError, setDiagramError] = useState("");
   const [showVersions, setShowVersions] = useState(false);
   const [versions, setVersions] = useState(null);
   const [similarDrills, setSimilarDrills] = useState(null);
@@ -118,6 +119,7 @@ export default function DrillDetailPage() {
 
   const handleGenerateDiagram = async () => {
     setDiagramLoading(true);
+    setDiagramError("");
     try {
       const res = await generateDiagram(id);
       if (res.data.debug) {
@@ -127,8 +129,9 @@ export default function DrillDetailPage() {
         ]);
       }
       refetch();
-    } catch {
-      alert(t("drills.diagramGenFailed"));
+    } catch (err) {
+      const msg = err.response?.data?.error || err.message || t("drills.diagramGenFailed");
+      setDiagramError(msg);
     } finally {
       setDiagramLoading(false);
     }
@@ -249,6 +252,16 @@ export default function DrillDetailPage() {
             )}
           </div>
         </div>
+
+        {/* Read-only banner for non-owners */}
+        {!drill.isOwner && (
+          <div className="alert alert-info flex-between mb-1" style={{ alignItems: "center" }}>
+            <span><FiAlertCircle style={{ marginRight: "0.4rem" }} />{t("drills.readOnlyBanner")}</span>
+            <button className="btn btn-primary btn-sm" style={{ marginLeft: "1rem", whiteSpace: "nowrap" }} onClick={handleFork}>
+              <FiCopy /> {t("drills.forkAndEdit")}
+            </button>
+          </div>
+        )}
 
         {/* Versions panel */}
         {showVersions && versions && (
@@ -450,17 +463,24 @@ export default function DrillDetailPage() {
         <div className="card mb-1">
           <div className="flex-between">
             <h3>{t("drills.diagrams")}</h3>
-            <button
-              className="btn btn-primary btn-sm"
-              onClick={handleGenerateDiagram}
-              disabled={diagramLoading}
-            >
-              {diagramLoading ? <><FiLoader className="spin" /> {t("drills.generating")}</> : <><FiImage /> {t("drills.generateWithAi")}</>}
-            </button>
+            {drill.isOwner && (
+              <button
+                className="btn btn-primary btn-sm"
+                onClick={handleGenerateDiagram}
+                disabled={diagramLoading}
+              >
+                {diagramLoading ? <><FiLoader className="spin" /> {t("drills.generating")}</> : <><FiImage /> {t("drills.generateWithAi")}</>}
+              </button>
+            )}
           </div>
           {diagramLoading && (
             <p className="text-sm text-muted mt-1">
               {t("drills.aiCreatingDiagram")}
+            </p>
+          )}
+          {diagramError && (
+            <p className="text-sm mt-1" style={{ color: "var(--color-danger, #ef4444)" }}>
+              {diagramError}
             </p>
           )}
           <div className="flex gap-sm mt-1" style={{ flexWrap: "wrap" }}>
@@ -468,10 +488,18 @@ export default function DrillDetailPage() {
               <img key={i} src={d} alt={`Diagram ${i + 1}`} style={{ maxWidth: 400, borderRadius: "var(--radius)", border: "1px solid var(--color-border)" }} />
             ))}
           </div>
-          <div className="mt-1">
-            <label className="text-sm text-muted" style={{ marginRight: "0.5rem" }}>{t("drills.uploadYourOwn")}</label>
-            <input type="file" accept="image/*" onChange={handleDiagramUpload} />
-          </div>
+          {drill.isOwner ? (
+            <div className="mt-1">
+              <label className="text-sm text-muted" style={{ marginRight: "0.5rem" }}>{t("drills.uploadYourOwn")}</label>
+              <input type="file" accept="image/*" onChange={handleDiagramUpload} />
+            </div>
+          ) : (
+            <p className="text-sm text-muted mt-1">
+              <FiCopy style={{ marginRight: "0.3rem" }} />
+              {t("drills.diagramsReadOnly")}{" "}
+              <button className="btn-link" onClick={handleFork}>{t("drills.forkAndEdit")}</button>
+            </p>
+          )}
         </div>
 
         {/* Reflection Notes */}

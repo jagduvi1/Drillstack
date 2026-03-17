@@ -7,4 +7,5 @@ export const getAISettings = () => api.get("/superadmin/ai");
 export const updateAISetting = (key, value) => api.put(`/superadmin/ai/${key}`, { value });
 export const resetAISetting = (key) => api.delete(`/superadmin/ai/${key}`);
 export const getUsers = (params) => api.get("/superadmin/users", { params });
+export const updateUserPlan = (id, data) => api.put(`/superadmin/users/${id}/plan`, data);
 export const getAuditLog = (params) => api.get("/superadmin/audit", { params });

@@ -122,6 +122,8 @@
     "chatPlaceholder": "t.ex. 'Gör det svårare genom att minska ytan' eller 'Lägg till en målvakt'",
     "send": "Skicka",
     "forkAndEdit": "Kopiera & redigera",
+    "readOnlyBanner": "Du visar denna övning i skrivskyddat läge. Kopiera den för att redigera, generera diagram eller ladda upp egna bilder.",
+    "diagramsReadOnly": "Kopiera denna övning för att generera AI-diagram eller ladda upp egna.",
     "versions": "Versioner",
     "version_count": "{{count}} versioner",
     "default": "Standard",
