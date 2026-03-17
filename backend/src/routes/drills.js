@@ -12,8 +12,8 @@ const { indexDrill, removeDrill, getQueueStatus, checkEmbeddingSimilarity, findS
 router.get("/", authenticate, async (req, res, next) => {
   try {
     const filter = {};
-    if (req.query.sport) filter.sport = req.query.sport;
-    if (req.query.intensity) filter.intensity = req.query.intensity;
+    if (req.query.sport) filter.sport = String(req.query.sport);
+    if (req.query.intensity) filter.intensity = String(req.query.intensity);
     // Only show "root" drills by default (not forks), unless ?versions=all
     if (req.query.versions !== "all") filter.parentDrill = null;
     // Filter by starred
@@ -123,7 +123,8 @@ router.post(
   validate,
   async (req, res, next) => {
     try {
-      const drill = await Drill.create({ ...req.body, createdBy: req.user._id });
+      const { title, description, sport, intensity, setup, howItWorks, coachingPoints, variations, commonMistakes, diagrams, versionName, aiConversation } = req.body;
+      const drill = await Drill.create({ title, description, sport, intensity, setup, howItWorks, coachingPoints, variations, commonMistakes, diagrams, versionName, aiConversation, createdBy: req.user._id });
       indexDrill(drill).catch((e) => console.error("Index error:", e.message));
       res.status(201).json(drill);
     } catch (err) {
@@ -209,11 +210,13 @@ router.put("/:id", authenticate, async (req, res, next) => {
       );
     }
 
-    // Now apply the update
-    const drill = await Drill.findByIdAndUpdate(req.params.id, req.body, {
-      new: true,
-      runValidators: true,
-    });
+    // Now apply the update — explicitly pick allowed fields to prevent operator injection
+    const { title, description, sport, intensity, setup, howItWorks, coachingPoints, variations, commonMistakes, diagrams, versionName, aiConversation } = req.body;
+    const drill = await Drill.findByIdAndUpdate(
+      req.params.id,
+      { $set: { title, description, sport, intensity, setup, howItWorks, coachingPoints, variations, commonMistakes, diagrams, versionName, aiConversation } },
+      { new: true, runValidators: true }
+    );
     indexDrill(drill).catch((e) => console.error("Index error:", e.message));
     res.json(drill);
   } catch (err) {

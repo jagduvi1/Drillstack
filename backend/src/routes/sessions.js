@@ -39,7 +39,7 @@ const POPULATE_BLOCKS = [
 router.get("/", authenticate, async (req, res, next) => {
   try {
     const filter = { createdBy: req.user._id };
-    if (req.query.sport) filter.sport = req.query.sport;
+    if (req.query.sport) filter.sport = String(req.query.sport);
 
     const page = Math.max(1, parseInt(req.query.page, 10) || 1);
     const limit = Math.min(100, parseInt(req.query.limit, 10) || 20);
@@ -80,7 +80,8 @@ router.post(
   validate,
   async (req, res, next) => {
     try {
-      const data = { ...req.body, createdBy: req.user._id };
+      const { title, description, date, sport, blocks, expectedPlayers, expectedTrainers, actualPlayers, actualTrainers, group, visibility, aiGenerated, aiConversation } = req.body;
+      const data = { title, description, date, sport, blocks, expectedPlayers, expectedTrainers, actualPlayers, actualTrainers, group, visibility, aiGenerated, aiConversation, createdBy: req.user._id };
       const session = new TrainingSession(data);
       session.equipmentSummary = await computeEquipment(session);
       await session.save();
@@ -101,7 +102,8 @@ router.put("/:id", authenticate, async (req, res, next) => {
     });
     if (!session) return res.status(404).json({ error: "Session not found" });
 
-    Object.assign(session, req.body);
+    const { title, description, date, sport, blocks, expectedPlayers, expectedTrainers, actualPlayers, actualTrainers, group, visibility, aiGenerated, aiConversation } = req.body;
+    Object.assign(session, { title, description, date, sport, blocks, expectedPlayers, expectedTrainers, actualPlayers, actualTrainers, group, visibility, aiGenerated, aiConversation });
     session.equipmentSummary = await computeEquipment(session);
     await session.save();
     indexSession(session).catch((e) => console.error("Index error:", e.message));
