@@ -1,7 +1,10 @@
+import { useTranslation } from "react-i18next";
+
 export default function BreakBlock({ block, onChange }) {
+  const { t } = useTranslation();
   return (
     <div className="flex gap-sm" style={{ alignItems: "center" }}>
-      <label className="text-sm">Duration:</label>
+      <label className="text-sm">{t("blocks.durationLabel")}</label>
       <input
         type="number"
         className="form-control form-control-sm"
@@ -12,10 +15,10 @@ export default function BreakBlock({ block, onChange }) {
         min={0}
         style={{ width: 80 }}
       />
-      <span className="text-sm text-muted">minutes</span>
+      <span className="text-sm text-muted">{t("common.minutes")}</span>
       <input
         className="form-control form-control-sm"
-        placeholder="Notes (optional)"
+        placeholder={t("blocks.notesOptional")}
         value={block.notes || ""}
         onChange={(e) => onChange({ ...block, notes: e.target.value })}
         style={{ flex: 1 }}

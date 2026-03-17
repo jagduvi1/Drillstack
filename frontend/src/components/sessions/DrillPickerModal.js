@@ -1,8 +1,10 @@
 import { useState, useEffect } from "react";
+import { useTranslation } from "react-i18next";
 import { getDrills } from "../../api/drills";
 import { FiSearch, FiStar, FiX } from "react-icons/fi";
 
 export default function DrillPickerModal({ onSelect, onClose, sport }) {
+  const { t } = useTranslation();
   const [drills, setDrills] = useState([]);
   const [search, setSearch] = useState("");
   const [starredOnly, setStarredOnly] = useState(false);
@@ -36,7 +38,7 @@ export default function DrillPickerModal({ onSelect, onClose, sport }) {
     <div className="modal-overlay" onClick={onClose}>
       <div className="modal-content" onClick={(e) => e.stopPropagation()}>
         <div className="modal-header">
-          <h3>Pick a Drill</h3>
+          <h3>{t("picker.pickADrill")}</h3>
           <button className="btn btn-secondary btn-sm" onClick={onClose}>
             <FiX />
           </button>
@@ -55,7 +57,7 @@ export default function DrillPickerModal({ onSelect, onClose, sport }) {
             />
             <input
               className="form-control"
-              placeholder="Search drills..."
+              placeholder={t("picker.searchDrills")}
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               style={{ paddingLeft: 32 }}
@@ -66,19 +68,19 @@ export default function DrillPickerModal({ onSelect, onClose, sport }) {
             className={`btn btn-sm ${starredOnly ? "btn-star-active" : "btn-secondary"}`}
             onClick={() => setStarredOnly(!starredOnly)}
           >
-            <FiStar /> {starredOnly ? "Starred" : "All"}
+            <FiStar /> {starredOnly ? t("drills.starred") : t("drills.all")}
           </button>
         </div>
 
         {loading ? (
-          <div className="loading">Loading drills...</div>
+          <div className="loading">{t("picker.loadingDrills")}</div>
         ) : filtered.length === 0 ? (
-          <p className="text-muted">No drills found.</p>
+          <p className="text-muted">{t("picker.noDrillsFound")}</p>
         ) : (
           <div className="drill-picker-list">
             {starred.length > 0 && !starredOnly && (
               <div className="text-sm text-muted" style={{ marginBottom: "0.5rem", fontWeight: 600 }}>
-                Your Starred Drills
+                {t("picker.yourStarredDrills")}
               </div>
             )}
             {starred.map((d) => (
@@ -89,7 +91,7 @@ export default function DrillPickerModal({ onSelect, onClose, sport }) {
                 className="text-sm text-muted"
                 style={{ margin: "0.75rem 0 0.5rem", fontWeight: 600 }}
               >
-                All Drills
+                {t("picker.allDrills")}
               </div>
             )}
             {rest.map((d) => (

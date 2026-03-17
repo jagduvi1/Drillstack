@@ -1,9 +1,11 @@
 import { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import { getNotifications, forkSnapshot, dismissNotification } from "../api/notifications";
 import { FiBell, FiCopy, FiX, FiAlertCircle } from "react-icons/fi";
 
 export default function NotificationsPage() {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const [notifications, setNotifications] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -25,7 +27,7 @@ export default function NotificationsPage() {
       // Navigate to the newly created version
       navigate(`/drills/${res.data._id}`);
     } catch {
-      alert("Failed to create version from snapshot.");
+      alert(t("notifications.failedToFork"));
     } finally {
       setActionLoading(null);
     }
@@ -36,15 +38,15 @@ export default function NotificationsPage() {
     setNotifications((prev) => prev.filter((n) => n._id !== notifId));
   };
 
-  if (loading) return <div className="loading">Loading...</div>;
+  if (loading) return <div className="loading">{t("common.loading")}</div>;
 
   return (
     <div>
-      <h1 style={{ marginBottom: "1rem" }}><FiBell /> Notifications</h1>
+      <h1 style={{ marginBottom: "1rem" }}><FiBell /> {t("notifications.title")}</h1>
 
       {notifications.length === 0 ? (
         <div className="card">
-          <p className="text-muted">No notifications yet.</p>
+          <p className="text-muted">{t("notifications.noNotifications")}</p>
         </div>
       ) : (
         <div className="notifications-list">
@@ -60,7 +62,7 @@ export default function NotificationsPage() {
                   </p>
                   {n.drillId && (
                     <p className="text-sm text-muted" style={{ marginBottom: "0.75rem" }}>
-                      Drill: <Link to={`/drills/${n.drillId._id || n.drillId}`}>
+                      {t("notifications.drillLabel")} <Link to={`/drills/${n.drillId._id || n.drillId}`}>
                         {n.drillId.title || "View drill"}
                       </Link>
                     </p>
@@ -68,7 +70,7 @@ export default function NotificationsPage() {
                   {n.snapshot && (
                     <div className="notification-snapshot">
                       <p className="text-sm" style={{ marginBottom: "0.25rem" }}>
-                        <strong>Previous version snapshot:</strong>
+                        <strong>{t("notifications.previousVersion")}</strong>
                       </p>
                       <p className="text-sm text-muted">
                         {n.snapshot.description?.slice(0, 150)}
@@ -83,14 +85,14 @@ export default function NotificationsPage() {
                         onClick={() => handleFork(n._id)}
                         disabled={actionLoading === n._id}
                       >
-                        <FiCopy /> {actionLoading === n._id ? "Creating..." : "Create My Version"}
+                        <FiCopy /> {actionLoading === n._id ? t("notifications.creating") : t("notifications.createMyVersion")}
                       </button>
                     )}
                     <button
                       className="btn btn-secondary btn-sm"
                       onClick={() => handleDismiss(n._id)}
                     >
-                      <FiX /> Dismiss
+                      <FiX /> {t("notifications.dismiss")}
                     </button>
                   </div>
                 </div>

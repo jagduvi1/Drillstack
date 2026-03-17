@@ -1,10 +1,13 @@
 import { useState, useEffect, useCallback } from "react";
 import { useNavigate, useParams } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import { getSession, createSession, updateSession } from "../api/sessions";
 import { suggestSession } from "../api/ai";
 import BlockList from "../components/sessions/BlockList";
 import DrillPickerModal from "../components/sessions/DrillPickerModal";
+import DrillPreviewModal from "../components/sessions/DrillPreviewModal";
 import DebugPanel from "../components/common/DebugPanel";
+import { useGroups } from "../context/GroupContext";
 import { FiSave, FiX, FiZap, FiLoader, FiCode } from "react-icons/fi";
 
 const EMPTY_SESSION = {
@@ -15,14 +18,18 @@ const EMPTY_SESSION = {
   expectedPlayers: "",
   expectedTrainers: "",
   blocks: [],
+  group: "",
+  visibility: "private",
 };
 
 export default function SessionFormPage() {
+  const { t } = useTranslation();
   const { id } = useParams();
   const navigate = useNavigate();
   const isEdit = Boolean(id);
 
-  const [form, setForm] = useState(EMPTY_SESSION);
+  const { groups, activeGroupId } = useGroups();
+  const [form, setForm] = useState({ ...EMPTY_SESSION, group: activeGroupId || "", visibility: activeGroupId ? "group" : "private" });
   const [mode, setMode] = useState("manual"); // "manual" | "ai"
   const [aiPrompt, setAiPrompt] = useState("");
   const [aiNumPlayers, setAiNumPlayers] = useState("");
@@ -40,6 +47,9 @@ export default function SessionFormPage() {
   const [pickerOpen, setPickerOpen] = useState(false);
   const [pickerTarget, setPickerTarget] = useState(null);
 
+  // Drill preview state
+  const [previewDrillId, setPreviewDrillId] = useState(null);
+
   // Load existing session for edit
   useEffect(() => {
     if (isEdit) {
@@ -54,6 +64,8 @@ export default function SessionFormPage() {
             sport: s.sport || "",
             expectedPlayers: s.expectedPlayers || "",
             expectedTrainers: s.expectedTrainers || "",
+            group: s.group || "",
+            visibility: s.visibility || "private",
             blocks: (s.blocks || []).map((b, i) => ({
               ...b,
               order: i,
@@ -71,7 +83,7 @@ export default function SessionFormPage() {
             })),
           });
         })
-        .catch(() => setError("Failed to load session"))
+        .catch(() => setError(t("sessions.failedToLoad")))
         .finally(() => setLoading(false));
     }
   }, [id, isEdit]);
@@ -152,7 +164,7 @@ export default function SessionFormPage() {
         ]);
       }
     } catch {
-      setError("AI generation failed. Check your AI provider config.");
+      setError(t("sessions.aiGenFailed"));
     } finally {
       setGenerating(false);
     }
@@ -244,6 +256,8 @@ export default function SessionFormPage() {
         ...form,
         date: form.date || undefined,
         sport: form.sport || undefined,
+        group: form.group || null,
+        visibility: form.group ? form.visibility : "private",
         expectedPlayers: form.expectedPlayers || 0,
         expectedTrainers: form.expectedTrainers || 0,
         blocks: form.blocks.map((b, i) => ({
@@ -260,17 +274,17 @@ export default function SessionFormPage() {
       }
       navigate("/sessions");
     } catch (err) {
-      setError(err.response?.data?.error || "Save failed");
+      setError(err.response?.data?.error || t("common.saveFailed"));
     } finally {
       setSaving(false);
     }
   };
 
-  if (loading) return <div className="loading">Loading...</div>;
+  if (loading) return <div className="loading">{t("common.loading")}</div>;
 
   return (
     <div>
-      <h1>{isEdit ? "Edit Session" : "Create Session"}</h1>
+      <h1>{isEdit ? t("sessions.editSession") : t("sessions.createSession")}</h1>
       {error && <div className="alert alert-danger">{error}</div>}
 
       {/* Debug toggle */}
@@ -293,14 +307,14 @@ export default function SessionFormPage() {
             className={`mode-toggle-btn ${mode === "manual" ? "mode-toggle-btn-active" : ""}`}
             onClick={() => setMode("manual")}
           >
-            Build Manually
+            {t("sessions.buildManually")}
           </button>
           <button
             type="button"
             className={`mode-toggle-btn ${mode === "ai" ? "mode-toggle-btn-active" : ""}`}
             onClick={() => setMode("ai")}
           >
-            <FiZap /> Generate with AI
+            <FiZap /> {t("sessions.generateWithAi")}
           </button>
         </div>
       )}
@@ -308,23 +322,22 @@ export default function SessionFormPage() {
       {/* AI Generation panel */}
       {mode === "ai" && !aiPreview && (
         <div className="card ai-session-panel mb-1">
-          <h3 style={{ marginBottom: "0.75rem" }}>Describe your session</h3>
+          <h3 style={{ marginBottom: "0.75rem" }}>{t("sessions.describeSession")}</h3>
           <p className="text-sm text-muted" style={{ marginBottom: "1rem" }}>
-            Describe what you want to train. The AI will build a full session with warmup,
-            stations, games, cooldown — whatever fits best.
+            {t("sessions.describeSessionHint")}
           </p>
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "0.75rem" }}>
             <div className="form-group">
-              <label className="text-sm">Sport</label>
+              <label className="text-sm">{t("sessions.sportLabel")}</label>
               <input
                 className="form-control"
-                placeholder="e.g. football"
+                placeholder={t("sessions.sportPlaceholder")}
                 value={form.sport}
                 onChange={(e) => setForm((prev) => ({ ...prev, sport: e.target.value }))}
               />
             </div>
             <div className="form-group">
-              <label className="text-sm">Number of players</label>
+              <label className="text-sm">{t("sessions.numberOfPlayers")}</label>
               <input
                 className="form-control"
                 type="number"
@@ -334,7 +347,7 @@ export default function SessionFormPage() {
               />
             </div>
             <div className="form-group">
-              <label className="text-sm">Total time (min)</label>
+              <label className="text-sm">{t("sessions.totalTime")}</label>
               <input
                 className="form-control"
                 type="number"
@@ -346,7 +359,7 @@ export default function SessionFormPage() {
           </div>
           <textarea
             className="form-control"
-            placeholder="e.g. 'Focus on 1v1 defending and transition play. Include station work for technique and end with small-sided games.'"
+            placeholder={t("sessions.sessionDescPlaceholder")}
             value={aiPrompt}
             onChange={(e) => setAiPrompt(e.target.value)}
             style={{ minHeight: 100 }}
@@ -359,9 +372,9 @@ export default function SessionFormPage() {
               disabled={generating || !aiPrompt.trim()}
             >
               {generating ? (
-                <><FiLoader className="spin" /> Generating...</>
+                <><FiLoader className="spin" /> {t("sessions.generating")}</>
               ) : (
-                <><FiZap /> Generate Session</>
+                <><FiZap /> {t("sessions.generateSession")}</>
               )}
             </button>
             <button
@@ -369,7 +382,7 @@ export default function SessionFormPage() {
               className="btn btn-secondary"
               onClick={() => setMode("manual")}
             >
-              Switch to Manual
+              {t("sessions.switchToManual")}
             </button>
           </div>
         </div>
@@ -377,10 +390,37 @@ export default function SessionFormPage() {
 
       {/* AI Preview */}
       {mode === "ai" && aiPreview && (() => {
-        const drillSet = new Set(aiDrills.map((d) => d.title.toLowerCase()));
+        const drillMap = {};
+        for (const d of aiDrills) {
+          drillMap[d.title.toLowerCase()] = d;
+        }
+
+        const renderDrillName = (title) => {
+          const match = drillMap[title.toLowerCase()];
+          if (match) {
+            return (
+              <button
+                type="button"
+                className="drill-name-link"
+                onClick={() => setPreviewDrillId(match._id)}
+              >
+                {title}
+              </button>
+            );
+          }
+          return (
+            <span>
+              <span style={{ color: "var(--color-danger)", textDecoration: "line-through" }}>
+                {title}
+              </span>
+              <span style={{ color: "var(--color-danger)", fontSize: "0.75rem" }}> ({t("sessions.notInSystem")})</span>
+            </span>
+          );
+        };
+
         return (
         <div className="card ai-session-panel mb-1">
-          <h3 style={{ marginBottom: "0.5rem" }}>{aiPreview.title || "AI Session Plan"}</h3>
+          <h3 style={{ marginBottom: "0.5rem" }}>{aiPreview.title || t("sessions.aiSessionPlan")}</h3>
           {aiPreview.description && (
             <p className="text-sm text-muted" style={{ marginBottom: "0.75rem" }}>
               {aiPreview.description}
@@ -394,37 +434,25 @@ export default function SessionFormPage() {
               </div>
               {block.type === "drills" && block.drillTitles && (
                 <div className="text-sm" style={{ marginTop: "0.25rem" }}>
-                  {block.drillTitles.map((title, j) => {
-                    const found = drillSet.has(title.toLowerCase());
-                    return (
-                      <span key={j}>
-                        {j > 0 && ", "}
-                        <span style={found ? {} : { color: "var(--color-danger)", textDecoration: "line-through" }}>
-                          {title}
-                        </span>
-                        {!found && <span style={{ color: "var(--color-danger)", fontSize: "0.75rem" }}> (ej i systemet)</span>}
-                      </span>
-                    );
-                  })}
+                  {block.drillTitles.map((title, j) => (
+                    <span key={j}>
+                      {j > 0 && ", "}
+                      {renderDrillName(title)}
+                    </span>
+                  ))}
                 </div>
               )}
               {block.type === "stations" && (
                 <div className="text-sm" style={{ marginTop: "0.25rem" }}>
-                  <span className="text-muted">{block.stationCount} stationer, {block.rotationMinutes} min rotation</span>
+                  <span className="text-muted">{t("sessions.stationInfo", { count: block.stationCount, minutes: block.rotationMinutes })}</span>
                   {block.stationDrills && (
                     <div style={{ marginTop: "0.25rem" }}>
-                      {block.stationDrills.map((s, j) => {
-                        const found = drillSet.has((s.drillTitle || "").toLowerCase());
-                        return (
-                          <div key={j} style={{ marginLeft: "0.5rem" }}>
-                            <span className="text-muted">Station {s.stationNumber}: </span>
-                            <span style={found ? {} : { color: "var(--color-danger)", textDecoration: "line-through" }}>
-                              {s.drillTitle}
-                            </span>
-                            {!found && <span style={{ color: "var(--color-danger)", fontSize: "0.75rem" }}> (ej i systemet)</span>}
-                          </div>
-                        );
-                      })}
+                      {block.stationDrills.map((s, j) => (
+                        <div key={j} style={{ marginLeft: "0.5rem" }}>
+                          <span className="text-muted">{t("sessions.station", { number: s.stationNumber })}: </span>
+                          {renderDrillName(s.drillTitle || "")}
+                        </div>
+                      ))}
                     </div>
                   )}
                 </div>
@@ -445,14 +473,14 @@ export default function SessionFormPage() {
           ))}
           <div className="flex gap-sm mt-1">
             <button type="button" className="btn btn-primary" onClick={importAiPlan}>
-              Use This Plan
+              {t("sessions.useThisPlan")}
             </button>
             <button
               type="button"
               className="btn btn-secondary"
               onClick={() => setAiPreview(null)}
             >
-              Regenerate
+              {t("sessions.regenerate")}
             </button>
             <button
               type="button"
@@ -462,7 +490,7 @@ export default function SessionFormPage() {
                 setMode("manual");
               }}
             >
-              Cancel
+              {t("common.cancel")}
             </button>
           </div>
         </div>
@@ -475,7 +503,7 @@ export default function SessionFormPage() {
           <div className="card mb-1">
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "1rem" }}>
               <div className="form-group">
-                <label>Title *</label>
+                <label>{t("sessions.titleLabel")}</label>
                 <input
                   className="form-control"
                   required
@@ -486,7 +514,7 @@ export default function SessionFormPage() {
                 />
               </div>
               <div className="form-group">
-                <label>Date</label>
+                <label>{t("sessions.dateLabel")}</label>
                 <input
                   className="form-control"
                   type="date"
@@ -499,10 +527,10 @@ export default function SessionFormPage() {
             </div>
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "1rem" }}>
               <div className="form-group">
-                <label>Sport</label>
+                <label>{t("sessions.sportLabel")}</label>
                 <input
                   className="form-control"
-                  placeholder="e.g. football"
+                  placeholder={t("sessions.sportPlaceholder")}
                   value={form.sport}
                   onChange={(e) =>
                     setForm((prev) => ({ ...prev, sport: e.target.value }))
@@ -510,10 +538,10 @@ export default function SessionFormPage() {
                 />
               </div>
               <div className="form-group">
-                <label>Description</label>
+                <label>{t("sessions.description")}</label>
                 <input
                   className="form-control"
-                  placeholder="Session goal or theme"
+                  placeholder={t("sessions.descriptionPlaceholder")}
                   value={form.description}
                   onChange={(e) =>
                     setForm((prev) => ({ ...prev, description: e.target.value }))
@@ -523,7 +551,7 @@ export default function SessionFormPage() {
             </div>
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "1rem" }}>
               <div className="form-group">
-                <label>Expected players</label>
+                <label>{t("sessions.expectedPlayers")}</label>
                 <input
                   className="form-control"
                   type="number"
@@ -539,7 +567,7 @@ export default function SessionFormPage() {
                 />
               </div>
               <div className="form-group">
-                <label>Expected trainers</label>
+                <label>{t("sessions.expectedTrainers")}</label>
                 <input
                   className="form-control"
                   type="number"
@@ -555,32 +583,65 @@ export default function SessionFormPage() {
                 />
               </div>
             </div>
+
+            {/* Sharing controls */}
+            {groups.length > 0 && (
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "1rem" }}>
+                <div className="form-group">
+                  <label>{t("sessions.shareWith")}</label>
+                  <select className="form-control" value={form.group || ""}
+                    onChange={(e) => setForm((prev) => ({
+                      ...prev,
+                      group: e.target.value || "",
+                      visibility: e.target.value ? prev.visibility === "private" ? "group" : prev.visibility : "private",
+                    }))}>
+                    <option value="">{t("sessions.privateOnly")}</option>
+                    {groups.map((g) => (
+                      <option key={g._id} value={g._id}>
+                        {g.name}{g.parentClub?.name ? ` (${g.parentClub.name})` : ""}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                {form.group && (
+                  <div className="form-group">
+                    <label>{t("sessions.visibility")}</label>
+                    <select className="form-control" value={form.visibility}
+                      onChange={(e) => setForm((prev) => ({ ...prev, visibility: e.target.value }))}>
+                      <option value="group">{t("sessions.teamOnly")}</option>
+                      <option value="club">{t("sessions.entireClub")}</option>
+                    </select>
+                  </div>
+                )}
+              </div>
+            )}
           </div>
 
           <BlockList
             blocks={form.blocks}
             onChange={(blocks) => setForm((prev) => ({ ...prev, blocks }))}
             onPickDrill={openPicker}
+            onPreviewDrill={(drillId) => drillId && setPreviewDrillId(drillId)}
           />
 
           <div className="session-footer">
             <div>
-              <strong>Total: {totalDuration} min</strong>
+              <strong>{t("common.total", { count: totalDuration })}</strong>
               <span className="text-sm text-muted" style={{ marginLeft: "0.5rem" }}>
-                ({form.blocks.length} block{form.blocks.length !== 1 ? "s" : ""})
+                ({t("common.block", { count: form.blocks.length })})
               </span>
             </div>
             <div className="flex gap-sm">
               <button type="submit" className="btn btn-primary" disabled={saving}>
                 <FiSave />{" "}
-                {saving ? "Saving..." : isEdit ? "Update Session" : "Save Session"}
+                {saving ? t("common.saving") : isEdit ? t("sessions.updateSession") : t("sessions.saveSession")}
               </button>
               <button
                 type="button"
                 className="btn btn-secondary"
                 onClick={() => navigate("/sessions")}
               >
-                <FiX /> Cancel
+                <FiX /> {t("common.cancel")}
               </button>
             </div>
           </div>
@@ -599,6 +660,14 @@ export default function SessionFormPage() {
             setPickerTarget(null);
           }}
           sport={form.sport || undefined}
+        />
+      )}
+
+      {/* Drill preview modal */}
+      {previewDrillId && (
+        <DrillPreviewModal
+          drillId={previewDrillId}
+          onClose={() => setPreviewDrillId(null)}
         />
       )}
     </div>

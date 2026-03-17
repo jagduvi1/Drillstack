@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import DrillBlock from "./DrillBlock";
 import StationBlock from "./StationBlock";
 import MatchplayBlock from "./MatchplayBlock";
@@ -51,8 +52,17 @@ const BLOCK_LABELS = {
   custom: "Custom",
 };
 
-export default function BlockList({ blocks, onChange, onPickDrill }) {
+export default function BlockList({ blocks, onChange, onPickDrill, onPreviewDrill }) {
+  const { t } = useTranslation();
   const [showMenu, setShowMenu] = useState(false);
+
+  const blockLabels = {
+    drills: t("blocks.drillSequence"),
+    stations: t("blocks.stationRotation"),
+    matchplay: t("blocks.matchPlay"),
+    break: t("blocks.break"),
+    custom: t("blocks.custom"),
+  };
 
   const updateBlock = (idx, updatedBlock) => {
     const updated = [...blocks];
@@ -106,7 +116,7 @@ export default function BlockList({ blocks, onChange, onPickDrill }) {
                 className="block-label-input"
                 value={block.label}
                 onChange={(e) => updateBlock(idx, { ...block, label: e.target.value })}
-                placeholder={BLOCK_LABELS[block.type]}
+                placeholder={blockLabels[block.type]}
               />
               <span className="tag">{blockDuration(block)} min</span>
             </div>
@@ -116,7 +126,7 @@ export default function BlockList({ blocks, onChange, onPickDrill }) {
                 className="btn btn-secondary btn-sm"
                 onClick={() => moveBlock(idx, -1)}
                 disabled={idx === 0}
-                title="Move up"
+                title={t("blocks.moveUp")}
               >
                 <FiChevronUp />
               </button>
@@ -125,7 +135,7 @@ export default function BlockList({ blocks, onChange, onPickDrill }) {
                 className="btn btn-secondary btn-sm"
                 onClick={() => moveBlock(idx, 1)}
                 disabled={idx === blocks.length - 1}
-                title="Move down"
+                title={t("blocks.moveDown")}
               >
                 <FiChevronDown />
               </button>
@@ -133,7 +143,7 @@ export default function BlockList({ blocks, onChange, onPickDrill }) {
                 type="button"
                 className="btn btn-danger btn-sm"
                 onClick={() => removeBlock(idx)}
-                title="Remove block"
+                title={t("blocks.removeBlock")}
               >
                 <FiTrash2 />
               </button>
@@ -145,6 +155,7 @@ export default function BlockList({ blocks, onChange, onPickDrill }) {
               block={block}
               onChange={(b) => updateBlock(idx, b)}
               onPickDrill={() => onPickDrill(idx, "drills")}
+              onPreviewDrill={onPreviewDrill}
             />
           )}
           {block.type === "stations" && (
@@ -154,6 +165,7 @@ export default function BlockList({ blocks, onChange, onPickDrill }) {
               onPickDrillForStation={(stationIdx) =>
                 onPickDrill(idx, "stations", stationIdx)
               }
+              onPreviewDrill={onPreviewDrill}
             />
           )}
           {block.type === "matchplay" && (
@@ -174,11 +186,11 @@ export default function BlockList({ blocks, onChange, onPickDrill }) {
           className="btn btn-primary"
           onClick={() => setShowMenu(!showMenu)}
         >
-          <FiPlus /> Add Block
+          <FiPlus /> {t("blocks.addBlock")}
         </button>
         {showMenu && (
           <div className="add-block-options">
-            {Object.entries(BLOCK_LABELS).map(([type, label]) => (
+            {Object.entries(blockLabels).map(([type, label]) => (
               <button
                 key={type}
                 className="add-block-option"

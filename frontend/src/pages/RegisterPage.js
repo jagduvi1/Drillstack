@@ -1,8 +1,10 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import { useAuth } from "../context/AuthContext";
 
 export default function RegisterPage() {
+  const { t } = useTranslation();
   const { register } = useAuth();
   const navigate = useNavigate();
   const [form, setForm] = useState({ name: "", email: "", password: "" });
@@ -17,7 +19,7 @@ export default function RegisterPage() {
       await register(form);
       navigate("/");
     } catch (err) {
-      setError(err.response?.data?.error || "Registration failed");
+      setError(err.response?.data?.error || t("auth.registrationFailed"));
     } finally {
       setLoading(false);
     }
@@ -26,11 +28,11 @@ export default function RegisterPage() {
   return (
     <div style={{ maxWidth: 400, margin: "4rem auto", padding: "0 1rem" }}>
       <div className="card">
-        <h2 style={{ marginBottom: "1.5rem" }}>Create Account</h2>
+        <h2 style={{ marginBottom: "1.5rem" }}>{t("auth.createAccount")}</h2>
         {error && <div className="alert alert-danger">{error}</div>}
         <form onSubmit={handleSubmit}>
           <div className="form-group">
-            <label>Name</label>
+            <label>{t("auth.name")}</label>
             <input
               className="form-control"
               required
@@ -39,7 +41,7 @@ export default function RegisterPage() {
             />
           </div>
           <div className="form-group">
-            <label>Email</label>
+            <label>{t("auth.email")}</label>
             <input
               className="form-control"
               type="email"
@@ -49,7 +51,7 @@ export default function RegisterPage() {
             />
           </div>
           <div className="form-group">
-            <label>Password</label>
+            <label>{t("auth.password")}</label>
             <input
               className="form-control"
               type="password"
@@ -60,11 +62,11 @@ export default function RegisterPage() {
             />
           </div>
           <button className="btn btn-primary" disabled={loading} style={{ width: "100%" }}>
-            {loading ? "Creating..." : "Register"}
+            {loading ? t("auth.creating") : t("auth.register")}
           </button>
         </form>
         <p className="text-sm text-muted mt-1">
-          Already registered? <Link to="/login">Sign In</Link>
+          {t("auth.alreadyRegistered")} <Link to="/login">{t("auth.signIn")}</Link>
         </p>
       </div>
     </div>

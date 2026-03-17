@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import useFetch from "../hooks/useFetch";
 import { getDrill, checkSimilarity, createDrill, updateDrill } from "../api/drills";
 import { refineDrill } from "../api/ai";
@@ -202,6 +203,7 @@ function SectionContent({ section, original, current, changed }) {
 
 // ── Main page ───────────────────────────────────────────────────────────────
 export default function DrillRefinePage() {
+  const { t } = useTranslation();
   const { id } = useParams();
   const navigate = useNavigate();
   const { data: drill, loading, refetch } = useFetch(() => getDrill(id), [id]);
@@ -239,8 +241,8 @@ export default function DrillRefinePage() {
     }
   }, [drill?.aiConversation]);
 
-  if (loading) return <div className="loading">Loading...</div>;
-  if (!drill) return <div className="alert alert-danger">Drill not found</div>;
+  if (loading) return <div className="loading">{t("common.loading")}</div>;
+  if (!drill) return <div className="alert alert-danger">{t("drills.notFound")}</div>;
 
   const original = originalDrill.current || drill;
   const changedSections = SECTIONS.filter((s) =>
@@ -256,7 +258,7 @@ export default function DrillRefinePage() {
       setChatMessage("");
       refetch();
     } catch {
-      setError("AI refinement failed. Check your AI provider config.");
+      setError(t("refine.refineFailed"));
     } finally {
       setChatLoading(false);
     }
@@ -320,7 +322,7 @@ export default function DrillRefinePage() {
       const res = await createDrill(payload);
       navigate(`/drills/${res.data._id}`);
     } catch (err) {
-      setError(err.response?.data?.error || "Save failed");
+      setError(err.response?.data?.error || t("common.saveFailed"));
     } finally {
       setSaving(false);
     }
@@ -332,12 +334,12 @@ export default function DrillRefinePage() {
       <div className="refine-main">
         <div className="flex-between mb-1">
           <div>
-            <h1 style={{ marginBottom: "0.25rem" }}>Refine: {drill.title}</h1>
+            <h1 style={{ marginBottom: "0.25rem" }}>{t("refine.title", { title: drill.title })}</h1>
             {drill.parentDrill && (
               <span className="text-sm text-muted">
                 <FiGitBranch style={{ fontSize: "0.75rem" }} /> v{drill.version} of{" "}
                 <Link to={`/drills/${drill.parentDrill._id || drill.parentDrill}`}>
-                  {drill.parentDrill.title || "original"}
+                  {drill.parentDrill.title || t("refine.original")}
                 </Link>
               </span>
             )}
@@ -348,13 +350,13 @@ export default function DrillRefinePage() {
               onClick={handleSave}
               disabled={saving}
             >
-              <FiSave /> {saving ? "Checking..." : "Done — Save"}
+              <FiSave /> {saving ? t("common.checking") : t("refine.doneSave")}
             </button>
             <button
               className="btn btn-secondary"
               onClick={() => navigate(`/drills/${id}`)}
             >
-              <FiX /> Cancel
+              <FiX /> {t("common.cancel")}
             </button>
           </div>
         </div>
@@ -362,14 +364,14 @@ export default function DrillRefinePage() {
         {/* Version name input */}
         <div className="card mb-1">
           <label style={{ fontWeight: 600, marginBottom: "0.35rem", display: "block" }}>
-            Name your version
+            {t("refine.nameYourVersion")}
           </label>
           <p className="text-sm text-muted" style={{ marginBottom: "0.5rem" }}>
-            Give this version a short name to distinguish it, e.g. "Med halvtidsbyte" or "Utan kö"
+            {t("refine.nameVersionHint")}
           </p>
           <input
             className="form-control"
-            placeholder="e.g. Enklare variant, Med målvakt..."
+            placeholder={t("refine.nameVersionPlaceholder")}
             value={versionName}
             onChange={(e) => setVersionName(e.target.value)}
             style={{ maxWidth: 400 }}
@@ -384,20 +386,20 @@ export default function DrillRefinePage() {
             <div className="flex gap-sm" style={{ alignItems: "flex-start" }}>
               <FiAlertCircle style={{ marginTop: "0.2rem", flexShrink: 0 }} />
               <div>
-                <strong>This looks like a different drill</strong>
+                <strong>{t("drills.looksLikeDifferentDrill")}</strong>
                 <p style={{ margin: "0.25rem 0 0.75rem" }}>{similarityWarning}</p>
                 <div className="flex gap-sm">
                   <button className="btn btn-primary btn-sm" onClick={handleSaveAsNew}>
-                    Save as New Drill
+                    {t("drills.saveAsNewDrill")}
                   </button>
                   <button
                     className="btn btn-secondary btn-sm"
                     onClick={() => { setSimilarityWarning(null); navigate(`/drills/${id}`); }}
                   >
-                    Keep as Version Anyway
+                    {t("refine.keepAsVersionAnyway")}
                   </button>
                   <button className="btn btn-secondary btn-sm" onClick={() => setSimilarityWarning(null)}>
-                    Cancel
+                    {t("common.cancel")}
                   </button>
                 </div>
               </div>
@@ -408,7 +410,7 @@ export default function DrillRefinePage() {
         {/* Change summary banner */}
         {changedSections.length > 0 && (
           <div className="refine-changes-banner mb-1">
-            <strong>AI changed {changedSections.length} section{changedSections.length > 1 ? "s" : ""}:</strong>{" "}
+            <strong>{t("refine.aiChangedSections", { count: changedSections.length })}</strong>{" "}
             {changedSections.map((s) => s.label).join(", ")}
           </div>
         )}
@@ -423,7 +425,7 @@ export default function DrillRefinePage() {
             >
               <div className="refine-section-header">
                 <h3>{section.label}</h3>
-                {changed && <span className="refine-changed-badge">Changed</span>}
+                {changed && <span className="refine-changed-badge">{t("refine.changed")}</span>}
               </div>
               <div style={{ marginTop: "0.5rem" }}>
                 <SectionContent
@@ -441,23 +443,23 @@ export default function DrillRefinePage() {
       {/* AI Chat Panel — always visible */}
       <div className="chat-panel">
         <div className="chat-header">
-          <h3>Refine with AI</h3>
+          <h3>{t("drills.refineWithAi")}</h3>
           <p className="text-sm text-muted">
-            Describe what you want to change. The AI will update the drill and you'll see the changes highlighted.
+            {t("refine.describeChange")}
           </p>
         </div>
         <div className="chat-messages">
           {drill.aiConversation?.map((msg, i) => (
             <div key={i} className={`chat-msg chat-msg-${msg.role}`}>
-              <div className="chat-msg-label">{msg.role === "user" ? "You" : "AI"}</div>
+              <div className="chat-msg-label">{msg.role === "user" ? t("common.you") : t("common.ai")}</div>
               <div className="chat-msg-content">{msg.content}</div>
             </div>
           ))}
           {chatLoading && (
             <div className="chat-msg chat-msg-assistant">
-              <div className="chat-msg-label">AI</div>
+              <div className="chat-msg-label">{t("common.ai")}</div>
               <div className="chat-msg-content">
-                <FiLoader className="spin" /> Thinking...
+                <FiLoader className="spin" /> {t("refine.thinking")}
               </div>
             </div>
           )}
@@ -466,7 +468,7 @@ export default function DrillRefinePage() {
         <div className="chat-input">
           <textarea
             className="form-control"
-            placeholder="e.g. 'Make it harder by reducing space' or 'Add a goalkeeper'"
+            placeholder={t("drills.chatPlaceholder")}
             value={chatMessage}
             onChange={(e) => setChatMessage(e.target.value)}
             onKeyDown={handleChatKeyDown}
@@ -477,7 +479,7 @@ export default function DrillRefinePage() {
             onClick={handleChatSend}
             disabled={chatLoading || !chatMessage.trim()}
           >
-            <FiSend /> {chatLoading ? "..." : "Send"}
+            <FiSend /> {chatLoading ? "..." : t("drills.send")}
           </button>
         </div>
       </div>

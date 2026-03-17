@@ -1,13 +1,15 @@
 import { Link } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import useFetch from "../hooks/useFetch";
 import { getPlans, deletePlan } from "../api/plans";
 import { FiPlus, FiCalendar, FiTrash2, FiEdit } from "react-icons/fi";
 
 export default function PlansPage() {
+  const { t } = useTranslation();
   const { data: plans, loading, refetch } = useFetch(() => getPlans());
 
   const handleDelete = async (id) => {
-    if (!window.confirm("Delete this plan?")) return;
+    if (!window.confirm(t("plans.deletePlan"))) return;
     await deletePlan(id);
     refetch();
   };
@@ -15,12 +17,12 @@ export default function PlansPage() {
   return (
     <div>
       <div className="flex-between mb-1">
-        <h1>Training Programs</h1>
-        <Link to="/plans/new" className="btn btn-primary"><FiPlus /> New Program</Link>
+        <h1>{t("plans.title")}</h1>
+        <Link to="/plans/new" className="btn btn-primary"><FiPlus /> {t("plans.newPlan")}</Link>
       </div>
 
       {loading ? (
-        <div className="loading">Loading...</div>
+        <div className="loading">{t("common.loading")}</div>
       ) : plans?.length ? (
         <div className="drill-grid">
           {plans.map((p) => {
@@ -44,9 +46,8 @@ export default function PlansPage() {
                   <span className="tag">
                     {new Date(p.startDate).toLocaleDateString()} — {new Date(p.endDate).toLocaleDateString()}
                   </span>
-                  <span className="tag">{p.weeklyPlans?.length || 0} weeks</span>
-                  {totalSessions > 0 && <span className="tag">{totalSessions} sessions</span>}
-                  {p.sessionsPerWeek && <span className="tag">{p.sessionsPerWeek}x/wk</span>}
+                  <span className="tag">{t("plans.weeks", { count: p.weeklyPlans?.length || 0 })}</span>
+                  {totalSessions > 0 && <span className="tag">{t("plans.session", { count: totalSessions })}</span>}
                 </div>
 
                 {p.focusAreas?.length > 0 && (
@@ -69,8 +70,8 @@ export default function PlansPage() {
       ) : (
         <div className="card" style={{ textAlign: "center", padding: "3rem" }}>
           <FiCalendar style={{ fontSize: "2rem", color: "var(--color-muted)", marginBottom: "1rem" }} />
-          <p className="text-muted">No training programs yet. Create your first one to get started.</p>
-          <Link to="/plans/new" className="btn btn-primary mt-1"><FiPlus /> Create Program</Link>
+          <p className="text-muted">{t("plans.noPlans")}</p>
+          <Link to="/plans/new" className="btn btn-primary mt-1"><FiPlus /> {t("plans.createPlan")}</Link>
         </div>
       )}
     </div>

@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { useNavigate, useParams } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import { getDrill, createDrill, updateDrill, checkSimilarity } from "../api/drills";
 import { generateDrill } from "../api/ai";
 import DebugPanel from "../components/common/DebugPanel";
@@ -18,6 +19,7 @@ const EMPTY_DRILL = {
 };
 
 export default function DrillFormPage() {
+  const { t } = useTranslation();
   const { id } = useParams();
   const navigate = useNavigate();
   const isEdit = Boolean(id);
@@ -85,7 +87,7 @@ export default function DrillFormPage() {
       });
       setGenerated(true);
     } catch (err) {
-      setError(err.response?.data?.error || "AI generation failed. Check your AI provider config.");
+      setError(err.response?.data?.error || t("drills.aiGenFailed"));
     } finally {
       setGenerating(false);
     }
@@ -130,7 +132,7 @@ export default function DrillFormPage() {
         navigate(`/drills/${res.data._id}`);
       }
     } catch (err) {
-      setError(err.response?.data?.error || "Save failed");
+      setError(err.response?.data?.error || t("common.saveFailed"));
     } finally {
       setLoading(false);
     }
@@ -150,7 +152,7 @@ export default function DrillFormPage() {
       await createDrill(payload);
       navigate("/drills");
     } catch (err) {
-      setError(err.response?.data?.error || "Save failed");
+      setError(err.response?.data?.error || t("common.saveFailed"));
     } finally {
       setLoading(false);
     }
@@ -168,7 +170,7 @@ export default function DrillFormPage() {
   return (
     <div>
       <div className="flex-between mb-1">
-        <h1>{isEdit ? "Edit Drill" : "Create a Drill"}</h1>
+        <h1>{isEdit ? t("drills.editDrill") : t("drills.createADrill")}</h1>
         {debugEntries.length > 0 && (
           <button
             type="button"
@@ -188,17 +190,17 @@ export default function DrillFormPage() {
           <div className="flex gap-sm" style={{ alignItems: "flex-start" }}>
             <FiAlertCircle style={{ marginTop: "0.2rem", flexShrink: 0 }} />
             <div>
-              <strong>This looks like a different drill</strong>
+              <strong>{t("drills.looksLikeDifferentDrill")}</strong>
               <p style={{ margin: "0.25rem 0 0.75rem" }}>{similarityWarning}</p>
               <div className="flex gap-sm">
                 <button className="btn btn-primary btn-sm" onClick={handleSaveAsNew}>
-                  Save as New Drill
+                  {t("drills.saveAsNewDrill")}
                 </button>
                 <button className="btn btn-secondary btn-sm" onClick={() => { setSimilarityWarning(null); handleSubmit({ preventDefault: () => {} }); }}>
-                  Save as Version Anyway
+                  {t("drills.saveAsVersionAnyway")}
                 </button>
                 <button className="btn btn-secondary btn-sm" onClick={() => setSimilarityWarning(null)}>
-                  Cancel
+                  {t("common.cancel")}
                 </button>
               </div>
             </div>
@@ -209,16 +211,15 @@ export default function DrillFormPage() {
       {/* AI Generation prompt (only for new drills) */}
       {!isEdit && !generated && (
         <div className="card mb-1">
-          <h3 style={{ marginBottom: "0.75rem" }}>Describe your drill</h3>
+          <h3 style={{ marginBottom: "0.75rem" }}>{t("drills.describeYourDrill")}</h3>
           <p className="text-sm text-muted" style={{ marginBottom: "1rem" }}>
-            Tell the AI what kind of drill you want. Be as detailed or brief as you like
-            — the AI will generate everything from your description.
+            {t("drills.describeYourDrillHint")}
           </p>
           <div className="form-group">
-            <label>Sport (optional)</label>
+            <label>{t("drills.sportOptional")}</label>
             <input
               className="form-control"
-              placeholder="e.g. football, basketball, handball..."
+              placeholder={t("drills.sportPlaceholder")}
               value={form.sport}
               onChange={(e) => set("sport", e.target.value)}
               style={{ maxWidth: 300 }}
@@ -226,7 +227,7 @@ export default function DrillFormPage() {
           </div>
           <textarea
             className="form-control"
-            placeholder="Describe the drill you have in mind... e.g. 'A 4v4 possession game where the team with the ball tries to keep it for 8 passes, with a transition rule when they lose it'"
+            placeholder={t("drills.drillPromptPlaceholder")}
             value={aiPrompt}
             onChange={(e) => setAiPrompt(e.target.value)}
             style={{ minHeight: 120 }}
@@ -238,14 +239,14 @@ export default function DrillFormPage() {
               onClick={handleGenerate}
               disabled={generating || !aiPrompt.trim()}
             >
-              <FiZap /> {generating ? "Generating..." : "Generate Drill with AI"}
+              <FiZap /> {generating ? t("drills.generating") : t("drills.generateDrillWithAi")}
             </button>
             <button
               type="button"
               className="btn btn-secondary"
               onClick={() => setGenerated(true)}
             >
-              Skip AI — write manually
+              {t("drills.skipAiManual")}
             </button>
           </div>
         </div>
@@ -255,102 +256,102 @@ export default function DrillFormPage() {
       {generated && (
         <form onSubmit={handleSubmit}>
           <div className="card mb-1">
-            <h3 style={{ marginBottom: "1rem" }}>Basic Info</h3>
+            <h3 style={{ marginBottom: "1rem" }}>{t("drills.basicInfo")}</h3>
             <div className="form-group">
-              <label>Title *</label>
+              <label>{t("drills.titleRequired")}</label>
               <input className="form-control" required value={form.title} onChange={(e) => set("title", e.target.value)} />
             </div>
             <div className="form-group">
-              <label>Description *</label>
+              <label>{t("drills.descriptionRequired")}</label>
               <textarea className="form-control" required value={form.description} onChange={(e) => set("description", e.target.value)} />
             </div>
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "1rem" }}>
               <div className="form-group">
-                <label>Sport</label>
-                <input className="form-control" placeholder="e.g. football" value={form.sport} onChange={(e) => set("sport", e.target.value)} />
+                <label>{t("drills.sport")}</label>
+                <input className="form-control" placeholder={t("drills.sportEg")} value={form.sport} onChange={(e) => set("sport", e.target.value)} />
               </div>
               <div className="form-group">
-                <label>Intensity</label>
+                <label>{t("drills.intensity")}</label>
                 <select className="form-control" value={form.intensity} onChange={(e) => set("intensity", e.target.value)}>
-                  <option value="low">Low</option>
-                  <option value="medium">Medium</option>
-                  <option value="high">High</option>
+                  <option value="low">{t("drills.low")}</option>
+                  <option value="medium">{t("drills.medium")}</option>
+                  <option value="high">{t("drills.high")}</option>
                 </select>
               </div>
             </div>
           </div>
 
           <div className="card mb-1">
-            <h3 style={{ marginBottom: "1rem" }}>Setup</h3>
+            <h3 style={{ marginBottom: "1rem" }}>{t("drills.setup")}</h3>
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "1rem" }}>
               <div className="form-group">
-                <label>Players</label>
-                <input className="form-control" placeholder="e.g. 8-12, split into 2 teams" value={form.setup.players} onChange={(e) => setSetup("players", e.target.value)} />
+                <label>{t("drills.players").replace(":", "")}</label>
+                <input className="form-control" placeholder={t("drills.playersPlaceholder")} value={form.setup.players} onChange={(e) => setSetup("players", e.target.value)} />
               </div>
               <div className="form-group">
-                <label>Duration</label>
-                <input className="form-control" placeholder="e.g. 15-20 minutes" value={form.setup.duration} onChange={(e) => setSetup("duration", e.target.value)} />
+                <label>{t("drills.duration")}</label>
+                <input className="form-control" placeholder={t("drills.durationPlaceholder")} value={form.setup.duration} onChange={(e) => setSetup("duration", e.target.value)} />
               </div>
             </div>
             <div className="form-group">
-              <label>Space</label>
-              <input className="form-control" placeholder="e.g. 30x20m rectangle with 2 small goals" value={form.setup.space} onChange={(e) => setSetup("space", e.target.value)} />
+              <label>{t("drills.space").replace(":", "")}</label>
+              <input className="form-control" placeholder={t("drills.spacePlaceholder")} value={form.setup.space} onChange={(e) => setSetup("space", e.target.value)} />
             </div>
             <div className="form-group">
-              <label>Equipment</label>
+              <label>{t("drills.equipment").replace(":", "")}</label>
               {(form.setup.equipment || []).map((item, i) => (
                 <div key={i} className="flex gap-sm mb-1">
                   <input className="form-control" value={item} onChange={(e) => { const eq = [...form.setup.equipment]; eq[i] = e.target.value; setSetup("equipment", eq); }} />
                   <button type="button" className="btn btn-danger btn-sm" onClick={() => setSetup("equipment", form.setup.equipment.filter((_, j) => j !== i))}><FiTrash2 /></button>
                 </div>
               ))}
-              <button type="button" className="btn btn-secondary btn-sm" onClick={() => setSetup("equipment", [...(form.setup.equipment || []), ""])}><FiPlus /> Add Equipment</button>
+              <button type="button" className="btn btn-secondary btn-sm" onClick={() => setSetup("equipment", [...(form.setup.equipment || []), ""])}><FiPlus /> {t("drills.addEquipment")}</button>
             </div>
           </div>
 
           <div className="card mb-1">
-            <h3 style={{ marginBottom: "1rem" }}>How It Works</h3>
-            <textarea className="form-control" placeholder="Step-by-step description of how the drill flows..." value={form.howItWorks} onChange={(e) => set("howItWorks", e.target.value)} style={{ minHeight: 120 }} />
+            <h3 style={{ marginBottom: "1rem" }}>{t("drills.howItWorks")}</h3>
+            <textarea className="form-control" placeholder={t("drills.howItWorksPlaceholder")} value={form.howItWorks} onChange={(e) => set("howItWorks", e.target.value)} style={{ minHeight: 120 }} />
           </div>
 
           <div className="card mb-1">
-            <h3 style={{ marginBottom: "1rem" }}>Coaching Points</h3>
+            <h3 style={{ marginBottom: "1rem" }}>{t("drills.coachingPoints")}</h3>
             {form.coachingPoints.map((point, i) => (
               <div key={i} className="flex gap-sm mb-1">
                 <input className="form-control" value={point} onChange={(e) => updateListItem("coachingPoints", i, e.target.value)} />
                 <button type="button" className="btn btn-danger btn-sm" onClick={() => removeListItem("coachingPoints", i)}><FiTrash2 /></button>
               </div>
             ))}
-            <button type="button" className="btn btn-secondary btn-sm" onClick={() => addListItem("coachingPoints")}><FiPlus /> Add Point</button>
+            <button type="button" className="btn btn-secondary btn-sm" onClick={() => addListItem("coachingPoints")}><FiPlus /> {t("drills.addPoint")}</button>
           </div>
 
           <div className="card mb-1">
-            <h3 style={{ marginBottom: "1rem" }}>Variations</h3>
+            <h3 style={{ marginBottom: "1rem" }}>{t("drills.variations")}</h3>
             {form.variations.map((v, i) => (
               <div key={i} className="flex gap-sm mb-1">
                 <input className="form-control" value={v} onChange={(e) => updateListItem("variations", i, e.target.value)} />
                 <button type="button" className="btn btn-danger btn-sm" onClick={() => removeListItem("variations", i)}><FiTrash2 /></button>
               </div>
             ))}
-            <button type="button" className="btn btn-secondary btn-sm" onClick={() => addListItem("variations")}><FiPlus /> Add Variation</button>
+            <button type="button" className="btn btn-secondary btn-sm" onClick={() => addListItem("variations")}><FiPlus /> {t("drills.addVariation")}</button>
           </div>
 
           <div className="card mb-1">
-            <h3 style={{ marginBottom: "1rem" }}>Common Mistakes</h3>
+            <h3 style={{ marginBottom: "1rem" }}>{t("drills.commonMistakes")}</h3>
             {form.commonMistakes.map((m, i) => (
               <div key={i} className="flex gap-sm mb-1">
                 <input className="form-control" value={m} onChange={(e) => updateListItem("commonMistakes", i, e.target.value)} />
                 <button type="button" className="btn btn-danger btn-sm" onClick={() => removeListItem("commonMistakes", i)}><FiTrash2 /></button>
               </div>
             ))}
-            <button type="button" className="btn btn-secondary btn-sm" onClick={() => addListItem("commonMistakes")}><FiPlus /> Add Mistake</button>
+            <button type="button" className="btn btn-secondary btn-sm" onClick={() => addListItem("commonMistakes")}><FiPlus /> {t("drills.addMistake")}</button>
           </div>
 
           <div className="flex gap-sm">
             <button type="submit" className="btn btn-primary" disabled={loading || checking}>
-              <FiSave /> {checking ? "Checking..." : loading ? "Saving..." : isEdit ? "Update Drill" : "Save Drill"}
+              <FiSave /> {checking ? t("common.checking") : loading ? t("common.saving") : isEdit ? t("drills.updateDrill") : t("drills.saveDrill")}
             </button>
-            <button type="button" className="btn btn-secondary" onClick={() => navigate("/drills")}><FiX /> Cancel</button>
+            <button type="button" className="btn btn-secondary" onClick={() => navigate("/drills")}><FiX /> {t("common.cancel")}</button>
           </div>
         </form>
       )}

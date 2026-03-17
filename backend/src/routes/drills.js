@@ -8,6 +8,7 @@ const Drill = require("../models/Drill");
 const User = require("../models/User");
 const Notification = require("../models/Notification");
 const { indexDrill, removeDrill, getQueueStatus, checkEmbeddingSimilarity, findSimilarDrills } = require("../services/sync");
+const { checkLimit } = require("../middleware/planLimits");
 
 const drillsLimiter = rateLimit({ windowMs: 15 * 60 * 1000, max: 200, standardHeaders: true, legacyHeaders: false });
 router.use(drillsLimiter);
@@ -123,6 +124,7 @@ router.get("/:id", authenticate, async (req, res, next) => {
 router.post(
   "/",
   authenticate,
+  checkLimit("drills"),
   [body("title").trim().notEmpty(), body("description").trim().notEmpty()],
   validate,
   async (req, res, next) => {

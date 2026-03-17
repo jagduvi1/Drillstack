@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from "react";
 import { useParams, Link, useNavigate } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import useFetch from "../hooks/useFetch";
 import { useAuth } from "../context/AuthContext";
 import { getDrill, deleteDrill, uploadDiagram, addReflection, retryEmbedding, toggleStar, forkDrill, getVersions, setDefaultVersion, findSimilar, convertToVersion } from "../api/drills";
@@ -8,6 +9,7 @@ import DebugPanel from "../components/common/DebugPanel";
 import { FiEdit, FiTrash2, FiSend, FiMessageCircle, FiLoader, FiAlertCircle, FiRefreshCw, FiImage, FiStar, FiCopy, FiGitBranch, FiUser, FiCheck, FiLink, FiCode } from "react-icons/fi";
 
 export default function DrillDetailPage() {
+  const { t } = useTranslation();
   const { id } = useParams();
   const navigate = useNavigate();
   const { user } = useAuth();
@@ -72,11 +74,11 @@ export default function DrillDetailPage() {
     }
   }, [drill?.embeddingStatus, drill?.parentDrill, id, similarDismissed]);
 
-  if (loading) return <div className="loading">Loading...</div>;
-  if (!drill) return <div className="alert alert-danger">Drill not found</div>;
+  if (loading) return <div className="loading">{t("common.loading")}</div>;
+  if (!drill) return <div className="alert alert-danger">{t("drills.notFound")}</div>;
 
   const handleDelete = async () => {
-    if (!window.confirm("Delete this drill?")) return;
+    if (!window.confirm(t("drills.deleteDrill"))) return;
     await deleteDrill(id);
     navigate("/drills");
   };
@@ -126,7 +128,7 @@ export default function DrillDetailPage() {
       }
       refetch();
     } catch {
-      alert("Diagram generation failed. Check your AI provider configuration.");
+      alert(t("drills.diagramGenFailed"));
     } finally {
       setDiagramLoading(false);
     }
@@ -138,12 +140,12 @@ export default function DrillDetailPage() {
       setSimilarDrills(null);
       refetch();
     } catch {
-      alert("Failed to convert to version.");
+      alert(t("drills.failedToConvert"));
     }
   };
 
   const handleDiscardDrill = async () => {
-    if (!window.confirm("Delete this drill since it already exists?")) return;
+    if (!window.confirm(t("drills.deleteExistingConfirm"))) return;
     await deleteDrill(id);
     navigate("/drills");
   };
@@ -175,7 +177,7 @@ export default function DrillDetailPage() {
       setChatMessage("");
       refetch();
     } catch {
-      alert("AI refinement failed. Check your AI provider config.");
+      alert(t("drills.aiRefineFailed"));
     } finally {
       setChatLoading(false);
     }
@@ -211,7 +213,7 @@ export default function DrillDetailPage() {
               )}
               {drill.versionCount > 1 && (
                 <button className="btn-link text-sm" onClick={handleShowVersions}>
-                  <FiGitBranch /> {drill.versionCount} versions
+                  <FiGitBranch /> {t("drills.version_count", { count: drill.versionCount })}
                 </button>
               )}
             </div>
@@ -220,9 +222,9 @@ export default function DrillDetailPage() {
             <button
               className={`btn btn-sm ${drill.isStarred ? "btn-star-active" : "btn-secondary"}`}
               onClick={handleStar}
-              title={drill.isStarred ? "Unstar" : "Star this drill"}
+              title={drill.isStarred ? t("drills.unstar") : t("drills.starThisDrill")}
             >
-              <FiStar /> {drill.isStarred ? "Starred" : "Star"}
+              <FiStar /> {drill.isStarred ? t("drills.starred") : t("drills.star")}
             </button>
             {debugEntries.length > 0 && (
               <button
@@ -234,16 +236,16 @@ export default function DrillDetailPage() {
             )}
             {drill.isOwner && (
               <button className="btn btn-secondary" onClick={() => setShowChat(!showChat)}>
-                <FiMessageCircle /> {showChat ? "Hide Chat" : "Refine with AI"}
+                <FiMessageCircle /> {showChat ? t("drills.hideChat") : t("drills.refineWithAi")}
               </button>
             )}
             {drill.isOwner ? (
-              <Link to={`/drills/${id}/edit`} className="btn btn-secondary"><FiEdit /> Edit</Link>
+              <Link to={`/drills/${id}/edit`} className="btn btn-secondary"><FiEdit /> {t("common.edit")}</Link>
             ) : (
-              <button className="btn btn-secondary" onClick={handleFork}><FiCopy /> Fork & Edit</button>
+              <button className="btn btn-secondary" onClick={handleFork}><FiCopy /> {t("drills.forkAndEdit")}</button>
             )}
             {(drill.isOwner || isAdmin) && (
-              <button className="btn btn-danger" onClick={handleDelete}><FiTrash2 /> Delete</button>
+              <button className="btn btn-danger" onClick={handleDelete}><FiTrash2 /> {t("common.delete")}</button>
             )}
           </div>
         </div>
@@ -251,7 +253,7 @@ export default function DrillDetailPage() {
         {/* Versions panel */}
         {showVersions && versions && (
           <div className="card mb-1">
-            <h3>Versions</h3>
+            <h3>{t("drills.versions")}</h3>
             <div className="versions-list">
               {versions.versions.map((v) => (
                 <div key={v._id} className={`version-item ${v._id === id ? "version-item-current" : ""}`}>
@@ -266,10 +268,10 @@ export default function DrillDetailPage() {
                     </div>
                     <div className="flex gap-sm">
                       {versions.defaultVersionId === v._id.toString() ? (
-                        <span className="tag tag-success"><FiCheck /> Default</span>
+                        <span className="tag tag-success"><FiCheck /> {t("drills.default")}</span>
                       ) : (
                         <button className="btn btn-secondary btn-sm" onClick={() => handleSetDefault(v._id)}>
-                          Set as default
+                          {t("drills.setAsDefault")}
                         </button>
                       )}
                     </div>
@@ -286,10 +288,10 @@ export default function DrillDetailPage() {
             {drill.embeddingStatus === "failed" ? (
               <div className="flex-between">
                 <span>
-                  <FiAlertCircle style={{ color: "var(--color-danger)" }} /> Search indexing failed{isAdmin && drill.embeddingError ? `: ${drill.embeddingError}` : ""}
+                  <FiAlertCircle style={{ color: "var(--color-danger)" }} /> {t("drills.searchIndexingFailed")}{isAdmin && drill.embeddingError ? `: ${drill.embeddingError}` : ""}
                 </span>
                 <button className="btn btn-secondary btn-sm" onClick={handleRetryEmbedding}>
-                  <FiRefreshCw /> Retry
+                  <FiRefreshCw /> {t("drills.retry")}
                 </button>
               </div>
             ) : (
@@ -298,8 +300,8 @@ export default function DrillDetailPage() {
                   <span>
                     <FiLoader className="spin" />{" "}
                     {drill.embeddingStatus === "pending"
-                      ? "Queued for search indexing..."
-                      : "Indexing for search — checking for similar drills..."
+                      ? t("drills.queuedForIndexing")
+                      : t("drills.indexingForSearch")
                     }
                   </span>
                   <span className="text-sm text-muted embedding-timer">
@@ -314,7 +316,7 @@ export default function DrillDetailPage() {
                   />
                 </div>
                 <p className="text-sm text-muted" style={{ marginTop: "0.35rem" }}>
-                  Free tier — drills are indexed one at a time (~20-25s each)
+                  {t("drills.freeTierNote")}
                 </p>
               </>
             )}
@@ -327,9 +329,9 @@ export default function DrillDetailPage() {
             <div className="flex gap-sm" style={{ alignItems: "flex-start" }}>
               <FiLink style={{ marginTop: "0.2rem", flexShrink: 0, color: "var(--color-primary)" }} />
               <div style={{ flex: 1 }}>
-                <strong>Similar drills already exist</strong>
+                <strong>{t("drills.similarDrillsExist")}</strong>
                 <p className="text-sm text-muted" style={{ margin: "0.25rem 0 0.75rem" }}>
-                  We found drills that look similar to this one. You can add yours as a version of an existing drill, keep it as a separate drill, or discard it.
+                  {t("drills.similarDrillsDesc")}
                 </p>
                 {similarDrills.map((s) => (
                   <div key={s._id} className="similar-drill-item">
@@ -338,7 +340,7 @@ export default function DrillDetailPage() {
                         <strong>{s.title}</strong>
                       </Link>
                       <span className="text-sm text-muted" style={{ marginLeft: "0.5rem" }}>
-                        {Math.round(s.similarity * 100)}% similar
+                        {t("drills.similar", { pct: Math.round(s.similarity * 100) })}
                       </span>
                       {s.description && (
                         <p className="text-sm text-muted" style={{ margin: "0.15rem 0 0" }}>
@@ -350,7 +352,7 @@ export default function DrillDetailPage() {
                       className="btn btn-primary btn-sm"
                       onClick={() => handleConvertToVersion(s._id)}
                     >
-                      <FiGitBranch /> Add as Version
+                      <FiGitBranch /> {t("drills.addAsVersion")}
                     </button>
                   </div>
                 ))}
@@ -359,13 +361,13 @@ export default function DrillDetailPage() {
                     className="btn btn-secondary btn-sm"
                     onClick={() => { setSimilarDrills(null); setSimilarDismissed(true); }}
                   >
-                    Keep as Separate Drill
+                    {t("drills.keepAsSeparate")}
                   </button>
                   <button
                     className="btn btn-danger btn-sm"
                     onClick={handleDiscardDrill}
                   >
-                    <FiTrash2 /> Discard My Drill
+                    <FiTrash2 /> {t("drills.discardMyDrill")}
                   </button>
                 </div>
               </div>
@@ -380,7 +382,7 @@ export default function DrillDetailPage() {
 
         {/* Description & meta */}
         <div className="card mb-1">
-          <h3>Description</h3>
+          <h3>{t("drills.description")}</h3>
           <p style={{ marginTop: "0.5rem" }}>{drill.description}</p>
           <div className="flex gap-sm mt-1" style={{ flexWrap: "wrap" }}>
             {drill.sport && <span className="tag">{drill.sport}</span>}
@@ -392,12 +394,12 @@ export default function DrillDetailPage() {
         {/* Setup */}
         {(drill.setup?.players || drill.setup?.space || drill.setup?.equipment?.length > 0) && (
           <div className="card mb-1">
-            <h3>Setup</h3>
-            {drill.setup.players && <p style={{ marginTop: "0.5rem" }}><strong>Players:</strong> {drill.setup.players}</p>}
-            {drill.setup.space && <p><strong>Space:</strong> {drill.setup.space}</p>}
+            <h3>{t("drills.setup")}</h3>
+            {drill.setup.players && <p style={{ marginTop: "0.5rem" }}><strong>{t("drills.players")}</strong> {drill.setup.players}</p>}
+            {drill.setup.space && <p><strong>{t("drills.space")}</strong> {drill.setup.space}</p>}
             {drill.setup.equipment?.length > 0 && (
               <div style={{ marginTop: "0.5rem" }}>
-                <strong>Equipment:</strong>
+                <strong>{t("drills.equipment")}</strong>
                 <div className="flex gap-sm mt-1" style={{ flexWrap: "wrap" }}>
                   {drill.setup.equipment.map((eq, i) => <span key={i} className="tag">{eq}</span>)}
                 </div>
@@ -409,7 +411,7 @@ export default function DrillDetailPage() {
         {/* How It Works */}
         {drill.howItWorks && (
           <div className="card mb-1">
-            <h3>How It Works</h3>
+            <h3>{t("drills.howItWorks")}</h3>
             <p style={{ marginTop: "0.5rem", whiteSpace: "pre-wrap" }}>{drill.howItWorks}</p>
           </div>
         )}
@@ -417,7 +419,7 @@ export default function DrillDetailPage() {
         {/* Coaching Points */}
         {drill.coachingPoints?.length > 0 && (
           <div className="card mb-1">
-            <h3>Coaching Points</h3>
+            <h3>{t("drills.coachingPoints")}</h3>
             <ul style={{ paddingLeft: "1.25rem", marginTop: "0.5rem" }}>
               {drill.coachingPoints.map((p, i) => <li key={i}>{p}</li>)}
             </ul>
@@ -427,7 +429,7 @@ export default function DrillDetailPage() {
         {/* Variations */}
         {drill.variations?.length > 0 && (
           <div className="card mb-1">
-            <h3>Variations</h3>
+            <h3>{t("drills.variations")}</h3>
             <ul style={{ paddingLeft: "1.25rem", marginTop: "0.5rem" }}>
               {drill.variations.map((v, i) => <li key={i}>{v}</li>)}
             </ul>
@@ -437,7 +439,7 @@ export default function DrillDetailPage() {
         {/* Common Mistakes */}
         {drill.commonMistakes?.length > 0 && (
           <div className="card mb-1">
-            <h3>Common Mistakes</h3>
+            <h3>{t("drills.commonMistakes")}</h3>
             <ul style={{ paddingLeft: "1.25rem", marginTop: "0.5rem" }}>
               {drill.commonMistakes.map((m, i) => <li key={i}>{m}</li>)}
             </ul>
@@ -447,18 +449,18 @@ export default function DrillDetailPage() {
         {/* Diagrams */}
         <div className="card mb-1">
           <div className="flex-between">
-            <h3>Diagrams</h3>
+            <h3>{t("drills.diagrams")}</h3>
             <button
               className="btn btn-primary btn-sm"
               onClick={handleGenerateDiagram}
               disabled={diagramLoading}
             >
-              {diagramLoading ? <><FiLoader className="spin" /> Generating...</> : <><FiImage /> Generate with AI</>}
+              {diagramLoading ? <><FiLoader className="spin" /> {t("drills.generating")}</> : <><FiImage /> {t("drills.generateWithAi")}</>}
             </button>
           </div>
           {diagramLoading && (
             <p className="text-sm text-muted mt-1">
-              AI is creating a tactical diagram for this drill. This may take a few seconds...
+              {t("drills.aiCreatingDiagram")}
             </p>
           )}
           <div className="flex gap-sm mt-1" style={{ flexWrap: "wrap" }}>
@@ -467,14 +469,14 @@ export default function DrillDetailPage() {
             ))}
           </div>
           <div className="mt-1">
-            <label className="text-sm text-muted" style={{ marginRight: "0.5rem" }}>Or upload your own:</label>
+            <label className="text-sm text-muted" style={{ marginRight: "0.5rem" }}>{t("drills.uploadYourOwn")}</label>
             <input type="file" accept="image/*" onChange={handleDiagramUpload} />
           </div>
         </div>
 
         {/* Reflection Notes */}
         <div className="card mb-1">
-          <h3>Reflection Notes</h3>
+          <h3>{t("drills.reflectionNotes")}</h3>
           {drill.reflectionNotes?.map((r, i) => (
             <div key={i} className="section-block">
               <div className="text-sm text-muted">{new Date(r.date).toLocaleDateString()}</div>
@@ -482,8 +484,8 @@ export default function DrillDetailPage() {
             </div>
           ))}
           <div className="flex gap-sm mt-1">
-            <textarea className="form-control" placeholder="Add a reflection..." value={reflectionNote} onChange={(e) => setReflectionNote(e.target.value)} style={{ minHeight: 60 }} />
-            <button className="btn btn-primary btn-sm" onClick={handleAddReflection}>Add</button>
+            <textarea className="form-control" placeholder={t("drills.addReflection")} value={reflectionNote} onChange={(e) => setReflectionNote(e.target.value)} style={{ minHeight: 60 }} />
+            <button className="btn btn-primary btn-sm" onClick={handleAddReflection}>{t("common.add")}</button>
           </div>
         </div>
       </div>
@@ -492,13 +494,13 @@ export default function DrillDetailPage() {
       {showChat && (
         <div className="chat-panel">
           <div className="chat-header">
-            <h3>Refine with AI</h3>
-            <p className="text-sm text-muted">Tell the AI how you want to change this drill</p>
+            <h3>{t("drills.refineWithAi")}</h3>
+            <p className="text-sm text-muted">{t("drills.tellAiChange")}</p>
           </div>
           <div className="chat-messages">
             {drill.aiConversation?.map((msg, i) => (
               <div key={i} className={`chat-msg chat-msg-${msg.role}`}>
-                <div className="chat-msg-label">{msg.role === "user" ? "You" : "AI"}</div>
+                <div className="chat-msg-label">{msg.role === "user" ? t("common.you") : t("common.ai")}</div>
                 <div className="chat-msg-content">{msg.content}</div>
               </div>
             ))}
@@ -507,7 +509,7 @@ export default function DrillDetailPage() {
           <div className="chat-input">
             <textarea
               className="form-control"
-              placeholder="e.g. 'Make it harder by reducing space' or 'Add a goalkeeper'"
+              placeholder={t("drills.chatPlaceholder")}
               value={chatMessage}
               onChange={(e) => setChatMessage(e.target.value)}
               onKeyDown={handleChatKeyDown}
@@ -518,7 +520,7 @@ export default function DrillDetailPage() {
               onClick={handleChatSend}
               disabled={chatLoading || !chatMessage.trim()}
             >
-              <FiSend /> {chatLoading ? "..." : "Send"}
+              <FiSend /> {chatLoading ? "..." : t("drills.send")}
             </button>
           </div>
         </div>

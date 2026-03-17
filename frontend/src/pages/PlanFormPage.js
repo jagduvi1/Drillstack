@@ -1,16 +1,20 @@
 import { useState, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import { getPlan, createPlan, updatePlan } from "../api/plans";
-import { generateProgram } from "../api/ai";
-import DebugPanel from "../components/common/DebugPanel";
-import { FiPlus, FiTrash2, FiZap, FiSave, FiX, FiCode } from "react-icons/fi";
+import SessionPickerModal from "../components/plans/SessionPickerModal";
+import { useGroups } from "../context/GroupContext";
+import { FiPlus, FiTrash2, FiSave, FiX, FiCalendar, FiChevronDown, FiChevronUp } from "react-icons/fi";
 
-const INTENSITY_COLORS = { high: "tag-danger", medium: "tag-warning", low: "" };
+const DAY_KEYS = ["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"];
 
 export default function PlanFormPage() {
+  const { t } = useTranslation();
   const { id } = useParams();
   const navigate = useNavigate();
   const isEdit = Boolean(id);
+  const { groups, activeGroupId } = useGroups();
+  const DAYS = DAY_KEYS.map((k) => t(`days.${k}`));
 
   const [form, setForm] = useState({
     title: "",
@@ -18,20 +22,21 @@ export default function PlanFormPage() {
     sport: "",
     startDate: "",
     endDate: "",
-    sessionsPerWeek: 3,
     goals: [],
     focusAreas: [],
-    weeklyPlans: [],
+    weeklyPlans: [{ week: 1, theme: "", sessions: [], notes: "" }],
+    group: activeGroupId || "",
+    visibility: activeGroupId ? "group" : "private",
   });
-  const [aiPrompt, setAiPrompt] = useState("");
   const [loading, setLoading] = useState(false);
-  const [generating, setGenerating] = useState(false);
   const [error, setError] = useState("");
-  const [generated, setGenerated] = useState(false);
   const [newGoal, setNewGoal] = useState("");
   const [newFocus, setNewFocus] = useState("");
-  const [debugOpen, setDebugOpen] = useState(false);
-  const [debugEntries, setDebugEntries] = useState([]);
+  const [showExtras, setShowExtras] = useState(false);
+
+  // Session picker state
+  const [pickerOpen, setPickerOpen] = useState(false);
+  const [pickerTarget, setPickerTarget] = useState(null); // { weekIdx }
 
   useEffect(() => {
     if (isEdit) {
@@ -43,51 +48,29 @@ export default function PlanFormPage() {
           sport: p.sport || "",
           startDate: p.startDate ? p.startDate.slice(0, 10) : "",
           endDate: p.endDate ? p.endDate.slice(0, 10) : "",
-          sessionsPerWeek: p.sessionsPerWeek || 3,
           goals: p.goals || [],
           focusAreas: p.focusAreas || [],
-          weeklyPlans: p.weeklyPlans || [],
+          group: p.group || "",
+          visibility: p.visibility || "private",
+          weeklyPlans: (p.weeklyPlans || []).map((w) => ({
+            ...w,
+            sessions: (w.sessions || []).map((s) => ({
+              dayOfWeek: s.dayOfWeek || "",
+              session: s.session?._id || s.session,
+              _sessionTitle: s.session?.title || "",
+              _sessionDuration: s.session?.totalDuration || 0,
+              _sessionSport: s.session?.sport || "",
+              notes: s.notes || "",
+            })),
+          })),
         });
-        setGenerated(true);
+        // Show extras section if any goals/focusAreas exist
+        if ((p.goals && p.goals.length > 0) || (p.focusAreas && p.focusAreas.length > 0)) {
+          setShowExtras(true);
+        }
       });
     }
   }, [id, isEdit]);
-
-  const handleGenerate = async () => {
-    if (!aiPrompt.trim() || !form.startDate || !form.endDate) return;
-    setGenerating(true);
-    setError("");
-    try {
-      const res = await generateProgram({
-        description: aiPrompt,
-        sport: form.sport || undefined,
-        sessionsPerWeek: form.sessionsPerWeek,
-        startDate: form.startDate,
-        endDate: form.endDate,
-      });
-      const prog = res.data.program;
-      if (res.data.debug) {
-        setDebugEntries((prev) => [
-          ...prev,
-          { label: "Program Generation", debug: res.data.debug },
-        ]);
-      }
-      setForm((prev) => ({
-        ...prev,
-        title: prog.title || "",
-        description: prog.description || aiPrompt,
-        sport: prog.sport || prev.sport || "",
-        goals: prog.goals || [],
-        focusAreas: prog.focusAreas || [],
-        weeklyPlans: prog.weeklyPlans || [],
-      }));
-      setGenerated(true);
-    } catch (err) {
-      setError(err.response?.data?.error || "AI generation failed. Check your AI provider config.");
-    } finally {
-      setGenerating(false);
-    }
-  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -96,61 +79,27 @@ export default function PlanFormPage() {
     try {
       const payload = {
         ...form,
-        aiConversation: !isEdit
-          ? [
-              { role: "user", content: aiPrompt || form.description },
-              { role: "assistant", content: "Program created." },
-            ]
-          : undefined,
+        group: form.group || null,
+        visibility: form.group ? form.visibility : "private",
+        weeklyPlans: form.weeklyPlans.map((w) => ({
+          ...w,
+          sessions: w.sessions.map(({ _sessionTitle, _sessionDuration, _sessionSport, ...rest }) => rest),
+        })),
       };
       if (isEdit) {
-        await updatePlan(id, form);
+        await updatePlan(id, payload);
       } else {
         await createPlan(payload);
       }
       navigate("/plans");
     } catch (err) {
-      setError(err.response?.data?.error || "Save failed");
+      setError(err.response?.data?.error || t("common.saveFailed"));
     } finally {
       setLoading(false);
     }
   };
 
-  const updateWeek = (wi, field, value) => {
-    const updated = [...form.weeklyPlans];
-    updated[wi] = { ...updated[wi], [field]: value };
-    setForm({ ...form, weeklyPlans: updated });
-  };
-
-  const updateSession = (wi, si, field, value) => {
-    const weeks = [...form.weeklyPlans];
-    const sessions = [...(weeks[wi].sessions || [])];
-    sessions[si] = { ...sessions[si], [field]: value };
-    weeks[wi] = { ...weeks[wi], sessions };
-    setForm({ ...form, weeklyPlans: weeks });
-  };
-
-  const addSession = (wi) => {
-    const weeks = [...form.weeklyPlans];
-    weeks[wi] = {
-      ...weeks[wi],
-      sessions: [
-        ...(weeks[wi].sessions || []),
-        { dayOfWeek: "", title: "", focus: "", intensity: "medium", durationMinutes: 60, notes: "" },
-      ],
-    };
-    setForm({ ...form, weeklyPlans: weeks });
-  };
-
-  const removeSession = (wi, si) => {
-    const weeks = [...form.weeklyPlans];
-    weeks[wi] = {
-      ...weeks[wi],
-      sessions: weeks[wi].sessions.filter((_, j) => j !== si),
-    };
-    setForm({ ...form, weeklyPlans: weeks });
-  };
-
+  // Week helpers
   const addWeek = () => {
     setForm({
       ...form,
@@ -161,202 +110,276 @@ export default function PlanFormPage() {
     });
   };
 
+  const removeWeek = (wi) => {
+    if (form.weeklyPlans.length <= 1) return; // Keep at least one week
+    const updated = form.weeklyPlans.filter((_, j) => j !== wi).map((w, i) => ({ ...w, week: i + 1 }));
+    setForm({ ...form, weeklyPlans: updated });
+  };
+
+  const updateWeek = (wi, field, value) => {
+    const updated = [...form.weeklyPlans];
+    updated[wi] = { ...updated[wi], [field]: value };
+    setForm({ ...form, weeklyPlans: updated });
+  };
+
+  // Session helpers
+  const openSessionPicker = (weekIdx) => {
+    setPickerTarget({ weekIdx });
+    setPickerOpen(true);
+  };
+
+  const handlePickSession = (session) => {
+    if (!pickerTarget) return;
+    const { weekIdx } = pickerTarget;
+    const weeks = [...form.weeklyPlans];
+    weeks[weekIdx] = {
+      ...weeks[weekIdx],
+      sessions: [
+        ...(weeks[weekIdx].sessions || []),
+        {
+          dayOfWeek: "",
+          session: session._id,
+          _sessionTitle: session.title,
+          _sessionDuration: session.totalDuration || 0,
+          _sessionSport: session.sport || "",
+          notes: "",
+        },
+      ],
+    };
+    setForm({ ...form, weeklyPlans: weeks });
+    setPickerOpen(false);
+    setPickerTarget(null);
+  };
+
+  const removeSessionFromWeek = (wi, si) => {
+    const weeks = [...form.weeklyPlans];
+    weeks[wi] = {
+      ...weeks[wi],
+      sessions: weeks[wi].sessions.filter((_, j) => j !== si),
+    };
+    setForm({ ...form, weeklyPlans: weeks });
+  };
+
+  const updateSessionField = (wi, si, field, value) => {
+    const weeks = [...form.weeklyPlans];
+    const sessions = [...weeks[wi].sessions];
+    sessions[si] = { ...sessions[si], [field]: value };
+    weeks[wi] = { ...weeks[wi], sessions };
+    setForm({ ...form, weeklyPlans: weeks });
+  };
+
+  const totalSessions = form.weeklyPlans.reduce((sum, w) => sum + (w.sessions?.length || 0), 0);
+
   return (
     <div>
-      <div className="flex-between mb-1">
-        <h1>{isEdit ? "Edit Training Program" : "Create Training Program"}</h1>
-        {debugEntries.length > 0 && (
-          <button
-            type="button"
-            className={`btn ${debugOpen ? "btn-primary" : "btn-secondary"}`}
-            onClick={() => setDebugOpen(!debugOpen)}
-          >
-            <FiCode /> Debug ({debugEntries.length})
-          </button>
-        )}
-      </div>
+      <h1>{isEdit ? t("plans.editPlan") : t("plans.createPlan")}</h1>
       {error && <div className="alert alert-danger">{error}</div>}
-      {debugOpen && <DebugPanel entries={debugEntries} />}
 
-      {/* AI generation prompt (new plans only) */}
-      {!isEdit && !generated && (
+      <form onSubmit={handleSubmit}>
+        {/* Basic info */}
         <div className="card mb-1">
-          <h3 style={{ marginBottom: "0.75rem" }}>Describe your training program</h3>
-          <p className="text-sm text-muted" style={{ marginBottom: "1rem" }}>
-            Tell the AI what you want to achieve — how many sessions per week, what skills to develop,
-            what phase of the season you're in. It will generate a full periodized plan.
-          </p>
-
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr 1fr", gap: "1rem" }}>
+          <h3 style={{ marginBottom: "1rem" }}>{t("plans.planInfo")}</h3>
+          <div className="form-group">
+            <label>{t("drills.titleRequired")}</label>
+            <input className="form-control" required value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} placeholder={t("plans.titlePlaceholder")} />
+          </div>
+          <div className="form-group">
+            <label>{t("sessions.description")}</label>
+            <textarea className="form-control" value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} style={{ minHeight: 60 }} placeholder={t("plans.descriptionPlaceholder")} />
+          </div>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "1rem" }}>
             <div className="form-group">
-              <label>Sport</label>
-              <input className="form-control" placeholder="e.g. football" value={form.sport} onChange={(e) => setForm({ ...form, sport: e.target.value })} />
+              <label>{t("drills.sport")}</label>
+              <input className="form-control" placeholder={t("drills.sportEg")} value={form.sport} onChange={(e) => setForm({ ...form, sport: e.target.value })} />
             </div>
             <div className="form-group">
-              <label>Sessions / week</label>
-              <input className="form-control" type="number" min={1} max={14} value={form.sessionsPerWeek} onChange={(e) => setForm({ ...form, sessionsPerWeek: parseInt(e.target.value, 10) || 3 })} />
-            </div>
-            <div className="form-group">
-              <label>Start Date *</label>
+              <label>{t("plans.startDate")}</label>
               <input className="form-control" type="date" required value={form.startDate} onChange={(e) => setForm({ ...form, startDate: e.target.value })} />
             </div>
             <div className="form-group">
-              <label>End Date *</label>
+              <label>{t("plans.endDate")}</label>
               <input className="form-control" type="date" required value={form.endDate} onChange={(e) => setForm({ ...form, endDate: e.target.value })} />
             </div>
           </div>
 
-          <textarea
-            className="form-control"
-            placeholder="e.g. 'Pre-season program for U17 football team. 4 sessions per week. Focus on building aerobic base, improving passing accuracy under pressure, and introducing our pressing system. Players returning from summer break with mixed fitness levels.'"
-            value={aiPrompt}
-            onChange={(e) => setAiPrompt(e.target.value)}
-            style={{ minHeight: 120 }}
-          />
-          <div className="flex gap-sm mt-1">
+          {/* Sharing controls */}
+          {groups.length > 0 && (
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "1rem", marginTop: "1rem" }}>
+              <div className="form-group" style={{ marginBottom: 0 }}>
+                <label>{t("sessions.shareWith")}</label>
+                <select className="form-control" value={form.group || ""}
+                  onChange={(e) => setForm({ ...form, group: e.target.value || "", visibility: e.target.value ? "group" : "private" })}>
+                  <option value="">{t("sessions.privateOnly")}</option>
+                  {groups.map((g) => (
+                    <option key={g._id} value={g._id}>
+                      {g.name}{g.parentClub?.name ? ` (${g.parentClub.name})` : ""}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              {form.group && (
+                <div className="form-group" style={{ marginBottom: 0 }}>
+                  <label>{t("plans.visibleTo")}</label>
+                  <span className="text-sm text-muted" style={{ display: "block", padding: "0.5rem 0" }}>
+                    {t("plans.trainersAndAdmins")}
+                  </span>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Collapsible Goals & Focus */}
+          <button type="button" className="btn btn-secondary btn-sm" onClick={() => setShowExtras(!showExtras)} style={{ marginTop: "0.5rem" }}>
+            {showExtras ? <FiChevronUp /> : <FiChevronDown />} {t("plans.goalsAndFocus")}
+          </button>
+
+          {showExtras && (
+            <div style={{ marginTop: "1rem" }}>
+              {/* Goals */}
+              <div style={{ marginBottom: "1rem" }}>
+                <label className="text-sm" style={{ fontWeight: 600, marginBottom: "0.5rem", display: "block" }}>{t("plans.goals")}</label>
+                <div className="flex gap-sm mb-1" style={{ flexWrap: "wrap" }}>
+                  {form.goals.map((g, i) => (
+                    <span key={i} className="tag" style={{ cursor: "pointer" }} onClick={() => setForm({ ...form, goals: form.goals.filter((_, j) => j !== i) })}>
+                      {g} &times;
+                    </span>
+                  ))}
+                </div>
+                <div className="flex gap-sm">
+                  <input className="form-control" placeholder={t("plans.goalPlaceholder")} value={newGoal} onChange={(e) => setNewGoal(e.target.value)}
+                    onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); if (newGoal.trim()) { setForm({ ...form, goals: [...form.goals, newGoal.trim()] }); setNewGoal(""); } } }}
+                  />
+                  <button type="button" className="btn btn-secondary btn-sm" onClick={() => { if (newGoal.trim()) { setForm({ ...form, goals: [...form.goals, newGoal.trim()] }); setNewGoal(""); } }}><FiPlus /></button>
+                </div>
+              </div>
+
+              {/* Focus Areas */}
+              <div>
+                <label className="text-sm" style={{ fontWeight: 600, marginBottom: "0.5rem", display: "block" }}>{t("plans.focusAreas")}</label>
+                <div className="flex gap-sm mb-1" style={{ flexWrap: "wrap" }}>
+                  {form.focusAreas.map((area, i) => (
+                    <span key={i} className="tag" style={{ cursor: "pointer" }} onClick={() => setForm({ ...form, focusAreas: form.focusAreas.filter((_, j) => j !== i) })}>
+                      {area} &times;
+                    </span>
+                  ))}
+                </div>
+                <div className="flex gap-sm">
+                  <input className="form-control" placeholder={t("plans.focusPlaceholder")} value={newFocus} onChange={(e) => setNewFocus(e.target.value)}
+                    onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); if (newFocus.trim()) { setForm({ ...form, focusAreas: [...form.focusAreas, newFocus.trim()] }); setNewFocus(""); } } }}
+                  />
+                  <button type="button" className="btn btn-secondary btn-sm" onClick={() => { if (newFocus.trim()) { setForm({ ...form, focusAreas: [...form.focusAreas, newFocus.trim()] }); setNewFocus(""); } }}><FiPlus /></button>
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Weekly Schedule — this is the main section */}
+        {form.weeklyPlans.map((week, wi) => (
+          <div key={wi} className="card mb-1">
+            <div className="flex-between" style={{ marginBottom: "0.75rem" }}>
+              <h3>
+                {form.weeklyPlans.length === 1 ? t("plans.trainingSchedule") : t("plans.week", { number: week.week })}
+                {week.theme ? ` — ${week.theme}` : ""}
+              </h3>
+              <div className="flex gap-sm">
+                {form.weeklyPlans.length > 1 && (
+                  <button type="button" className="btn btn-danger btn-sm" onClick={() => removeWeek(wi)}><FiTrash2 /></button>
+                )}
+              </div>
+            </div>
+
+            {form.weeklyPlans.length > 1 && (
+              <div style={{ display: "grid", gridTemplateColumns: "2fr 1fr", gap: "0.75rem", marginBottom: "0.75rem" }}>
+                <div className="form-group" style={{ marginBottom: 0 }}>
+                  <label className="text-sm">{t("plans.theme")}</label>
+                  <input className="form-control" placeholder={t("plans.themePlaceholder")} value={week.theme || ""} onChange={(e) => updateWeek(wi, "theme", e.target.value)} />
+                </div>
+                <div className="form-group" style={{ marginBottom: 0 }}>
+                  <label className="text-sm">{t("plans.notesLabel")}</label>
+                  <input className="form-control" placeholder={t("plans.notesPlaceholder")} value={week.notes || ""} onChange={(e) => updateWeek(wi, "notes", e.target.value)} />
+                </div>
+              </div>
+            )}
+
+            {/* Sessions list */}
+            {(week.sessions || []).map((sess, si) => (
+              <div key={si} className="plan-session-entry" style={{
+                background: "var(--color-bg)",
+                borderRadius: "var(--radius)",
+                padding: "0.75rem",
+                marginBottom: "0.5rem",
+                border: "1px solid var(--color-border)",
+              }}>
+                <div className="flex-between" style={{ marginBottom: "0.5rem" }}>
+                  <strong style={{ fontSize: "0.95rem" }}>
+                    <FiCalendar style={{ fontSize: "0.8rem", marginRight: "0.25rem" }} />
+                    {sess._sessionTitle || "Session"}
+                  </strong>
+                  <div className="flex gap-sm" style={{ alignItems: "center" }}>
+                    {sess._sessionSport && <span className="tag">{sess._sessionSport}</span>}
+                    {sess._sessionDuration > 0 && <span className="tag">{sess._sessionDuration} min</span>}
+                    <button type="button" className="btn btn-danger btn-sm" onClick={() => removeSessionFromWeek(wi, si)} title={t("plans.removeSession")}><FiTrash2 /></button>
+                  </div>
+                </div>
+                <div style={{ display: "grid", gridTemplateColumns: "150px 1fr", gap: "0.5rem" }}>
+                  <select className="form-control" value={sess.dayOfWeek || ""} onChange={(e) => updateSessionField(wi, si, "dayOfWeek", e.target.value)}>
+                    <option value="">{t("plans.selectDay")}</option>
+                    {DAYS.map((d) => <option key={d} value={d}>{d}</option>)}
+                  </select>
+                  <input className="form-control" placeholder={t("plans.sessionNotes")} value={sess.notes || ""} onChange={(e) => updateSessionField(wi, si, "notes", e.target.value)} />
+                </div>
+              </div>
+            ))}
+
+            {/* ADD SESSION — the primary action */}
             <button
               type="button"
               className="btn btn-primary"
-              onClick={handleGenerate}
-              disabled={generating || !aiPrompt.trim() || !form.startDate || !form.endDate}
+              onClick={() => openSessionPicker(wi)}
+              style={{
+                width: "100%",
+                padding: "1rem",
+                fontSize: "1rem",
+                marginTop: (week.sessions || []).length > 0 ? "0.5rem" : 0,
+              }}
             >
-              <FiZap /> {generating ? "Generating program..." : "Generate Program with AI"}
+              <FiPlus /> {t("plans.selectSession")}
             </button>
-            <button type="button" className="btn btn-secondary" onClick={() => setGenerated(true)}>
-              Skip AI — build manually
-            </button>
+
+            {(week.sessions || []).length === 0 && (
+              <p className="text-sm text-muted" style={{ textAlign: "center", marginTop: "0.5rem" }}>
+                {t("plans.pickSessionHint")}
+              </p>
+            )}
           </div>
+        ))}
+
+        {/* Add another week */}
+        <button type="button" className="btn btn-secondary" onClick={addWeek} style={{ width: "100%", marginBottom: "1rem" }}>
+          <FiPlus /> {t("plans.addAnotherWeek")}
+        </button>
+
+        <div className="flex gap-sm">
+          <button type="submit" className="btn btn-primary" disabled={loading}>
+            <FiSave /> {loading ? t("common.saving") : isEdit ? t("plans.updatePlan") : t("plans.savePlan")}
+          </button>
+          <button type="button" className="btn btn-secondary" onClick={() => navigate("/plans")}><FiX /> {t("common.cancel")}</button>
+          {totalSessions > 0 && (
+            <span className="text-sm text-muted" style={{ alignSelf: "center" }}>
+              {t("plans.session", { count: totalSessions })} — {t("plans.weeks", { count: form.weeklyPlans.length })}
+            </span>
+          )}
         </div>
-      )}
+      </form>
 
-      {/* Full form (shown after generation or skip) */}
-      {generated && (
-        <form onSubmit={handleSubmit}>
-          {/* Basic info */}
-          <div className="card mb-1">
-            <h3 style={{ marginBottom: "1rem" }}>Program Info</h3>
-            <div className="form-group">
-              <label>Title *</label>
-              <input className="form-control" required value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} />
-            </div>
-            <div className="form-group">
-              <label>Description</label>
-              <textarea className="form-control" value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} style={{ minHeight: 60 }} />
-            </div>
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr 1fr", gap: "1rem" }}>
-              <div className="form-group">
-                <label>Sport</label>
-                <input className="form-control" value={form.sport} onChange={(e) => setForm({ ...form, sport: e.target.value })} />
-              </div>
-              <div className="form-group">
-                <label>Sessions / week</label>
-                <input className="form-control" type="number" min={1} max={14} value={form.sessionsPerWeek} onChange={(e) => setForm({ ...form, sessionsPerWeek: parseInt(e.target.value, 10) || 3 })} />
-              </div>
-              <div className="form-group">
-                <label>Start Date *</label>
-                <input className="form-control" type="date" required value={form.startDate} onChange={(e) => setForm({ ...form, startDate: e.target.value })} />
-              </div>
-              <div className="form-group">
-                <label>End Date *</label>
-                <input className="form-control" type="date" required value={form.endDate} onChange={(e) => setForm({ ...form, endDate: e.target.value })} />
-              </div>
-            </div>
-          </div>
-
-          {/* Goals */}
-          <div className="card mb-1">
-            <h3 style={{ marginBottom: "1rem" }}>Goals</h3>
-            <div className="flex gap-sm mb-1" style={{ flexWrap: "wrap" }}>
-              {form.goals.map((g, i) => (
-                <span key={i} className="tag" style={{ cursor: "pointer" }} onClick={() => setForm({ ...form, goals: form.goals.filter((_, j) => j !== i) })}>
-                  {g} &times;
-                </span>
-              ))}
-            </div>
-            <div className="flex gap-sm">
-              <input className="form-control" placeholder="e.g. Improve aerobic capacity..." value={newGoal} onChange={(e) => setNewGoal(e.target.value)}
-                onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); if (newGoal.trim()) { setForm({ ...form, goals: [...form.goals, newGoal.trim()] }); setNewGoal(""); } } }}
-              />
-              <button type="button" className="btn btn-secondary btn-sm" onClick={() => { if (newGoal.trim()) { setForm({ ...form, goals: [...form.goals, newGoal.trim()] }); setNewGoal(""); } }}><FiPlus /> Add</button>
-            </div>
-          </div>
-
-          {/* Focus Areas */}
-          <div className="card mb-1">
-            <h3 style={{ marginBottom: "1rem" }}>Focus Areas</h3>
-            <div className="flex gap-sm mb-1" style={{ flexWrap: "wrap" }}>
-              {form.focusAreas.map((area, i) => (
-                <span key={i} className="tag" style={{ cursor: "pointer" }} onClick={() => setForm({ ...form, focusAreas: form.focusAreas.filter((_, j) => j !== i) })}>
-                  {area} &times;
-                </span>
-              ))}
-            </div>
-            <div className="flex gap-sm">
-              <input className="form-control" placeholder="e.g. Passing under pressure, 1v1 defending..." value={newFocus} onChange={(e) => setNewFocus(e.target.value)}
-                onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); if (newFocus.trim()) { setForm({ ...form, focusAreas: [...form.focusAreas, newFocus.trim()] }); setNewFocus(""); } } }}
-              />
-              <button type="button" className="btn btn-secondary btn-sm" onClick={() => { if (newFocus.trim()) { setForm({ ...form, focusAreas: [...form.focusAreas, newFocus.trim()] }); setNewFocus(""); } }}><FiPlus /> Add</button>
-            </div>
-          </div>
-
-          {/* Weekly Plans */}
-          <div className="card mb-1">
-            <div className="flex-between" style={{ marginBottom: "1rem" }}>
-              <h3>Weekly Plans ({form.weeklyPlans.length} weeks)</h3>
-              <button type="button" className="btn btn-secondary btn-sm" onClick={addWeek}><FiPlus /> Add Week</button>
-            </div>
-
-            {form.weeklyPlans.map((week, wi) => (
-              <div key={wi} className="section-block" style={{ marginBottom: "1.5rem" }}>
-                <div className="flex-between">
-                  <h4>Week {week.week}{week.theme ? ` — ${week.theme}` : ""}</h4>
-                  <button type="button" className="btn btn-danger btn-sm" onClick={() => setForm({ ...form, weeklyPlans: form.weeklyPlans.filter((_, j) => j !== wi) })}><FiTrash2 /></button>
-                </div>
-                <div className="form-group">
-                  <label>Theme</label>
-                  <input className="form-control" placeholder="Weekly theme..." value={week.theme || ""} onChange={(e) => updateWeek(wi, "theme", e.target.value)} />
-                </div>
-                <div className="form-group">
-                  <label>Week Notes</label>
-                  <textarea className="form-control" value={week.notes || ""} onChange={(e) => updateWeek(wi, "notes", e.target.value)} style={{ minHeight: 40 }} />
-                </div>
-
-                {/* Sessions within week */}
-                {(week.sessions || []).map((sess, si) => (
-                  <div key={si} style={{ background: "var(--color-bg)", borderRadius: "var(--radius)", padding: "0.75rem", marginBottom: "0.5rem" }}>
-                    <div className="flex-between" style={{ marginBottom: "0.5rem" }}>
-                      <strong className="text-sm">{sess.dayOfWeek || `Session ${si + 1}`}: {sess.title || "Untitled"}</strong>
-                      <div className="flex gap-sm">
-                        <span className={`tag ${INTENSITY_COLORS[sess.intensity] || ""}`}>{sess.intensity}</span>
-                        <button type="button" className="btn btn-danger btn-sm" onClick={() => removeSession(wi, si)}><FiTrash2 /></button>
-                      </div>
-                    </div>
-                    <div style={{ display: "grid", gridTemplateColumns: "1fr 2fr 1fr 1fr", gap: "0.5rem", marginBottom: "0.5rem" }}>
-                      <input className="form-control" placeholder="Day" value={sess.dayOfWeek || ""} onChange={(e) => updateSession(wi, si, "dayOfWeek", e.target.value)} />
-                      <input className="form-control" placeholder="Title" value={sess.title || ""} onChange={(e) => updateSession(wi, si, "title", e.target.value)} />
-                      <select className="form-control" value={sess.intensity || "medium"} onChange={(e) => updateSession(wi, si, "intensity", e.target.value)}>
-                        <option value="low">Low</option>
-                        <option value="medium">Medium</option>
-                        <option value="high">High</option>
-                      </select>
-                      <input className="form-control" type="number" placeholder="min" value={sess.durationMinutes || 60} onChange={(e) => updateSession(wi, si, "durationMinutes", parseInt(e.target.value, 10) || 60)} />
-                    </div>
-                    <input className="form-control" placeholder="Focus..." value={sess.focus || ""} onChange={(e) => updateSession(wi, si, "focus", e.target.value)} style={{ marginBottom: "0.5rem" }} />
-                    <textarea className="form-control" placeholder="Session notes..." value={sess.notes || ""} onChange={(e) => updateSession(wi, si, "notes", e.target.value)} style={{ minHeight: 40 }} />
-                  </div>
-                ))}
-                <button type="button" className="btn btn-secondary btn-sm" onClick={() => addSession(wi)}><FiPlus /> Add Session</button>
-              </div>
-            ))}
-          </div>
-
-          <div className="flex gap-sm">
-            <button type="submit" className="btn btn-primary" disabled={loading}>
-              <FiSave /> {loading ? "Saving..." : isEdit ? "Update Program" : "Save Program"}
-            </button>
-            <button type="button" className="btn btn-secondary" onClick={() => navigate("/plans")}><FiX /> Cancel</button>
-          </div>
-        </form>
+      {/* Session picker modal */}
+      {pickerOpen && (
+        <SessionPickerModal
+          onSelect={handlePickSession}
+          onClose={() => { setPickerOpen(false); setPickerTarget(null); }}
+          sport={form.sport || undefined}
+        />
       )}
     </div>
   );
