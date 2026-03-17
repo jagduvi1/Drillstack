@@ -1,21 +1,24 @@
+import { useTranslation } from "react-i18next";
+
 export default function MatchplayBlock({ block, onChange }) {
+  const { t } = useTranslation();
   const set = (field, value) => onChange({ ...block, [field]: value });
 
   return (
     <div>
       <div style={{ display: "grid", gridTemplateColumns: "1fr auto", gap: "0.75rem" }}>
         <div className="form-group">
-          <label className="text-sm">Game description</label>
+          <label className="text-sm">{t("blocks.gameDescription")}</label>
           <textarea
             className="form-control form-control-sm"
-            placeholder="e.g. 4v4 on small goals, transition game..."
+            placeholder={t("blocks.gameDescPlaceholder")}
             value={block.matchDescription || ""}
             onChange={(e) => set("matchDescription", e.target.value)}
             style={{ minHeight: 60 }}
           />
         </div>
         <div className="form-group">
-          <label className="text-sm">Duration (min)</label>
+          <label className="text-sm">{t("blocks.durationMin")}</label>
           <input
             type="number"
             className="form-control form-control-sm"
@@ -27,10 +30,10 @@ export default function MatchplayBlock({ block, onChange }) {
         </div>
       </div>
       <div className="form-group">
-        <label className="text-sm">Rules (optional)</label>
+        <label className="text-sm">{t("blocks.rulesOptional")}</label>
         <input
           className="form-control form-control-sm"
-          placeholder="e.g. Max 3 touches, must play through the middle..."
+          placeholder={t("blocks.rulesPlaceholder")}
           value={block.rules || ""}
           onChange={(e) => set("rules", e.target.value)}
         />
@@ -38,7 +41,7 @@ export default function MatchplayBlock({ block, onChange }) {
       <div className="form-group">
         <input
           className="form-control form-control-sm"
-          placeholder="Coaching notes (optional)"
+          placeholder={t("blocks.coachingNotes")}
           value={block.notes || ""}
           onChange={(e) => set("notes", e.target.value)}
         />

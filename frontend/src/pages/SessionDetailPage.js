@@ -1,9 +1,11 @@
 import { useState, useRef, useEffect } from "react";
 import { useParams, Link, useNavigate } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import useFetch from "../hooks/useFetch";
 import { getSession, deleteSession } from "../api/sessions";
 import { checkSessionFeasibility, refineSession } from "../api/ai";
 import DebugPanel from "../components/common/DebugPanel";
+import DrillPreviewModal from "../components/sessions/DrillPreviewModal";
 import {
   FiZap,
   FiGrid,
@@ -47,6 +49,7 @@ function blockDuration(block) {
 }
 
 export default function SessionDetailPage() {
+  const { t } = useTranslation();
   const { id } = useParams();
   const navigate = useNavigate();
   const { data: session, loading, refetch } = useFetch(() => getSession(id), [id]);
@@ -68,6 +71,9 @@ export default function SessionDetailPage() {
   const [debugOpen, setDebugOpen] = useState(false);
   const [debugEntries, setDebugEntries] = useState([]);
 
+  // Drill preview state
+  const [previewDrillId, setPreviewDrillId] = useState(null);
+
   // Sync chat history from session on load
   useEffect(() => {
     if (session?.aiConversation?.length > 0) {
@@ -82,11 +88,11 @@ export default function SessionDetailPage() {
     }
   }, [chatHistory]);
 
-  if (loading) return <div className="loading">Loading...</div>;
-  if (!session) return <div className="alert alert-danger">Session not found</div>;
+  if (loading) return <div className="loading">{t("common.loading")}</div>;
+  if (!session) return <div className="alert alert-danger">{t("sessions.notFound")}</div>;
 
   const handleDelete = async () => {
-    if (!window.confirm("Delete this session?")) return;
+    if (!window.confirm(t("sessions.deleteSession"))) return;
     await deleteSession(id);
     navigate("/sessions");
   };
@@ -110,7 +116,7 @@ export default function SessionDetailPage() {
     } catch {
       setFeasibility({
         feasible: true,
-        summary: "Could not check — try again.",
+        summary: t("sessions.couldNotCheck"),
         issues: [],
         adaptedBlocks: [],
       });
@@ -142,7 +148,7 @@ export default function SessionDetailPage() {
     } catch {
       setChatHistory((prev) => [
         ...prev,
-        { role: "assistant", content: "Something went wrong. Please try again." },
+        { role: "assistant", content: t("sessions.chatFailed") },
       ]);
     } finally {
       setChatLoading(false);
@@ -167,19 +173,19 @@ export default function SessionDetailPage() {
             className={`btn ${chatOpen ? "btn-primary" : "btn-secondary"}`}
             onClick={() => setChatOpen(!chatOpen)}
           >
-            <FiMessageSquare /> AI Chat
+            <FiMessageSquare /> {t("sessions.aiChat")}
           </button>
           <button
             className={`btn ${debugOpen ? "btn-primary" : "btn-secondary"}`}
             onClick={() => setDebugOpen(!debugOpen)}
           >
-            <FiCode /> Debug
+            <FiCode /> {t("common.debug")}
           </button>
           <Link to={`/sessions/${id}/edit`} className="btn btn-secondary">
-            Edit
+            {t("common.edit")}
           </Link>
           <button className="btn btn-danger" onClick={handleDelete}>
-            Delete
+            {t("common.delete")}
           </button>
         </div>
       </div>
@@ -187,23 +193,22 @@ export default function SessionDetailPage() {
       <div className="card mb-1">
         <div className="flex gap-sm" style={{ flexWrap: "wrap" }}>
           {session.sport && <span className="tag">{session.sport}</span>}
-          <span className="tag">{session.totalDuration} min total</span>
+          <span className="tag">{t("sessions.minTotal", { count: session.totalDuration })}</span>
           {session.date && (
             <span className="tag">
               {new Date(session.date).toLocaleDateString()}
             </span>
           )}
           <span className="tag">
-            {session.blocks?.length || 0} block
-            {(session.blocks?.length || 0) !== 1 ? "s" : ""}
+            {t("common.block", { count: session.blocks?.length || 0 })}
           </span>
           {session.expectedPlayers > 0 && (
             <span className="tag">
-              <FiUsers style={{ fontSize: "0.7rem" }} /> {session.expectedPlayers} players
+              <FiUsers style={{ fontSize: "0.7rem" }} /> {t("sessions.players", { count: session.expectedPlayers })}
             </span>
           )}
           {session.expectedTrainers > 0 && (
-            <span className="tag">{session.expectedTrainers} trainers</span>
+            <span className="tag">{t("sessions.trainers", { count: session.expectedTrainers })}</span>
           )}
         </div>
         {session.description && (
@@ -217,15 +222,15 @@ export default function SessionDetailPage() {
       {chatOpen && (
         <div className="card mb-1 ai-chat-panel">
           <h3 className="flex gap-sm" style={{ alignItems: "center", marginBottom: "0.75rem" }}>
-            <FiMessageSquare /> Refine Session with AI
+            <FiMessageSquare /> {t("sessions.refineSessionWithAi")}
           </h3>
           <p className="text-sm text-muted" style={{ marginBottom: "0.75rem" }}>
-            Tell the AI what you want to change — swap drills, adjust timing, add blocks, etc.
+            {t("sessions.refineSessionHint")}
           </p>
           <div className="ai-chat-messages">
             {chatHistory.length === 0 && (
               <p className="text-sm text-muted" style={{ textAlign: "center", padding: "1rem" }}>
-                No messages yet. Describe what you'd like to change.
+                {t("sessions.noMessages")}
               </p>
             )}
             {chatHistory.map((msg, i) => (
@@ -234,16 +239,16 @@ export default function SessionDetailPage() {
                 className={`ai-chat-msg ${msg.role === "user" ? "ai-chat-msg-user" : "ai-chat-msg-assistant"}`}
               >
                 <div className="ai-chat-msg-role">
-                  {msg.role === "user" ? "You" : "AI"}
+                  {msg.role === "user" ? t("common.you") : t("common.ai")}
                 </div>
                 <div className="ai-chat-msg-content">{msg.content}</div>
               </div>
             ))}
             {chatLoading && (
               <div className="ai-chat-msg ai-chat-msg-assistant">
-                <div className="ai-chat-msg-role">AI</div>
+                <div className="ai-chat-msg-role">{t("common.ai")}</div>
                 <div className="ai-chat-msg-content">
-                  <FiLoader className="spin" /> Thinking...
+                  <FiLoader className="spin" /> {t("sessions.thinking")}
                 </div>
               </div>
             )}
@@ -252,7 +257,7 @@ export default function SessionDetailPage() {
           <div className="ai-chat-input">
             <textarea
               className="form-control"
-              placeholder="e.g. 'Replace the station block with a second matchplay block' or 'Make all drills 5 minutes shorter'"
+              placeholder={t("sessions.chatPlaceholder")}
               value={chatMsg}
               onChange={(e) => setChatMsg(e.target.value)}
               onKeyDown={handleChatKeyDown}
@@ -278,15 +283,14 @@ export default function SessionDetailPage() {
       {hasExpected && (
         <div className="card mb-1 attendance-check-card">
           <h3 className="flex gap-sm" style={{ alignItems: "center", marginBottom: "0.75rem" }}>
-            <FiUsers /> Day-of Attendance Check
+            <FiUsers /> {t("sessions.dayOfAttendance")}
           </h3>
           <p className="text-sm text-muted" style={{ marginBottom: "0.75rem" }}>
-            Planned for {session.expectedPlayers} players and {session.expectedTrainers} trainers.
-            Enter actual numbers and the AI will check if the session still works.
+            {t("sessions.plannedFor", { players: session.expectedPlayers, trainers: session.expectedTrainers })}
           </p>
           <div className="flex gap-sm" style={{ alignItems: "flex-end", flexWrap: "wrap" }}>
             <div className="form-group" style={{ marginBottom: 0 }}>
-              <label className="text-sm">Actual players</label>
+              <label className="text-sm">{t("sessions.actualPlayers")}</label>
               <input
                 className="form-control"
                 type="number"
@@ -298,7 +302,7 @@ export default function SessionDetailPage() {
               />
             </div>
             <div className="form-group" style={{ marginBottom: 0 }}>
-              <label className="text-sm">Actual trainers</label>
+              <label className="text-sm">{t("sessions.actualTrainers")}</label>
               <input
                 className="form-control"
                 type="number"
@@ -315,9 +319,9 @@ export default function SessionDetailPage() {
               disabled={checking || !actualPlayers || !actualTrainers}
             >
               {checking ? (
-                <><FiLoader className="spin" /> Checking...</>
+                <><FiLoader className="spin" /> {t("common.checking")}</>
               ) : (
-                "Check Feasibility"
+                t("sessions.checkFeasibility")
               )}
             </button>
           </div>
@@ -344,7 +348,7 @@ export default function SessionDetailPage() {
                             <strong>{issue.blockLabel}:</strong> {issue.problem}
                           </div>
                           <div className="text-sm" style={{ color: "var(--color-primary)", marginTop: "0.15rem" }}>
-                            Suggestion: {issue.suggestion}
+                            {t("sessions.suggestion", { text: issue.suggestion })}
                           </div>
                         </div>
                       ))}
@@ -353,7 +357,7 @@ export default function SessionDetailPage() {
 
                   {feasibility.adaptedBlocks?.length > 0 && (
                     <div style={{ marginTop: "0.75rem" }}>
-                      <strong className="text-sm">Suggested changes:</strong>
+                      <strong className="text-sm">{t("sessions.suggestedChanges")}</strong>
                       {feasibility.adaptedBlocks.map((ab, i) => (
                         <div key={i} className="feasibility-adaptation">
                           <span className="text-sm">{ab.changes}</span>
@@ -370,7 +374,7 @@ export default function SessionDetailPage() {
 
       {session.equipmentSummary?.length > 0 && (
         <div className="card mb-1">
-          <h3>Equipment Needed</h3>
+          <h3>{t("sessions.equipmentNeeded")}</h3>
           <div className="flex gap-sm mt-1" style={{ flexWrap: "wrap" }}>
             {session.equipmentSummary.map((eq, i) => (
               <span key={i} className="tag">
@@ -405,9 +409,9 @@ export default function SessionDetailPage() {
                   <table>
                     <thead>
                       <tr>
-                        <th>Drill</th>
-                        <th>Duration</th>
-                        <th>Notes</th>
+                        <th>{t("blocks.drill")}</th>
+                        <th>{t("sessions.tableDuration")}</th>
+                        <th>{t("blocks.notes")}</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -415,11 +419,15 @@ export default function SessionDetailPage() {
                         <tr key={j}>
                           <td>
                             {d.drill?._id ? (
-                              <Link to={`/drills/${d.drill._id}`}>
+                              <button
+                                type="button"
+                                className="drill-name-link"
+                                onClick={() => setPreviewDrillId(d.drill._id)}
+                              >
                                 {d.drill.title}
-                              </Link>
+                              </button>
                             ) : (
-                              d.drill?.title || "Unknown"
+                              d.drill?.title || t("common.unknown")
                             )}
                           </td>
                           <td>{d.duration} min</td>
@@ -430,7 +438,7 @@ export default function SessionDetailPage() {
                   </table>
                 </div>
               ) : (
-                <p className="text-muted text-sm">No drills</p>
+                <p className="text-muted text-sm">{t("sessions.noDrills")}</p>
               )}
             </>
           )}
@@ -440,10 +448,10 @@ export default function SessionDetailPage() {
             <>
               <div className="flex gap-sm mb-1 text-sm">
                 <span>
-                  <strong>{block.stationCount}</strong> stations
+                  {t("sessions.stations", { count: block.stationCount })}
                 </span>
                 <span>
-                  <strong>{block.rotationMinutes}</strong> min per rotation
+                  {t("sessions.minPerRotation", { count: block.rotationMinutes })}
                 </span>
               </div>
               {block.stations?.length > 0 && (
@@ -451,16 +459,16 @@ export default function SessionDetailPage() {
                   {block.stations.map((s, j) => (
                     <div key={j} className="station-card">
                       <div className="station-number">
-                        Station {s.stationNumber}
+                        {t("sessions.station", { number: s.stationNumber })}
                       </div>
                       {s.drill ? (
-                        <Link
-                          to={`/drills/${s.drill._id || s.drill}`}
-                          className="text-sm"
-                          style={{ fontWeight: 500 }}
+                        <button
+                          type="button"
+                          className="drill-name-link"
+                          onClick={() => setPreviewDrillId(s.drill._id || s.drill)}
                         >
                           {s.drill.title || "Drill"}
-                        </Link>
+                        </button>
                       ) : (
                         <span className="text-sm text-muted">No drill</span>
                       )}
@@ -489,7 +497,7 @@ export default function SessionDetailPage() {
               )}
               {block.rules && (
                 <p className="text-sm text-muted">
-                  <strong>Rules:</strong> {block.rules}
+                  <strong>{t("sessions.rules")}</strong> {block.rules}
                 </p>
               )}
             </div>
@@ -498,7 +506,7 @@ export default function SessionDetailPage() {
           {/* Break block */}
           {block.type === "break" && (
             <p className="text-sm text-muted">
-              {block.duration} minute break
+              {t("sessions.minuteBreak", { count: block.duration })}
             </p>
           )}
 
@@ -518,6 +526,14 @@ export default function SessionDetailPage() {
           )}
         </div>
       ))}
+
+      {/* Drill preview modal */}
+      {previewDrillId && (
+        <DrillPreviewModal
+          drillId={previewDrillId}
+          onClose={() => setPreviewDrillId(null)}
+        />
+      )}
     </div>
   );
 }

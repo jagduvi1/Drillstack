@@ -1,9 +1,11 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import * as searchApi from "../api/search";
 import { FiSearch } from "react-icons/fi";
 
 export default function SearchPage() {
+  const { t } = useTranslation();
   const [query, setQuery] = useState("");
   const [mode, setMode] = useState("hybrid");
   const [sport, setSport] = useState("");
@@ -31,7 +33,7 @@ export default function SearchPage() {
       }
       setResults(res.data);
     } catch (err) {
-      setError(err.response?.data?.error || "Search failed");
+      setError(err.response?.data?.error || t("search.searchFailed"));
     } finally {
       setLoading(false);
     }
@@ -48,9 +50,9 @@ export default function SearchPage() {
 
   return (
     <div>
-      <h1 style={{ marginBottom: "0.5rem" }}>Search</h1>
+      <h1 style={{ marginBottom: "0.5rem" }}>{t("search.title")}</h1>
       <p className="text-muted" style={{ marginBottom: "1rem" }}>
-        Describe what you're looking for — the AI will find matching drills using semantic search.
+        {t("search.description")}
       </p>
 
       <form onSubmit={handleSearch}>
@@ -58,18 +60,18 @@ export default function SearchPage() {
           <div className="search-bar">
             <input
               className="form-control"
-              placeholder="e.g. 'passing drill for beginners with small goals' or 'high intensity 1v1 dribbling'"
+              placeholder={t("search.placeholder")}
               value={query}
               onChange={(e) => setQuery(e.target.value)}
             />
             <select className="form-control" style={{ width: 130 }} value={mode} onChange={(e) => setMode(e.target.value)}>
-              <option value="hybrid">Hybrid</option>
-              <option value="semantic">Semantic</option>
-              <option value="keyword">Keyword</option>
+              <option value="hybrid">{t("search.hybrid")}</option>
+              <option value="semantic">{t("search.semantic")}</option>
+              <option value="keyword">{t("search.keyword")}</option>
             </select>
-            <input className="form-control" style={{ width: 130 }} placeholder="Sport filter" value={sport} onChange={(e) => setSport(e.target.value)} />
+            <input className="form-control" style={{ width: 130 }} placeholder={t("search.sportFilter")} value={sport} onChange={(e) => setSport(e.target.value)} />
             <button className="btn btn-primary" type="submit" disabled={loading}>
-              <FiSearch /> {loading ? "..." : "Search"}
+              <FiSearch /> {loading ? "..." : t("common.search")}
             </button>
           </div>
         </div>
@@ -81,7 +83,7 @@ export default function SearchPage() {
         <div className="card">
           <div className="table-wrap">
             <table>
-              <thead><tr><th>Title</th><th>Type</th><th>Match</th></tr></thead>
+              <thead><tr><th>{t("search.resultTitle")}</th><th>{t("search.resultType")}</th><th>{t("search.resultMatch")}</th></tr></thead>
               <tbody>
                 {results.map((r, i) => (
                   <tr key={i}>
@@ -97,7 +99,7 @@ export default function SearchPage() {
       )}
 
       {!loading && results.length === 0 && query && (
-        <p className="text-muted">No results found. Try describing what you need differently.</p>
+        <p className="text-muted">{t("search.noResults")}</p>
       )}
     </div>
   );

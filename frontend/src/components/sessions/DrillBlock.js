@@ -1,6 +1,8 @@
 import { FiPlus, FiTrash2 } from "react-icons/fi";
+import { useTranslation } from "react-i18next";
 
-export default function DrillBlock({ block, onChange, onPickDrill }) {
+export default function DrillBlock({ block, onChange, onPickDrill, onPreviewDrill }) {
+  const { t } = useTranslation();
   const updateDrill = (idx, field, value) => {
     const updated = [...block.drills];
     updated[idx] = { ...updated[idx], [field]: value };
@@ -17,9 +19,9 @@ export default function DrillBlock({ block, onChange, onPickDrill }) {
         <table className="block-drill-table">
           <thead>
             <tr>
-              <th>Drill</th>
-              <th style={{ width: 90 }}>Minutes</th>
-              <th>Notes</th>
+              <th>{t("blocks.drill")}</th>
+              <th style={{ width: 90 }}>{t("blocks.minutes")}</th>
+              <th>{t("blocks.notes")}</th>
               <th style={{ width: 40 }} />
             </tr>
           </thead>
@@ -27,7 +29,14 @@ export default function DrillBlock({ block, onChange, onPickDrill }) {
             {block.drills.map((d, i) => (
               <tr key={i}>
                 <td className="text-sm">
-                  {d._drillTitle || d.drill?.title || d.drill || "—"}
+                  <button
+                    type="button"
+                    className="drill-name-link"
+                    onClick={() => onPreviewDrill(d.drill)}
+                    title={t("blocks.viewDrillDetails")}
+                  >
+                    {d._drillTitle || d.drill?.title || d.drill || "—"}
+                  </button>
                 </td>
                 <td>
                   <input
@@ -45,7 +54,7 @@ export default function DrillBlock({ block, onChange, onPickDrill }) {
                     className="form-control form-control-sm"
                     value={d.notes}
                     onChange={(e) => updateDrill(i, "notes", e.target.value)}
-                    placeholder="Optional notes"
+                    placeholder={t("blocks.optionalNotes")}
                   />
                 </td>
                 <td>
@@ -67,12 +76,12 @@ export default function DrillBlock({ block, onChange, onPickDrill }) {
         className="btn btn-secondary btn-sm mt-1"
         onClick={onPickDrill}
       >
-        <FiPlus /> Add Drill
+        <FiPlus /> {t("blocks.addDrill")}
       </button>
       <div className="form-group mt-1">
         <input
           className="form-control form-control-sm"
-          placeholder="Block notes (optional)"
+          placeholder={t("blocks.blockNotes")}
           value={block.notes}
           onChange={(e) => onChange({ ...block, notes: e.target.value })}
         />

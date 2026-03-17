@@ -1,6 +1,8 @@
 import { FiPlus, FiTrash2 } from "react-icons/fi";
+import { useTranslation } from "react-i18next";
 
-export default function StationBlock({ block, onChange, onPickDrillForStation }) {
+export default function StationBlock({ block, onChange, onPickDrillForStation, onPreviewDrill }) {
+  const { t } = useTranslation();
   const setField = (field, value) => onChange({ ...block, [field]: value });
 
   const updateStationCount = (count) => {
@@ -28,7 +30,7 @@ export default function StationBlock({ block, onChange, onPickDrillForStation })
     <div>
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "0.75rem" }}>
         <div className="form-group">
-          <label className="text-sm">Stations</label>
+          <label className="text-sm">{t("blocks.stationsLabel")}</label>
           <input
             type="number"
             className="form-control form-control-sm"
@@ -39,7 +41,7 @@ export default function StationBlock({ block, onChange, onPickDrillForStation })
           />
         </div>
         <div className="form-group">
-          <label className="text-sm">Rotation (min)</label>
+          <label className="text-sm">{t("blocks.rotationMinutes")}</label>
           <input
             type="number"
             className="form-control form-control-sm"
@@ -51,7 +53,7 @@ export default function StationBlock({ block, onChange, onPickDrillForStation })
           />
         </div>
         <div className="form-group">
-          <label className="text-sm">Total time</label>
+          <label className="text-sm">{t("blocks.totalTime")}</label>
           <div className="text-sm" style={{ padding: "0.4rem 0", fontWeight: 600 }}>
             {totalTime} min
           </div>
@@ -62,24 +64,33 @@ export default function StationBlock({ block, onChange, onPickDrillForStation })
         <div className="station-grid">
           {block.stations.map((s, i) => (
             <div key={i} className="station-card">
-              <div className="station-number">Station {s.stationNumber}</div>
+              <div className="station-number">{t("sessions.station", { number: s.stationNumber })}</div>
               {s._drillTitle || s.drill?.title ? (
                 <div>
-                  <div className="text-sm" style={{ fontWeight: 500, marginBottom: "0.25rem" }}>
+                  <button
+                    type="button"
+                    className="drill-name-link"
+                    onClick={() => onPreviewDrill(s.drill)}
+                    title={t("blocks.viewDrillDetails")}
+                  >
                     {s._drillTitle || s.drill?.title || "—"}
-                  </div>
+                  </button>
                   <div className="flex gap-sm" style={{ justifyContent: "center" }}>
                     <button
                       type="button"
                       className="btn btn-secondary btn-sm"
                       onClick={() => onPickDrillForStation(i)}
                     >
-                      Change
+                      {t("common.change")}
                     </button>
                     <button
                       type="button"
                       className="btn btn-danger btn-sm"
-                      onClick={() => updateStation(i, "drill", null)}
+                      onClick={() => {
+                        const stations = [...block.stations];
+                        stations[i] = { ...stations[i], drill: null, _drillTitle: "" };
+                        onChange({ ...block, stations });
+                      }}
                     >
                       <FiTrash2 />
                     </button>
@@ -91,12 +102,12 @@ export default function StationBlock({ block, onChange, onPickDrillForStation })
                   className="btn btn-secondary btn-sm"
                   onClick={() => onPickDrillForStation(i)}
                 >
-                  <FiPlus /> Pick Drill
+                  <FiPlus /> {t("blocks.pickDrill")}
                 </button>
               )}
               <input
                 className="form-control form-control-sm mt-1"
-                placeholder="Station notes"
+                placeholder={t("blocks.stationNotes")}
                 value={s.notes}
                 onChange={(e) => updateStation(i, "notes", e.target.value)}
                 style={{ fontSize: "0.75rem" }}
@@ -109,7 +120,7 @@ export default function StationBlock({ block, onChange, onPickDrillForStation })
       <div className="form-group mt-1">
         <input
           className="form-control form-control-sm"
-          placeholder="Block notes (optional)"
+          placeholder={t("blocks.blockNotes")}
           value={block.notes}
           onChange={(e) => setField("notes", e.target.value)}
         />

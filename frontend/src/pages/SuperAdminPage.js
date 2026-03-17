@@ -1,9 +1,11 @@
 import { useState, useEffect, useCallback } from "react";
+import { useTranslation } from "react-i18next";
 import * as adminApi from "../api/superadmin";
 
 const TABS = ["overview", "services", "database", "ai", "users", "audit"];
 
 export default function SuperAdminPage() {
+  const { t } = useTranslation();
   const [tab, setTab] = useState("overview");
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(false);
@@ -24,7 +26,7 @@ export default function SuperAdminPage() {
       }
       setData(res.data);
     } catch (err) {
-      setData({ error: err.response?.data?.error || "Failed to load" });
+      setData({ error: err.response?.data?.error || t("admin.failedToLoad") });
     } finally {
       setLoading(false);
     }
@@ -41,31 +43,35 @@ export default function SuperAdminPage() {
   return (
     <div>
       <div className="flex-between mb-1">
-        <h1>Super Admin</h1>
+        <h1>{t("admin.title")}</h1>
         <div className="flex gap-sm">
           <label className="text-sm">
             <input type="checkbox" checked={autoRefresh} onChange={(e) => setAutoRefresh(e.target.checked)} />
-            {" "}Auto-refresh
+            {" "}{t("admin.autoRefresh")}
           </label>
-          <button className="btn btn-secondary btn-sm" onClick={fetchTab}>Refresh</button>
+          <button className="btn btn-secondary btn-sm" onClick={fetchTab}>{t("common.refresh")}</button>
         </div>
       </div>
 
-      <div className="flex gap-sm mb-1" style={{ borderBottom: "1px solid var(--color-border)", paddingBottom: "0.5rem" }}>
-        {TABS.map((t) => (
-          <button
-            key={t}
-            className={`btn btn-sm ${tab === t ? "btn-primary" : "btn-secondary"}`}
-            onClick={() => setTab(t)}
-            style={{ textTransform: "capitalize" }}
-          >
-            {t === "ai" ? "AI & Embeddings" : t}
-          </button>
-        ))}
-      </div>
+      {(() => {
+        const tabLabels = { overview: t("admin.overview"), services: t("admin.services"), database: t("admin.database"), ai: t("admin.aiEmbeddings"), users: t("admin.users"), audit: t("admin.audit") };
+        return (
+          <div className="flex gap-sm mb-1" style={{ borderBottom: "1px solid var(--color-border)", paddingBottom: "0.5rem" }}>
+            {TABS.map((tb) => (
+              <button
+                key={tb}
+                className={`btn btn-sm ${tab === tb ? "btn-primary" : "btn-secondary"}`}
+                onClick={() => setTab(tb)}
+              >
+                {tabLabels[tb] || tb}
+              </button>
+            ))}
+          </div>
+        );
+      })()}
 
       {loading && !data ? (
-        <div className="loading">Loading...</div>
+        <div className="loading">{t("common.loading")}</div>
       ) : data?.error ? (
         <div className="alert alert-danger">{data.error}</div>
       ) : (
@@ -74,7 +80,7 @@ export default function SuperAdminPage() {
           {tab === "services" && <ServicesTab data={data} />}
           {tab === "database" && <DatabaseTab data={data} />}
           {tab === "ai" && <AITab data={data} onRefresh={fetchTab} />}
-          {tab === "users" && <UsersTab data={data} />}
+          {tab === "users" && <UsersTab data={data} onRefresh={fetchTab} />}
           {tab === "audit" && <AuditTab data={data} />}
         </>
       )}
@@ -85,14 +91,15 @@ export default function SuperAdminPage() {
 // ── Tab Components ───────────────────────────────────────────────────────────
 
 function OverviewTab({ data }) {
+  const { t } = useTranslation();
   if (!data) return null;
   return (
     <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: "1rem" }}>
       {[
-        { label: "Users", value: data.users },
-        { label: "Drills", value: data.drills },
-        { label: "Sessions", value: data.sessions },
-        { label: "Plans", value: data.plans },
+        { label: t("admin.usersLabel"), value: data.users },
+        { label: t("admin.drillsLabel"), value: data.drills },
+        { label: t("admin.sessionsLabel"), value: data.sessions },
+        { label: t("admin.plansLabel"), value: data.plans },
       ].map((m) => (
         <div key={m.label} className="card">
           <div className="text-muted text-sm">{m.label}</div>
@@ -101,7 +108,7 @@ function OverviewTab({ data }) {
       ))}
       {data.roles && (
         <div className="card">
-          <div className="text-muted text-sm">Roles</div>
+          <div className="text-muted text-sm">{t("admin.roles")}</div>
           {Object.entries(data.roles).map(([role, count]) => (
             <div key={role}><span className="tag">{role}</span> {count}</div>
           ))}
@@ -112,12 +119,13 @@ function OverviewTab({ data }) {
 }
 
 function ServicesTab({ data }) {
+  const { t } = useTranslation();
   if (!data) return null;
   return (
     <div className="card">
       <div className="table-wrap">
         <table>
-          <thead><tr><th>Service</th><th>Status</th><th>Latency</th></tr></thead>
+          <thead><tr><th>{t("admin.service")}</th><th>{t("admin.status")}</th><th>{t("admin.latency")}</th></tr></thead>
           <tbody>
             {Object.entries(data).map(([name, info]) => (
               <tr key={name}>
@@ -138,12 +146,13 @@ function ServicesTab({ data }) {
 }
 
 function DatabaseTab({ data }) {
+  const { t } = useTranslation();
   if (!data || !Array.isArray(data)) return null;
   return (
     <div className="card">
       <div className="table-wrap">
         <table>
-          <thead><tr><th>Collection</th><th>Documents</th><th>Size</th><th>Indexes</th></tr></thead>
+          <thead><tr><th>{t("admin.collection")}</th><th>{t("admin.documents")}</th><th>{t("admin.size")}</th><th>{t("admin.indexes")}</th></tr></thead>
           <tbody>
             {data.map((col) => (
               <tr key={col.name}>
@@ -161,6 +170,7 @@ function DatabaseTab({ data }) {
 }
 
 function AITab({ data, onRefresh }) {
+  const { t } = useTranslation();
   const [editing, setEditing] = useState(null);
   const [editValue, setEditValue] = useState("");
 
@@ -177,12 +187,12 @@ function AITab({ data, onRefresh }) {
       setEditing(null);
       onRefresh();
     } catch (err) {
-      alert(err.response?.data?.error || "Update failed");
+      alert(err.response?.data?.error || t("admin.updateFailed"));
     }
   };
 
   const handleReset = async (key) => {
-    if (!window.confirm(`Reset ${key} to default?`)) return;
+    if (!window.confirm(t("admin.resetConfirm", { key }))) return;
     await adminApi.resetAISetting(key);
     onRefresh();
   };
@@ -198,14 +208,13 @@ function AITab({ data, onRefresh }) {
 
   return (
     <div className="card">
-      <h3 style={{ marginBottom: "1rem" }}>AI & Embedding Configuration</h3>
+      <h3 style={{ marginBottom: "1rem" }}>{t("admin.aiConfig")}</h3>
       <p className="text-sm text-muted mb-1">
-        These settings are stored in the database and can be changed without restarting.
-        API keys remain in .env for security.
+        {t("admin.aiConfigDesc")}
       </p>
       <div className="table-wrap">
         <table>
-          <thead><tr><th>Setting</th><th>Current Value</th><th>Default</th><th></th></tr></thead>
+          <thead><tr><th>{t("admin.setting")}</th><th>{t("admin.currentValue")}</th><th>{t("admin.defaultValue")}</th><th></th></tr></thead>
           <tbody>
             {rows.map((row) => (
               <tr key={row.key}>
@@ -231,15 +240,15 @@ function AITab({ data, onRefresh }) {
                           style={{ minWidth: 200 }}
                         />
                       )}
-                      <button className="btn btn-primary btn-sm" onClick={() => handleSave(row.key)}>Save</button>
-                      <button className="btn btn-secondary btn-sm" onClick={() => setEditing(null)}>Cancel</button>
+                      <button className="btn btn-primary btn-sm" onClick={() => handleSave(row.key)}>{t("common.save")}</button>
+                      <button className="btn btn-secondary btn-sm" onClick={() => setEditing(null)}>{t("common.cancel")}</button>
                     </div>
                   ) : (
                     <span
                       className="text-sm"
                       style={{ cursor: "pointer" }}
                       onClick={() => { setEditing(row.key); setEditValue(String(settings[row.key] || "")); }}
-                      title="Click to edit"
+                      title={t("admin.clickToEdit")}
                     >
                       {row.key === "ai_system_prompt"
                         ? (settings[row.key] || "").slice(0, 80) + "..."
@@ -253,7 +262,7 @@ function AITab({ data, onRefresh }) {
                     : String(defaults[row.key] || "-")}
                 </td>
                 <td>
-                  <button className="btn btn-secondary btn-sm" onClick={() => handleReset(row.key)}>Reset</button>
+                  <button className="btn btn-secondary btn-sm" onClick={() => handleReset(row.key)}>{t("common.reset")}</button>
                 </td>
               </tr>
             ))}
@@ -264,38 +273,141 @@ function AITab({ data, onRefresh }) {
   );
 }
 
-function UsersTab({ data }) {
+function UsersTab({ data, onRefresh }) {
+  const { t } = useTranslation();
+  const [editingUser, setEditingUser] = useState(null);
+  const [editPlan, setEditPlan] = useState("starter");
+  const [trialDays, setTrialDays] = useState(30);
+  const [saving, setSaving] = useState(false);
+
   if (!data) return null;
   const users = data.users || [];
+
+  const handleSavePlan = async (userId) => {
+    setSaving(true);
+    try {
+      await adminApi.updateUserPlan(userId, { plan: editPlan });
+      setEditingUser(null);
+      onRefresh();
+    } catch (err) {
+      alert(err.response?.data?.error || t("admin.failedToUpdatePlan"));
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleGrantTrial = async (userId) => {
+    setSaving(true);
+    try {
+      await adminApi.updateUserPlan(userId, { grantTrial: true, trialDays });
+      setEditingUser(null);
+      onRefresh();
+    } catch (err) {
+      alert(err.response?.data?.error || t("admin.failedToGrantTrial"));
+    } finally {
+      setSaving(false);
+    }
+  };
+
   return (
     <div className="card">
       <div className="table-wrap">
         <table>
-          <thead><tr><th>Name</th><th>Email</th><th>Role</th><th>Sports</th><th>Joined</th></tr></thead>
+          <thead><tr><th>{t("auth.name")}</th><th>{t("auth.email")}</th><th>{t("admin.plan")}</th><th>{t("admin.trial")}</th><th>{t("admin.joined")}</th><th></th></tr></thead>
           <tbody>
             {users.map((u) => (
               <tr key={u._id}>
                 <td>{u.name}</td>
-                <td>{u.email}</td>
-                <td><span className="tag">{u.role}</span></td>
-                <td>{u.sports?.join(", ") || "-"}</td>
+                <td className="text-sm">{u.email}</td>
+                <td><span className="tag">{u.plan || "starter"}</span></td>
+                <td className="text-sm">
+                  {u.trialPlan && u.trialEndsAt && new Date(u.trialEndsAt) > new Date() ? (
+                    <span className="tag tag-success">
+                      {u.trialPlan} until {new Date(u.trialEndsAt).toLocaleDateString()}
+                    </span>
+                  ) : u.trialUsed ? (
+                    <span className="text-muted">{t("common.used")}</span>
+                  ) : (
+                    <span className="text-muted">-</span>
+                  )}
+                </td>
                 <td className="text-sm">{new Date(u.createdAt).toLocaleDateString()}</td>
+                <td>
+                  <button
+                    className="btn btn-secondary btn-sm"
+                    onClick={() => { setEditingUser(editingUser === u._id ? null : u._id); setEditPlan(u.plan || "starter"); }}
+                  >
+                    {t("common.manage")}
+                  </button>
+                </td>
               </tr>
             ))}
           </tbody>
         </table>
       </div>
+
+      {editingUser && (() => {
+        const u = users.find((x) => x._id === editingUser);
+        if (!u) return null;
+        return (
+          <div className="card" style={{ marginTop: "1rem", border: "1px solid var(--color-primary)" }}>
+            <h4 style={{ marginBottom: "0.75rem" }}>{t("admin.manageUser", { name: u.name, email: u.email })}</h4>
+
+            <div style={{ display: "flex", gap: "1.5rem", flexWrap: "wrap" }}>
+              {/* Change plan */}
+              <div>
+                <label className="text-sm" style={{ fontWeight: 600, display: "block", marginBottom: "0.25rem" }}>{t("admin.changePlan")}</label>
+                <div className="flex gap-sm">
+                  <select className="form-control" value={editPlan} onChange={(e) => setEditPlan(e.target.value)} style={{ width: "auto" }}>
+                    <option value="starter">{t("admin.starterFree")}</option>
+                    <option value="coach">{t("admin.coachPlan")}</option>
+                    <option value="pro">{t("admin.proPlan")}</option>
+                  </select>
+                  <button className="btn btn-primary btn-sm" onClick={() => handleSavePlan(u._id)} disabled={saving}>
+                    {saving ? t("common.saving") : t("common.save")}
+                  </button>
+                </div>
+              </div>
+
+              {/* Grant trial */}
+              <div>
+                <label className="text-sm" style={{ fontWeight: 600, display: "block", marginBottom: "0.25rem" }}>{t("admin.grantProTrial")}</label>
+                <div className="flex gap-sm">
+                  <input
+                    type="number"
+                    className="form-control"
+                    value={trialDays}
+                    onChange={(e) => setTrialDays(e.target.value)}
+                    min={1}
+                    max={365}
+                    style={{ width: "80px" }}
+                  />
+                  <span className="text-sm" style={{ alignSelf: "center" }}>{t("admin.days")}</span>
+                  <button className="btn btn-primary btn-sm" onClick={() => handleGrantTrial(u._id)} disabled={saving}>
+                    {saving ? t("admin.granting") : t("admin.grantTrial")}
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <button className="btn btn-secondary btn-sm" style={{ marginTop: "0.75rem" }} onClick={() => setEditingUser(null)}>
+              {t("common.close")}
+            </button>
+          </div>
+        );
+      })()}
     </div>
   );
 }
 
 function AuditTab({ data }) {
+  const { t } = useTranslation();
   if (!data || !Array.isArray(data)) return null;
   return (
     <div className="card">
       <div className="table-wrap">
         <table>
-          <thead><tr><th>Time</th><th>Action</th><th>User</th><th>IP</th><th>Details</th></tr></thead>
+          <thead><tr><th>{t("admin.time")}</th><th>{t("admin.action")}</th><th>{t("admin.user")}</th><th>{t("admin.ip")}</th><th>{t("admin.details")}</th></tr></thead>
           <tbody>
             {data.map((log) => (
               <tr key={log._id}>
@@ -307,7 +419,7 @@ function AuditTab({ data }) {
               </tr>
             ))}
             {!data.length && (
-              <tr><td colSpan={5} className="text-muted" style={{ textAlign: "center" }}>No audit logs</td></tr>
+              <tr><td colSpan={5} className="text-muted" style={{ textAlign: "center" }}>{t("admin.noAuditLogs")}</td></tr>
             )}
           </tbody>
         </table>

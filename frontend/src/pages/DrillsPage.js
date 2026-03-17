@@ -1,18 +1,14 @@
 import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import useFetch from "../hooks/useFetch";
 import { getDrills, deleteDrill, getEmbeddingStatus, toggleStar } from "../api/drills";
 import { FiPlus, FiTrash2, FiEdit, FiZap, FiLoader, FiCheck, FiAlertCircle, FiStar, FiUser } from "react-icons/fi";
 
-const STATUS_LABELS = {
-  pending: "Queued",
-  processing: "Indexing...",
-  indexed: "Indexed",
-  failed: "Failed",
-};
-
 function EmbeddingBadge({ status }) {
+  const { t } = useTranslation();
   if (!status || status === "indexed") return null;
+  const statusLabels = { pending: t("drills.statusQueued"), processing: t("drills.statusIndexing"), indexed: t("drills.statusIndexed"), failed: t("drills.statusFailed") };
   const cls =
     status === "failed"
       ? "embedding-badge embedding-badge-failed"
@@ -21,12 +17,13 @@ function EmbeddingBadge({ status }) {
   return (
     <span className={cls}>
       <Icon className={status === "processing" ? "spin" : ""} />
-      {STATUS_LABELS[status] || status}
+      {statusLabels[status] || status}
     </span>
   );
 }
 
 export default function DrillsPage() {
+  const { t } = useTranslation();
   const [page, setPage] = useState(1);
   const [sport, setSport] = useState("");
   const [starredOnly, setStarredOnly] = useState(false);
@@ -56,7 +53,7 @@ export default function DrillsPage() {
   }, [hasActive, refetch]);
 
   const handleDelete = async (id) => {
-    if (!window.confirm("Delete this drill?")) return;
+    if (!window.confirm(t("drills.deleteDrill"))) return;
     await deleteDrill(id);
     refetch();
   };
@@ -75,8 +72,8 @@ export default function DrillsPage() {
   return (
     <div>
       <div className="flex-between mb-1">
-        <h1>Drills</h1>
-        <Link to="/drills/new" className="btn btn-primary"><FiPlus /> New Drill</Link>
+        <h1>{t("drills.title")}</h1>
+        <Link to="/drills/new" className="btn btn-primary"><FiPlus /> {t("drills.newDrill")}</Link>
       </div>
 
       {/* Global embedding progress bar */}
@@ -84,7 +81,7 @@ export default function DrillsPage() {
         <div className="embedding-progress mb-1">
           <div className="embedding-progress-header">
             <FiLoader className="spin" />
-            <span>Indexing drills for search... {queueDone}/{queueTotal} (free tier — ~20s per drill)</span>
+            <span>{t("drills.indexingProgress", { done: queueDone, total: queueTotal })}</span>
           </div>
           <div className="progress-bar">
             <div className="progress-bar-fill" style={{ width: `${queuePct}%` }} />
@@ -95,7 +92,7 @@ export default function DrillsPage() {
       <div className="flex gap-sm mb-1" style={{ alignItems: "center" }}>
         <input
           className="form-control"
-          placeholder="Filter by sport..."
+          placeholder={t("drills.filterBySport")}
           style={{ maxWidth: 200 }}
           value={sport}
           onChange={(e) => { setSport(e.target.value); setPage(1); }}
@@ -104,12 +101,12 @@ export default function DrillsPage() {
           className={`btn btn-sm ${starredOnly ? "btn-primary" : "btn-secondary"}`}
           onClick={() => { setStarredOnly(!starredOnly); setPage(1); }}
         >
-          <FiStar /> {starredOnly ? "Starred" : "All"}
+          <FiStar /> {starredOnly ? t("drills.starred") : t("drills.all")}
         </button>
       </div>
 
       {loading ? (
-        <div className="loading">Loading...</div>
+        <div className="loading">{t("common.loading")}</div>
       ) : (
         <>
           {data?.drills?.length ? (
@@ -122,7 +119,7 @@ export default function DrillsPage() {
                       <button
                         className={`star-btn ${d.isStarred ? "star-btn-active" : ""}`}
                         onClick={(e) => handleStar(e, d._id)}
-                        title={d.isStarred ? "Unstar" : "Star"}
+                        title={d.isStarred ? t("drills.unstar") : t("drills.star")}
                       >
                         <FiStar />
                       </button>
@@ -153,17 +150,17 @@ export default function DrillsPage() {
             <div className="card" style={{ textAlign: "center", padding: "3rem" }}>
               <FiZap style={{ fontSize: "2rem", color: "var(--color-muted)", marginBottom: "1rem" }} />
               <p className="text-muted">
-                {starredOnly ? "No starred drills yet. Star some drills to see them here." : "No drills yet. Create your first drill to get started."}
+                {starredOnly ? t("drills.noStarredDrills") : t("drills.noDrillsEmpty")}
               </p>
-              {!starredOnly && <Link to="/drills/new" className="btn btn-primary mt-1"><FiPlus /> Create Drill</Link>}
+              {!starredOnly && <Link to="/drills/new" className="btn btn-primary mt-1"><FiPlus /> {t("drills.createDrill")}</Link>}
             </div>
           )}
 
           {data?.pages > 1 && (
             <div className="flex gap-sm mt-1" style={{ justifyContent: "center" }}>
-              <button className="btn btn-secondary btn-sm" disabled={page <= 1} onClick={() => setPage(page - 1)}>Prev</button>
-              <span className="text-sm text-muted">Page {data.page} of {data.pages}</span>
-              <button className="btn btn-secondary btn-sm" disabled={page >= data.pages} onClick={() => setPage(page + 1)}>Next</button>
+              <button className="btn btn-secondary btn-sm" disabled={page <= 1} onClick={() => setPage(page - 1)}>{t("common.prev")}</button>
+              <span className="text-sm text-muted">{t("common.page", { page: data.page, pages: data.pages })}</span>
+              <button className="btn btn-secondary btn-sm" disabled={page >= data.pages} onClick={() => setPage(page + 1)}>{t("common.next")}</button>
             </div>
           )}
         </>
