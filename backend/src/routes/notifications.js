@@ -1,9 +1,13 @@
 const router = require("express").Router();
+const rateLimit = require("express-rate-limit");
 const { authenticate } = require("../middleware/auth");
 const Notification = require("../models/Notification");
 const Drill = require("../models/Drill");
 const User = require("../models/User");
 const { indexDrill } = require("../services/sync");
+
+const notifLimiter = rateLimit({ windowMs: 15 * 60 * 1000, max: 200, standardHeaders: true, legacyHeaders: false });
+router.use(notifLimiter);
 
 // GET /api/notifications — list notifications for current user
 router.get("/", authenticate, async (req, res, next) => {

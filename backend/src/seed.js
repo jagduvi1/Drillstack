@@ -20,7 +20,7 @@ async function seed() {
     const existing = await User.findOne({ email: u.email });
     if (!existing) {
       await User.create(u);
-      console.log(`User created: ${u.email} / ${u.password}`);
+      console.log(`User created: ${u.email}`);
     } else {
       console.log(`User already exists: ${u.email}`);
     }

@@ -1,4 +1,5 @@
 const router = require("express").Router();
+const rateLimit = require("express-rate-limit");
 const { body } = require("express-validator");
 const validate = require("../middleware/validate");
 const { authenticate } = require("../middleware/auth");
@@ -8,12 +9,17 @@ const Notification = require("../models/Notification");
 const PeriodPlan = require("../models/PeriodPlan");
 const aiService = require("../services/ai");
 const { indexDrill, indexPlan } = require("../services/sync");
+
+const aiLimiter = rateLimit({ windowMs: 15 * 60 * 1000, max: 100, standardHeaders: true, legacyHeaders: false });
+router.use(aiLimiter);
+const { checkAiLimit } = require("../middleware/planLimits");
 const { generateDiagram } = require("../services/imageGen");
 
 // POST /api/ai/generate — generate a complete drill from a description
 router.post(
   "/generate",
   authenticate,
+  checkAiLimit,
   [body("description").trim().notEmpty()],
   validate,
   async (req, res, next) => {
@@ -31,6 +37,7 @@ router.post(
 router.post(
   "/generate-and-save",
   authenticate,
+  checkAiLimit,
   [body("description").trim().notEmpty()],
   validate,
   async (req, res, next) => {
@@ -59,6 +66,7 @@ router.post(
 router.post(
   "/refine/:id",
   authenticate,
+  checkAiLimit,
   [body("message").trim().notEmpty()],
   validate,
   async (req, res, next) => {
@@ -162,6 +170,7 @@ router.post(
 router.post(
   "/suggest-session",
   authenticate,
+  checkAiLimit,
   [body("description").trim().notEmpty()],
   validate,
   async (req, res, next) => {

@@ -1,4 +1,5 @@
 const router = require("express").Router();
+const rateLimit = require("express-rate-limit");
 const { body } = require("express-validator");
 const validate = require("../middleware/validate");
 const { authenticate } = require("../middleware/auth");
@@ -7,6 +8,9 @@ const Drill = require("../models/Drill");
 const User = require("../models/User");
 const Notification = require("../models/Notification");
 const { indexDrill, removeDrill, getQueueStatus, checkEmbeddingSimilarity, findSimilarDrills } = require("../services/sync");
+
+const drillsLimiter = rateLimit({ windowMs: 15 * 60 * 1000, max: 200, standardHeaders: true, legacyHeaders: false });
+router.use(drillsLimiter);
 
 // GET /api/drills — public: returns ALL drills (no createdBy filter)
 router.get("/", authenticate, async (req, res, next) => {
@@ -260,7 +264,7 @@ router.post("/:id/convert-to-version", authenticate, async (req, res, next) => {
     const drill = await Drill.findOne({ _id: req.params.id, createdBy: req.user._id });
     if (!drill) return res.status(404).json({ error: "Drill not found or not yours" });
 
-    const parent = await Drill.findById(parentDrillId);
+    const parent = await Drill.findOne({ _id: String(parentDrillId) });
     if (!parent) return res.status(404).json({ error: "Parent drill not found" });
 
     const rootId = parent.parentDrill || parent._id;

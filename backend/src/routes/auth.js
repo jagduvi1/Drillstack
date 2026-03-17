@@ -1,9 +1,13 @@
 const router = require("express").Router();
+const rateLimit = require("express-rate-limit");
 const { body } = require("express-validator");
 const validate = require("../middleware/validate");
 const { signToken, authenticate } = require("../middleware/auth");
 const { checkIsSuperAdmin } = require("../middleware/superAdmin");
 const User = require("../models/User");
+
+const authLimiter = rateLimit({ windowMs: 15 * 60 * 1000, max: 20, standardHeaders: true, legacyHeaders: false });
+router.use(authLimiter);
 
 // POST /api/auth/register
 router.post(
