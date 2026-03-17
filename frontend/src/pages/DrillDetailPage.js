@@ -1,19 +1,32 @@
 import { useState, useRef, useEffect } from "react";
 import { useParams, Link, useNavigate } from "react-router-dom";
 import useFetch from "../hooks/useFetch";
-import { getDrill, deleteDrill, uploadDiagram, addReflection, retryEmbedding } from "../api/drills";
+import { useAuth } from "../context/AuthContext";
+import { getDrill, deleteDrill, uploadDiagram, addReflection, retryEmbedding, toggleStar, forkDrill, getVersions, setDefaultVersion, findSimilar, convertToVersion } from "../api/drills";
 import { refineDrill, generateDiagram } from "../api/ai";
-import { FiEdit, FiTrash2, FiSend, FiMessageCircle, FiLoader, FiAlertCircle, FiCheck, FiRefreshCw, FiImage } from "react-icons/fi";
+import DebugPanel from "../components/common/DebugPanel";
+import { FiEdit, FiTrash2, FiSend, FiMessageCircle, FiLoader, FiAlertCircle, FiRefreshCw, FiImage, FiStar, FiCopy, FiGitBranch, FiUser, FiCheck, FiLink, FiCode } from "react-icons/fi";
 
 export default function DrillDetailPage() {
   const { id } = useParams();
   const navigate = useNavigate();
+  const { user } = useAuth();
+  const isAdmin = user?.role === "admin" || user?.isSuperAdmin;
   const { data: drill, loading, refetch } = useFetch(() => getDrill(id), [id]);
   const [reflectionNote, setReflectionNote] = useState("");
   const [chatMessage, setChatMessage] = useState("");
   const [chatLoading, setChatLoading] = useState(false);
   const [showChat, setShowChat] = useState(false);
   const [diagramLoading, setDiagramLoading] = useState(false);
+  const [showVersions, setShowVersions] = useState(false);
+  const [versions, setVersions] = useState(null);
+  const [similarDrills, setSimilarDrills] = useState(null);
+  const [similarDismissed, setSimilarDismissed] = useState(false);
+  const [embeddingElapsed, setEmbeddingElapsed] = useState(0);
+  const [debugOpen, setDebugOpen] = useState(false);
+  const [debugEntries, setDebugEntries] = useState([]);
+  const similarChecked = useRef(false);
+  const embeddingStartRef = useRef(null);
   const chatEndRef = useRef(null);
 
   useEffect(() => {
@@ -27,10 +40,37 @@ export default function DrillDetailPage() {
     const active =
       drill?.embeddingStatus === "pending" ||
       drill?.embeddingStatus === "processing";
-    if (!active) return;
-    const iv = setInterval(refetch, 3000);
+    if (!active) {
+      embeddingStartRef.current = null;
+      setEmbeddingElapsed(0);
+      return;
+    }
+    if (!embeddingStartRef.current) embeddingStartRef.current = Date.now();
+    const iv = setInterval(() => {
+      refetch();
+      setEmbeddingElapsed(Math.floor((Date.now() - embeddingStartRef.current) / 1000));
+    }, 1000);
     return () => clearInterval(iv);
   }, [drill?.embeddingStatus, refetch]);
+
+  // Check for similar drills once embedding is indexed (only for new drills without a parent)
+  useEffect(() => {
+    if (
+      drill?.embeddingStatus === "indexed" &&
+      !drill?.parentDrill &&
+      !similarChecked.current &&
+      !similarDismissed
+    ) {
+      similarChecked.current = true;
+      findSimilar(id)
+        .then((res) => {
+          if (res.data.similar?.length > 0) {
+            setSimilarDrills(res.data.similar);
+          }
+        })
+        .catch(() => {}); // silently ignore
+    }
+  }, [drill?.embeddingStatus, drill?.parentDrill, id, similarDismissed]);
 
   if (loading) return <div className="loading">Loading...</div>;
   if (!drill) return <div className="alert alert-danger">Drill not found</div>;
@@ -39,6 +79,30 @@ export default function DrillDetailPage() {
     if (!window.confirm("Delete this drill?")) return;
     await deleteDrill(id);
     navigate("/drills");
+  };
+
+  const handleStar = async () => {
+    await toggleStar(id);
+    refetch();
+  };
+
+  const handleFork = async () => {
+    const res = await forkDrill(id);
+    navigate(`/drills/${res.data._id}/refine`);
+  };
+
+  const handleShowVersions = async () => {
+    if (!showVersions) {
+      const res = await getVersions(id);
+      setVersions(res.data);
+    }
+    setShowVersions(!showVersions);
+  };
+
+  const handleSetDefault = async (versionId) => {
+    await setDefaultVersion(versionId);
+    const res = await getVersions(id);
+    setVersions(res.data);
   };
 
   const handleDiagramUpload = async (e) => {
@@ -53,13 +117,35 @@ export default function DrillDetailPage() {
   const handleGenerateDiagram = async () => {
     setDiagramLoading(true);
     try {
-      await generateDiagram(id);
+      const res = await generateDiagram(id);
+      if (res.data.debug) {
+        setDebugEntries((prev) => [
+          ...prev,
+          { label: "Diagram Generation", debug: res.data.debug },
+        ]);
+      }
       refetch();
     } catch {
       alert("Diagram generation failed. Check your AI provider configuration.");
     } finally {
       setDiagramLoading(false);
     }
+  };
+
+  const handleConvertToVersion = async (parentDrillId) => {
+    try {
+      await convertToVersion(id, parentDrillId);
+      setSimilarDrills(null);
+      refetch();
+    } catch {
+      alert("Failed to convert to version.");
+    }
+  };
+
+  const handleDiscardDrill = async () => {
+    if (!window.confirm("Delete this drill since it already exists?")) return;
+    await deleteDrill(id);
+    navigate("/drills");
   };
 
   const handleRetryEmbedding = async () => {
@@ -76,9 +162,16 @@ export default function DrillDetailPage() {
 
   const handleChatSend = async () => {
     if (!chatMessage.trim() || chatLoading) return;
+    const msg = chatMessage.trim();
     setChatLoading(true);
     try {
-      await refineDrill(id, chatMessage.trim());
+      const res = await refineDrill(id, msg);
+      if (res.data.debug) {
+        setDebugEntries((prev) => [
+          ...prev,
+          { label: `Refine: "${msg.slice(0, 40)}${msg.length > 40 ? "..." : ""}"`, debug: res.data.debug },
+        ]);
+      }
       setChatMessage("");
       refetch();
     } catch {
@@ -99,30 +192,190 @@ export default function DrillDetailPage() {
     <div className="drill-detail-layout">
       <div className="drill-detail-main">
         <div className="flex-between mb-1">
-          <h1>{drill.title}</h1>
+          <div>
+            <h1 style={{ marginBottom: "0.25rem" }}>
+              {drill.title}
+              {drill.versionName && (
+                <span className="version-name-subtitle"> — {drill.versionName}</span>
+              )}
+            </h1>
+            <div className="flex gap-sm" style={{ alignItems: "center" }}>
+              {drill.createdBy?.name && (
+                <span className="text-sm text-muted"><FiUser style={{ fontSize: "0.75rem" }} /> {drill.createdBy.name}</span>
+              )}
+              {drill.parentDrill && (
+                <span className="text-sm text-muted">
+                  <FiGitBranch style={{ fontSize: "0.75rem" }} /> v{drill.version} of{" "}
+                  <Link to={`/drills/${drill.parentDrill._id}`}>{drill.parentDrill.title}</Link>
+                </span>
+              )}
+              {drill.versionCount > 1 && (
+                <button className="btn-link text-sm" onClick={handleShowVersions}>
+                  <FiGitBranch /> {drill.versionCount} versions
+                </button>
+              )}
+            </div>
+          </div>
           <div className="flex gap-sm">
-            <button className="btn btn-secondary" onClick={() => setShowChat(!showChat)}>
-              <FiMessageCircle /> {showChat ? "Hide Chat" : "Refine with AI"}
+            <button
+              className={`btn btn-sm ${drill.isStarred ? "btn-star-active" : "btn-secondary"}`}
+              onClick={handleStar}
+              title={drill.isStarred ? "Unstar" : "Star this drill"}
+            >
+              <FiStar /> {drill.isStarred ? "Starred" : "Star"}
             </button>
-            <Link to={`/drills/${id}/edit`} className="btn btn-secondary"><FiEdit /> Edit</Link>
-            <button className="btn btn-danger" onClick={handleDelete}><FiTrash2 /> Delete</button>
+            {debugEntries.length > 0 && (
+              <button
+                className={`btn ${debugOpen ? "btn-primary" : "btn-secondary"}`}
+                onClick={() => setDebugOpen(!debugOpen)}
+              >
+                <FiCode /> Debug ({debugEntries.length})
+              </button>
+            )}
+            {drill.isOwner && (
+              <button className="btn btn-secondary" onClick={() => setShowChat(!showChat)}>
+                <FiMessageCircle /> {showChat ? "Hide Chat" : "Refine with AI"}
+              </button>
+            )}
+            {drill.isOwner ? (
+              <Link to={`/drills/${id}/edit`} className="btn btn-secondary"><FiEdit /> Edit</Link>
+            ) : (
+              <button className="btn btn-secondary" onClick={handleFork}><FiCopy /> Fork & Edit</button>
+            )}
+            {(drill.isOwner || isAdmin) && (
+              <button className="btn btn-danger" onClick={handleDelete}><FiTrash2 /> Delete</button>
+            )}
           </div>
         </div>
 
-        {/* Embedding status banner */}
+        {/* Versions panel */}
+        {showVersions && versions && (
+          <div className="card mb-1">
+            <h3>Versions</h3>
+            <div className="versions-list">
+              {versions.versions.map((v) => (
+                <div key={v._id} className={`version-item ${v._id === id ? "version-item-current" : ""}`}>
+                  <div className="flex-between">
+                    <div>
+                      <Link to={`/drills/${v._id}`}>
+                        <strong>v{v.version}</strong>{v.versionName ? ` — ${v.versionName}` : ` — ${v.title}`}
+                      </Link>
+                      <span className="text-sm text-muted" style={{ marginLeft: "0.5rem" }}>
+                        by {v.forkedBy?.name || v.createdBy?.name || "Unknown"}
+                      </span>
+                    </div>
+                    <div className="flex gap-sm">
+                      {versions.defaultVersionId === v._id.toString() ? (
+                        <span className="tag tag-success"><FiCheck /> Default</span>
+                      ) : (
+                        <button className="btn btn-secondary btn-sm" onClick={() => handleSetDefault(v._id)}>
+                          Set as default
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Embedding status with progress */}
         {drill.embeddingStatus && drill.embeddingStatus !== "indexed" && (
-          <div className={`embedding-status-banner embedding-status-${drill.embeddingStatus} mb-1`}>
-            {drill.embeddingStatus === "pending" && <><FiLoader /> Queued for search indexing...</>}
-            {drill.embeddingStatus === "processing" && <><FiLoader className="spin" /> Indexing for search...</>}
-            {drill.embeddingStatus === "failed" && (
-              <>
-                <FiAlertCircle /> Search indexing failed{drill.embeddingError ? `: ${drill.embeddingError}` : ""}
-                <button className="btn btn-secondary btn-sm" style={{ marginLeft: "auto" }} onClick={handleRetryEmbedding}>
+          <div className="embedding-progress-detail mb-1">
+            {drill.embeddingStatus === "failed" ? (
+              <div className="flex-between">
+                <span>
+                  <FiAlertCircle style={{ color: "var(--color-danger)" }} /> Search indexing failed{isAdmin && drill.embeddingError ? `: ${drill.embeddingError}` : ""}
+                </span>
+                <button className="btn btn-secondary btn-sm" onClick={handleRetryEmbedding}>
                   <FiRefreshCw /> Retry
                 </button>
+              </div>
+            ) : (
+              <>
+                <div className="flex-between">
+                  <span>
+                    <FiLoader className="spin" />{" "}
+                    {drill.embeddingStatus === "pending"
+                      ? "Queued for search indexing..."
+                      : "Indexing for search — checking for similar drills..."
+                    }
+                  </span>
+                  <span className="text-sm text-muted embedding-timer">
+                    {embeddingElapsed > 0 && `${embeddingElapsed}s`}
+                    {embeddingElapsed < 25 && ` · ~${Math.max(0, 25 - embeddingElapsed)}s remaining`}
+                  </span>
+                </div>
+                <div className="progress-bar" style={{ marginTop: "0.5rem" }}>
+                  <div
+                    className="progress-bar-fill"
+                    style={{ width: `${Math.min(95, (embeddingElapsed / 25) * 100)}%` }}
+                  />
+                </div>
+                <p className="text-sm text-muted" style={{ marginTop: "0.35rem" }}>
+                  Free tier — drills are indexed one at a time (~20-25s each)
+                </p>
               </>
             )}
           </div>
+        )}
+
+        {/* Similar drills found — post-creation deduplication */}
+        {similarDrills && similarDrills.length > 0 && (
+          <div className="card mb-1 similar-drills-banner">
+            <div className="flex gap-sm" style={{ alignItems: "flex-start" }}>
+              <FiLink style={{ marginTop: "0.2rem", flexShrink: 0, color: "var(--color-primary)" }} />
+              <div style={{ flex: 1 }}>
+                <strong>Similar drills already exist</strong>
+                <p className="text-sm text-muted" style={{ margin: "0.25rem 0 0.75rem" }}>
+                  We found drills that look similar to this one. You can add yours as a version of an existing drill, keep it as a separate drill, or discard it.
+                </p>
+                {similarDrills.map((s) => (
+                  <div key={s._id} className="similar-drill-item">
+                    <div style={{ flex: 1 }}>
+                      <Link to={`/drills/${s._id}`}>
+                        <strong>{s.title}</strong>
+                      </Link>
+                      <span className="text-sm text-muted" style={{ marginLeft: "0.5rem" }}>
+                        {Math.round(s.similarity * 100)}% similar
+                      </span>
+                      {s.description && (
+                        <p className="text-sm text-muted" style={{ margin: "0.15rem 0 0" }}>
+                          {s.description.slice(0, 100)}{s.description.length > 100 ? "..." : ""}
+                        </p>
+                      )}
+                    </div>
+                    <button
+                      className="btn btn-primary btn-sm"
+                      onClick={() => handleConvertToVersion(s._id)}
+                    >
+                      <FiGitBranch /> Add as Version
+                    </button>
+                  </div>
+                ))}
+                <div className="flex gap-sm mt-1">
+                  <button
+                    className="btn btn-secondary btn-sm"
+                    onClick={() => { setSimilarDrills(null); setSimilarDismissed(true); }}
+                  >
+                    Keep as Separate Drill
+                  </button>
+                  <button
+                    className="btn btn-danger btn-sm"
+                    onClick={handleDiscardDrill}
+                  >
+                    <FiTrash2 /> Discard My Drill
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Debug Panel */}
+        {debugOpen && debugEntries.length > 0 && (
+          <DebugPanel entries={debugEntries} />
         )}
 
         {/* Description & meta */}

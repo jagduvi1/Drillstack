@@ -1,9 +1,24 @@
 import { NavLink } from "react-router-dom";
+import { useState, useEffect } from "react";
 import { useAuth } from "../../context/AuthContext";
-import { FiGrid, FiZap, FiCalendar, FiSearch, FiShield, FiLogOut } from "react-icons/fi";
+import { getUnreadCount } from "../../api/notifications";
+import { FiGrid, FiZap, FiCalendar, FiSearch, FiShield, FiLogOut, FiBell } from "react-icons/fi";
 
 export default function Sidebar() {
   const { user, logout } = useAuth();
+  const [unread, setUnread] = useState(0);
+
+  useEffect(() => {
+    let mounted = true;
+    const check = () => {
+      getUnreadCount()
+        .then((res) => { if (mounted) setUnread(res.data.count); })
+        .catch(() => {});
+    };
+    check();
+    const iv = setInterval(check, 30000); // poll every 30s
+    return () => { mounted = false; clearInterval(iv); };
+  }, []);
 
   return (
     <aside className="app-sidebar">
@@ -23,6 +38,10 @@ export default function Sidebar() {
         </NavLink>
         <NavLink to="/search">
           <FiSearch /> Search
+        </NavLink>
+        <NavLink to="/notifications" className="nav-notifications">
+          <FiBell /> Notifications
+          {unread > 0 && <span className="notification-badge">{unread}</span>}
         </NavLink>
         {user?.isSuperAdmin && (
           <NavLink to="/superadmin">

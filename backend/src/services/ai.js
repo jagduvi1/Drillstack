@@ -68,6 +68,42 @@ async function complete(systemPrompt, userPrompt) {
   }
 }
 
+// Debug-aware wrapper: returns { content, debug }
+async function completeWithDebug(systemPrompt, userPrompt) {
+  const settings = await getAISettings();
+  const startTime = Date.now();
+  const content = await complete(systemPrompt, userPrompt);
+  return {
+    content,
+    debug: {
+      provider: settings.ai_provider,
+      model: settings.ai_model,
+      systemPrompt,
+      userPrompt,
+      rawResponse: content,
+      durationMs: Date.now() - startTime,
+    },
+  };
+}
+
+// Debug-aware chat wrapper: returns { content, debug }
+async function completeChatWithDebug(systemPrompt, messages) {
+  const settings = await getAISettings();
+  const startTime = Date.now();
+  const content = await completeChat(systemPrompt, messages);
+  return {
+    content,
+    debug: {
+      provider: settings.ai_provider,
+      model: settings.ai_model,
+      systemPrompt,
+      userPrompt: JSON.stringify(messages),
+      rawResponse: content,
+      durationMs: Date.now() - startTime,
+    },
+  };
+}
+
 async function completeChat(systemPrompt, messages) {
   const settings = await getAISettings();
   const provider = settings.ai_provider;
@@ -170,20 +206,23 @@ async function generateDrill(userDescription, sport) {
     ? `Sport: ${sport}\n\nDrill idea: ${userDescription}`
     : userDescription;
 
-  const raw = await complete(DRILL_SYSTEM_PROMPT, prompt);
+  const { content: raw, debug } = await completeWithDebug(DRILL_SYSTEM_PROMPT, prompt);
   try {
-    return parseJSON(raw);
+    return { drill: parseJSON(raw), debug };
   } catch {
     return {
-      title: "Untitled Drill",
-      description: userDescription,
-      sport: sport || "general",
-      intensity: "medium",
-      setup: { players: "", space: "", equipment: [], duration: "" },
-      howItWorks: raw,
-      coachingPoints: [],
-      variations: [],
-      commonMistakes: [],
+      drill: {
+        title: "Untitled Drill",
+        description: userDescription,
+        sport: sport || "general",
+        intensity: "medium",
+        setup: { players: "", space: "", equipment: [], duration: "" },
+        howItWorks: raw,
+        coachingPoints: [],
+        variations: [],
+        commonMistakes: [],
+      },
+      debug,
     };
   }
 }
@@ -230,42 +269,189 @@ async function refineDrill(currentDrill, conversationHistory) {
     ...conversationHistory.map((m) => ({ role: m.role, content: m.content })),
   ];
 
-  const raw = await completeChat(REFINE_SYSTEM_PROMPT, messages);
+  const { content: raw, debug } = await completeChatWithDebug(REFINE_SYSTEM_PROMPT, messages);
   try {
-    return { drill: parseJSON(raw), message: null };
+    return { drill: parseJSON(raw), message: null, debug };
   } catch {
-    return { drill: null, message: raw };
+    return { drill: null, message: raw, debug };
   }
 }
 
 // ── Generate a session plan from description ────────────────────────────────
 
-async function generateSessionPlan(description, availableDrills) {
-  const system = `You are an expert sports coach. Given a session description and available drills, suggest a training session structure.
+async function generateSessionPlan(description, availableDrills, opts = {}) {
+  const { numPlayers, totalMinutes, starredIds } = opts;
+  const playerInfo = numPlayers ? `Number of players: ${numPlayers}.` : "";
+  const timeInfo = totalMinutes ? `Target total session time: ~${totalMinutes} minutes.` : "";
 
-Available drills:
-${availableDrills.map((d) => `- "${d.title}" (${d.intensity}, ${d.setup?.duration || "?"}) — ${d.description?.slice(0, 100)}`).join("\n")}
+  const starredSet = new Set((starredIds || []).map((id) => id.toString()));
+  const drillList = availableDrills.map((d) => {
+    const star = starredSet.has(d._id.toString()) ? " ★" : "";
+    return `- "${d.title}"${star} (${d.intensity}, ${d.setup?.duration || "?"}, ${d.sport || "general"})`;
+  }).join("\n");
+
+  const system = `You are an expert sports coach. Given a session description and available drills, suggest a training session using flexible blocks.
+
+${playerInfo} ${timeInfo}
+
+AVAILABLE DRILLS — this is the COMPLETE list of drills available. Drills marked with ★ are the coach's favorites — prefer those when they fit. You may ONLY use these exact titles. Do NOT invent, create, or make up ANY activity or drill names. If you need a closing game, warmup, or any activity — pick one from this list or skip it:
+${drillList}
+
+Block types you can use:
+- "drills": A sequence of drills. EVERY drillTitle MUST be copied EXACTLY from the list above — no descriptions, no subtitles, no modifications. Just the title as-is.
+- "stations": Station rotation. EVERY drillTitle MUST be copied EXACTLY from the list above — just the title, nothing added.
+- "matchplay": ONLY for generic game formats (e.g. "4v4 small-sided game") — never use named activities here.
+- "break": Rest/water break.
+- "custom": ONLY for non-drill activities like "team talk", "stretching", "cooldown jog". Do NOT put named games or drills here. Keep labels generic.
+
+IMPORTANT rules for drillTitle fields:
+- Copy the title EXACTLY as it appears in the available list. Do NOT append descriptions, subtitles, or explanations to the title.
+- Example: if the drill is called "Zombiefotboll", write "Zombiefotboll" — NOT "Zombiefotboll – Passningsspel med zombier".
+- Do NOT add notes that re-explain the drill. The coach already has the full drill details in the system.
 
 Return JSON:
 {
   "title": "Session title",
-  "description": "Brief session description",
-  "sections": [
+  "description": "Brief session overview",
+  "blocks": [
     {
-      "type": "warmup" | "main" | "cooldown",
-      "drillTitles": ["titles of drills to use from the available list"],
-      "notes": "Section-specific coaching notes"
+      "type": "drills",
+      "label": "e.g. Warmup",
+      "drillTitles": ["exact title from list"],
+      "durations": [10, 8]
+    },
+    {
+      "type": "stations",
+      "label": "e.g. Technical Circuit",
+      "stationCount": 4,
+      "rotationMinutes": 5,
+      "stationDrills": [
+        { "stationNumber": 1, "drillTitle": "exact title from list" },
+        { "stationNumber": 2, "drillTitle": "exact title from list" }
+      ]
+    },
+    {
+      "type": "matchplay",
+      "label": "e.g. Small-Sided Games",
+      "duration": 15,
+      "matchDescription": "4v4 on small goals",
+      "rules": "Max 3 touches"
+    },
+    {
+      "type": "break",
+      "label": "Water Break",
+      "duration": 3
+    },
+    {
+      "type": "custom",
+      "label": "e.g. Team Talk",
+      "duration": 5,
+      "customContent": "Brief description"
     }
   ]
 }
 
-Only suggest drills from the available list. Return valid JSON only.`;
+CRITICAL: Every drillTitle MUST be an EXACT copy from the available drills list — no extra text, no descriptions appended. Do NOT invent any drill or activity names anywhere in the response. Return valid JSON only.`;
 
-  const raw = await complete(system, description);
+  const { content: raw, debug } = await completeWithDebug(system, description);
   try {
-    return parseJSON(raw);
+    return { plan: parseJSON(raw), debug };
   } catch {
-    return null;
+    return { plan: null, debug };
+  }
+}
+
+// ── Refine a session via conversation ────────────────────────────────────────
+
+function buildRefineSessionPrompt(availableDrillTitles) {
+  const drillListStr = availableDrillTitles.length > 0
+    ? availableDrillTitles.map((t) => `- "${t}"`).join("\n")
+    : "(no drills available)";
+
+  return `You are an expert sports coach helping to refine a training session through conversation.
+
+The coach will describe changes they want to make to an existing session. You must:
+1. Understand what they want to change
+2. Return the COMPLETE updated session as JSON (same structure as below)
+3. Incorporate their feedback while keeping everything else intact
+
+AVAILABLE DRILLS — this is the COMPLETE list of drills in the system. You may ONLY use these exact titles. Do NOT invent ANY activity or drill names anywhere in the response:
+${drillListStr}
+
+Block types:
+- "drills": Sequential drills. EVERY drillTitle MUST be an EXACT copy from the list above — no descriptions appended.
+- "stations": Station rotation. EVERY drillTitle MUST be an EXACT copy from the list above — just the title, nothing added.
+- "matchplay": ONLY for generic game formats (e.g. "4v4 small-sided game"). Never use named activities here.
+- "break": Rest/water break with duration.
+- "custom": ONLY for non-drill activities like "team talk", "stretching". Do NOT put named games or drills here.
+
+Return ONLY valid JSON:
+{
+  "title": "...",
+  "description": "...",
+  "blocks": [
+    {
+      "type": "drills",
+      "label": "...",
+      "drills": [{ "drillTitle": "exact title from list", "duration": 10 }]
+    },
+    {
+      "type": "stations",
+      "label": "...",
+      "stationCount": 4,
+      "rotationMinutes": 5,
+      "stationDrills": [{ "stationNumber": 1, "drillTitle": "exact title from list" }]
+    },
+    {
+      "type": "matchplay",
+      "label": "...",
+      "duration": 15,
+      "matchDescription": "...",
+      "rules": "..."
+    },
+    {
+      "type": "break",
+      "label": "...",
+      "duration": 3
+    },
+    {
+      "type": "custom",
+      "label": "...",
+      "duration": 5,
+      "customContent": "..."
+    }
+  ]
+}
+
+- Only modify what the coach asks to change
+- Keep the rest of the session intact
+- CRITICAL: Every drillTitle MUST be an EXACT copy from the available drills list — no extra text, no descriptions appended. NEVER invent drill or activity names.
+- If the coach writes in a specific language, respond in that language
+- Always return valid JSON only, no extra text`;
+}
+
+async function refineSession(currentSession, conversationHistory, availableDrillTitles = []) {
+  const messages = [
+    {
+      role: "user",
+      content: `Here is the current session:\n${JSON.stringify(currentSession, null, 2)}`,
+    },
+    {
+      role: "assistant",
+      content: "I have the session. What changes would you like to make?",
+    },
+    ...conversationHistory.map((m) => ({ role: m.role, content: m.content })),
+  ];
+
+  const systemPrompt = buildRefineSessionPrompt(availableDrillTitles);
+  const { content, debug } = await completeChatWithDebug(
+    systemPrompt,
+    messages
+  );
+  try {
+    return { session: parseJSON(content), message: null, debug };
+  } catch {
+    return { session: null, message: content, debug };
   }
 }
 
@@ -273,7 +459,8 @@ Only suggest drills from the available list. Return valid JSON only.`;
 
 async function summarizeDrill(drill) {
   const system = `You are a sports coaching assistant. Summarize this drill in 2-3 concise sentences suitable for quick reference.`;
-  return complete(system, JSON.stringify(drill));
+  const { content, debug } = await completeWithDebug(system, JSON.stringify(drill));
+  return { summary: content, debug };
 }
 
 // ── Training Program Generation ─────────────────────────────────────────────
@@ -331,17 +518,20 @@ async function generateTrainingProgram({
   else if (startDate && endDate) parts.push(`Period: ${startDate} to ${endDate}`);
   parts.push(`\nProgram request: ${description}`);
 
-  const raw = await complete(PROGRAM_SYSTEM_PROMPT, parts.join("\n"));
+  const { content: raw, debug } = await completeWithDebug(PROGRAM_SYSTEM_PROMPT, parts.join("\n"));
   try {
-    return parseJSON(raw);
+    return { program: parseJSON(raw), debug };
   } catch {
     return {
-      title: "Training Program",
-      description,
-      sport: sport || "general",
-      goals: [],
-      focusAreas: [],
-      weeklyPlans: [],
+      program: {
+        title: "Training Program",
+        description,
+        sport: sport || "general",
+        goals: [],
+        focusAreas: [],
+        weeklyPlans: [],
+      },
+      debug,
     };
   }
 }
@@ -400,11 +590,11 @@ async function refineTrainingProgram(currentProgram, conversationHistory) {
     ...conversationHistory.map((m) => ({ role: m.role, content: m.content })),
   ];
 
-  const raw = await completeChat(REFINE_PROGRAM_PROMPT, messages);
+  const { content: raw, debug } = await completeChatWithDebug(REFINE_PROGRAM_PROMPT, messages);
   try {
-    return { program: parseJSON(raw), message: null };
+    return { program: parseJSON(raw), message: null, debug };
   } catch {
-    return { program: null, message: raw };
+    return { program: null, message: raw, debug };
   }
 }
 
@@ -443,18 +633,143 @@ ${constraints}
 
 Please adapt this session for today's conditions.`;
 
-  const raw = await complete(ADAPT_SESSION_PROMPT, prompt);
+  const { content: raw, debug } = await completeWithDebug(ADAPT_SESSION_PROMPT, prompt);
+  try {
+    return { adapted: parseJSON(raw), debug };
+  } catch {
+    return {
+      adapted: {
+        title: originalSession.title + " (adapted)",
+        changes: "Could not parse structured response",
+        warmup: "",
+        main: raw,
+        cooldown: "",
+        coachingNotes: "",
+        durationMinutes: originalSession.durationMinutes || 60,
+      },
+      debug,
+    };
+  }
+}
+
+// ── Similarity check for versioning ──────────────────────────────────────────
+
+const SIMILARITY_PROMPT = `You are a sports coaching assistant. Compare an ORIGINAL drill with an EDITED version and determine if they are still fundamentally the same drill (a variation/tweak) or if the edits have created something entirely different (a new drill).
+
+Consider:
+- Same core mechanic/exercise = same drill (even with different player counts, space, intensity)
+- Changed rules, goals, or fundamental structure = new drill
+- Adding/removing a phase or completely changing the flow = new drill
+- Minor tweaks to setup, coaching points, or wording = same drill
+
+Return ONLY valid JSON:
+{
+  "isSameDrill": true | false,
+  "reason": "1-2 sentence explanation"
+}`;
+
+async function checkSimilarity(originalDrill, editedData) {
+  const prompt = `ORIGINAL DRILL:
+Title: ${originalDrill.title}
+Description: ${originalDrill.description}
+How it works: ${originalDrill.howItWorks || ""}
+
+EDITED VERSION:
+Title: ${editedData.title || originalDrill.title}
+Description: ${editedData.description || originalDrill.description}
+How it works: ${editedData.howItWorks || originalDrill.howItWorks || ""}`;
+
+  const raw = await complete(SIMILARITY_PROMPT, prompt);
   try {
     return parseJSON(raw);
   } catch {
+    return { isSameDrill: true, reason: "Could not determine — assuming same drill." };
+  }
+}
+
+// ── Session feasibility check ────────────────────────────────────────────────
+
+async function checkSessionFeasibility(session, actualPlayers, actualTrainers) {
+  const blocksDesc = (session.blocks || []).map((b) => {
+    let desc = `[${b.type}] "${b.label || b.type}"`;
+    if (b.type === "drills") {
+      const drillNames = (b.drills || []).map((d) => d.drill?.title || "drill").join(", ");
+      desc += ` — drills: ${drillNames}`;
+    }
+    if (b.type === "stations") {
+      desc += ` — ${b.stationCount} stations, ${b.rotationMinutes} min rotation`;
+      const stationDrills = (b.stations || []).map((s) => `Station ${s.stationNumber}: ${s.drill?.title || "unset"}`).join(", ");
+      desc += ` (${stationDrills})`;
+    }
+    if (b.type === "matchplay") {
+      desc += ` — ${b.matchDescription || ""}, ${b.duration} min`;
+      if (b.rules) desc += ` rules: ${b.rules}`;
+    }
+    if (b.type === "break") desc += ` — ${b.duration} min`;
+    if (b.type === "custom") desc += ` — ${b.customContent || ""}, ${b.duration} min`;
+    if (b.notes) desc += ` (notes: ${b.notes})`;
+    return desc;
+  }).join("\n");
+
+  const system = `You are an expert sports coach. A training session was planned for a certain number of players and trainers, but the actual attendance is different. Check if the session is still feasible and suggest specific changes if needed.
+
+Consider:
+- Station training needs enough players per station to make the drill work (usually at least 2-3 per station)
+- Station training may need trainers at each station depending on the drill complexity
+- Match play formats need the right player count (e.g. 4v4 needs 8 players minimum)
+- Some drills have minimum player requirements
+- With fewer trainers, complex stations may need to be simplified or merged
+- With more or fewer players, group sizes and game formats should be adjusted
+
+Return JSON:
+{
+  "feasible": true/false,
+  "summary": "One sentence overall assessment",
+  "issues": [
+    {
+      "blockLabel": "which block has an issue",
+      "problem": "what the problem is",
+      "suggestion": "specific fix"
+    }
+  ],
+  "adaptedBlocks": [
+    // ONLY include blocks that need changes. Same structure as input but with adjustments.
+    // Include the block index (0-based) so the frontend knows which block to update.
+    {
+      "blockIndex": 0,
+      "changes": "what changed and why",
+      "label": "possibly updated label",
+      "stationCount": 3,
+      "rotationMinutes": 6,
+      "matchDescription": "updated if needed",
+      "rules": "updated if needed",
+      "duration": 15,
+      "notes": "updated coaching notes"
+    }
+  ]
+}
+
+If no changes are needed, return feasible: true with an empty issues array and empty adaptedBlocks.
+Return valid JSON only.`;
+
+  const prompt = `Session: "${session.title}"
+Sport: ${session.sport || "general"}
+Originally planned for: ${session.expectedPlayers} players, ${session.expectedTrainers} trainers
+Actual attendance: ${actualPlayers} players, ${actualTrainers} trainers
+
+Session blocks:
+${blocksDesc}`;
+
+  const { content: raw, debug } = await completeWithDebug(system, prompt);
+  try {
+    return { ...parseJSON(raw), debug };
+  } catch {
     return {
-      title: originalSession.title + " (adapted)",
-      changes: "Could not parse structured response",
-      warmup: "",
-      main: raw,
-      cooldown: "",
-      coachingNotes: "",
-      durationMinutes: originalSession.durationMinutes || 60,
+      feasible: true,
+      summary: "Could not analyze — the session should work as planned.",
+      issues: [],
+      adaptedBlocks: [],
+      debug,
     };
   }
 }
@@ -462,11 +777,15 @@ Please adapt this session for today's conditions.`;
 module.exports = {
   complete,
   completeChat,
+  completeWithDebug,
   generateDrill,
   refineDrill,
   generateSessionPlan,
+  refineSession,
   summarizeDrill,
   generateTrainingProgram,
   refineTrainingProgram,
   adaptSession,
+  checkSimilarity,
+  checkSessionFeasibility,
 };

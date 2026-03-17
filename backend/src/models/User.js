@@ -14,6 +14,13 @@ const userSchema = new mongoose.Schema(
     password: { type: String, required: true, minlength: 6 },
     role: { type: String, enum: ["coach", "admin"], default: "coach" },
     sports: [{ type: String, trim: true }],
+    starredDrills: [{ type: mongoose.Schema.Types.ObjectId, ref: "Drill" }],
+    // Map of parentDrillId → preferred versionId
+    defaultVersions: {
+      type: Map,
+      of: mongoose.Schema.Types.ObjectId,
+      default: () => new Map(),
+    },
   },
   { timestamps: true }
 );

@@ -3,7 +3,8 @@ import { useParams, Link, useNavigate } from "react-router-dom";
 import useFetch from "../hooks/useFetch";
 import { getPlan, deletePlan } from "../api/plans";
 import { refineProgram, adaptSession } from "../api/ai";
-import { FiEdit, FiTrash2, FiSend, FiMessageCircle, FiRefreshCw, FiX, FiZap } from "react-icons/fi";
+import DebugPanel from "../components/common/DebugPanel";
+import { FiEdit, FiTrash2, FiSend, FiMessageCircle, FiRefreshCw, FiX, FiZap, FiCode } from "react-icons/fi";
 
 const INTENSITY_COLORS = { high: "tag-danger", medium: "tag-warning", low: "" };
 
@@ -21,6 +22,8 @@ export default function PlanDetailPage() {
   const [adaptConstraints, setAdaptConstraints] = useState("");
   const [adaptLoading, setAdaptLoading] = useState(false);
   const [adaptResult, setAdaptResult] = useState(null); // { key, data }
+  const [debugOpen, setDebugOpen] = useState(false);
+  const [debugEntries, setDebugEntries] = useState([]);
 
   useEffect(() => {
     if (chatEndRef.current) {
@@ -39,9 +42,16 @@ export default function PlanDetailPage() {
 
   const handleChatSend = async () => {
     if (!chatMessage.trim() || chatLoading) return;
+    const msg = chatMessage.trim();
     setChatLoading(true);
     try {
-      await refineProgram(id, chatMessage.trim());
+      const res = await refineProgram(id, msg);
+      if (res.data.debug) {
+        setDebugEntries((prev) => [
+          ...prev,
+          { label: `Refine: "${msg.slice(0, 40)}${msg.length > 40 ? "..." : ""}"`, debug: res.data.debug },
+        ]);
+      }
       setChatMessage("");
       refetch();
     } catch {
@@ -88,6 +98,12 @@ export default function PlanDetailPage() {
         adaptConstraints.trim()
       );
       setAdaptResult({ key: adaptingKey, data: res.data.adapted });
+      if (res.data.debug) {
+        setDebugEntries((prev) => [
+          ...prev,
+          { label: "Adapt Session", debug: res.data.debug },
+        ]);
+      }
     } catch {
       alert("Adaptation failed. Check your AI provider config.");
     } finally {
@@ -106,6 +122,14 @@ export default function PlanDetailPage() {
         <div className="flex-between mb-1">
           <h1>{plan.title}</h1>
           <div className="flex gap-sm">
+            {debugEntries.length > 0 && (
+              <button
+                className={`btn ${debugOpen ? "btn-primary" : "btn-secondary"}`}
+                onClick={() => setDebugOpen(!debugOpen)}
+              >
+                <FiCode /> Debug ({debugEntries.length})
+              </button>
+            )}
             <button className="btn btn-secondary" onClick={() => setShowChat(!showChat)}>
               <FiMessageCircle /> {showChat ? "Hide Chat" : "Refine with AI"}
             </button>
@@ -113,6 +137,9 @@ export default function PlanDetailPage() {
             <button className="btn btn-danger" onClick={handleDelete}><FiTrash2 /> Delete</button>
           </div>
         </div>
+
+        {/* Debug Panel */}
+        {debugOpen && <DebugPanel entries={debugEntries} />}
 
         {/* Overview */}
         <div className="card mb-1">

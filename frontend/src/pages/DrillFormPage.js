@@ -1,8 +1,9 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { getDrill, createDrill, updateDrill } from "../api/drills";
+import { getDrill, createDrill, updateDrill, checkSimilarity } from "../api/drills";
 import { generateDrill } from "../api/ai";
-import { FiZap, FiSave, FiX, FiPlus, FiTrash2 } from "react-icons/fi";
+import DebugPanel from "../components/common/DebugPanel";
+import { FiZap, FiSave, FiX, FiPlus, FiTrash2, FiAlertCircle, FiCode } from "react-icons/fi";
 
 const EMPTY_DRILL = {
   title: "",
@@ -27,11 +28,17 @@ export default function DrillFormPage() {
   const [generating, setGenerating] = useState(false);
   const [error, setError] = useState("");
   const [generated, setGenerated] = useState(false);
+  const [similarityWarning, setSimilarityWarning] = useState(null);
+  const [checking, setChecking] = useState(false);
+  const [debugOpen, setDebugOpen] = useState(false);
+  const [debugEntries, setDebugEntries] = useState([]);
+  const originalDrill = useRef(null);
 
   useEffect(() => {
     if (isEdit) {
       getDrill(id).then((res) => {
         const d = res.data;
+        originalDrill.current = d;
         setForm({
           title: d.title || "",
           description: d.description || "",
@@ -59,6 +66,12 @@ export default function DrillFormPage() {
     try {
       const res = await generateDrill(aiPrompt, form.sport || undefined);
       const drill = res.data.drill;
+      if (res.data.debug) {
+        setDebugEntries((prev) => [
+          ...prev,
+          { label: "Drill Generation", debug: res.data.debug },
+        ]);
+      }
       setForm({
         title: drill.title || "",
         description: drill.description || aiPrompt,
@@ -81,6 +94,23 @@ export default function DrillFormPage() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError("");
+
+    // For edits with a parent drill, check similarity before saving
+    if (isEdit && originalDrill.current?.parentDrill && !similarityWarning) {
+      setChecking(true);
+      try {
+        const res = await checkSimilarity(id, form);
+        if (!res.data.isSameDrill) {
+          setSimilarityWarning(res.data.reason);
+          setChecking(false);
+          return; // Don't save yet — show the warning
+        }
+      } catch {
+        // If similarity check fails, just save anyway
+      }
+      setChecking(false);
+    }
+
     setLoading(true);
     try {
       const payload = {
@@ -94,9 +124,30 @@ export default function DrillFormPage() {
       };
       if (isEdit) {
         await updateDrill(id, form);
+        navigate("/drills");
       } else {
-        await createDrill(payload);
+        const res = await createDrill(payload);
+        navigate(`/drills/${res.data._id}`);
       }
+    } catch (err) {
+      setError(err.response?.data?.error || "Save failed");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleSaveAsNew = async () => {
+    setLoading(true);
+    setError("");
+    try {
+      const payload = {
+        ...form,
+        aiConversation: [
+          { role: "user", content: `Forked from: ${originalDrill.current?.title || "unknown"}` },
+          { role: "assistant", content: "New drill created from a significantly modified version." },
+        ],
+      };
+      await createDrill(payload);
       navigate("/drills");
     } catch (err) {
       setError(err.response?.data?.error || "Save failed");
@@ -116,8 +167,44 @@ export default function DrillFormPage() {
 
   return (
     <div>
-      <h1>{isEdit ? "Edit Drill" : "Create a Drill"}</h1>
+      <div className="flex-between mb-1">
+        <h1>{isEdit ? "Edit Drill" : "Create a Drill"}</h1>
+        {debugEntries.length > 0 && (
+          <button
+            type="button"
+            className={`btn ${debugOpen ? "btn-primary" : "btn-secondary"}`}
+            onClick={() => setDebugOpen(!debugOpen)}
+          >
+            <FiCode /> Debug ({debugEntries.length})
+          </button>
+        )}
+      </div>
       {error && <div className="alert alert-danger">{error}</div>}
+      {debugOpen && <DebugPanel entries={debugEntries} />}
+
+      {/* Similarity warning — drill changed too much */}
+      {similarityWarning && (
+        <div className="alert alert-warning mb-1">
+          <div className="flex gap-sm" style={{ alignItems: "flex-start" }}>
+            <FiAlertCircle style={{ marginTop: "0.2rem", flexShrink: 0 }} />
+            <div>
+              <strong>This looks like a different drill</strong>
+              <p style={{ margin: "0.25rem 0 0.75rem" }}>{similarityWarning}</p>
+              <div className="flex gap-sm">
+                <button className="btn btn-primary btn-sm" onClick={handleSaveAsNew}>
+                  Save as New Drill
+                </button>
+                <button className="btn btn-secondary btn-sm" onClick={() => { setSimilarityWarning(null); handleSubmit({ preventDefault: () => {} }); }}>
+                  Save as Version Anyway
+                </button>
+                <button className="btn btn-secondary btn-sm" onClick={() => setSimilarityWarning(null)}>
+                  Cancel
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* AI Generation prompt (only for new drills) */}
       {!isEdit && !generated && (
@@ -260,8 +347,8 @@ export default function DrillFormPage() {
           </div>
 
           <div className="flex gap-sm">
-            <button type="submit" className="btn btn-primary" disabled={loading}>
-              <FiSave /> {loading ? "Saving..." : isEdit ? "Update Drill" : "Save Drill"}
+            <button type="submit" className="btn btn-primary" disabled={loading || checking}>
+              <FiSave /> {checking ? "Checking..." : loading ? "Saving..." : isEdit ? "Update Drill" : "Save Drill"}
             </button>
             <button type="button" className="btn btn-secondary" onClick={() => navigate("/drills")}><FiX /> Cancel</button>
           </div>

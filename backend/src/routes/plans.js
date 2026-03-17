@@ -9,7 +9,7 @@ const { indexPlan } = require("../services/sync");
 router.get("/", authenticate, async (req, res, next) => {
   try {
     const filter = { createdBy: req.user._id };
-    if (req.query.sport) filter.sport = req.query.sport;
+    if (req.query.sport) filter.sport = String(req.query.sport);
 
     const plans = await PeriodPlan.find(filter).sort({ startDate: -1 });
     res.json(plans);
@@ -46,7 +46,8 @@ router.post(
   validate,
   async (req, res, next) => {
     try {
-      const plan = await PeriodPlan.create({ ...req.body, createdBy: req.user._id });
+      const { title, description, sport, startDate, endDate, goals, focusAreas, weeklyPlans, group, visibility } = req.body;
+      const plan = await PeriodPlan.create({ title, description, sport, startDate, endDate, goals, focusAreas, weeklyPlans, group, visibility, createdBy: req.user._id });
       indexPlan(plan).catch((e) => console.error("Index error:", e.message));
       res.status(201).json(plan);
     } catch (err) {
@@ -58,9 +59,10 @@ router.post(
 // PUT /api/plans/:id
 router.put("/:id", authenticate, async (req, res, next) => {
   try {
+    const { title, description, sport, startDate, endDate, goals, focusAreas, weeklyPlans, group, visibility } = req.body;
     const plan = await PeriodPlan.findOneAndUpdate(
       { _id: req.params.id, createdBy: req.user._id },
-      req.body,
+      { $set: { title, description, sport, startDate, endDate, goals, focusAreas, weeklyPlans, group, visibility } },
       { new: true, runValidators: true }
     );
     if (!plan) return res.status(404).json({ error: "Plan not found" });

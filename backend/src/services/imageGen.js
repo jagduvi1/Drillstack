@@ -6,7 +6,7 @@
 const fs = require("fs");
 const path = require("path");
 const crypto = require("crypto");
-const { complete } = require("./ai");
+const { completeWithDebug } = require("./ai");
 
 const UPLOADS_DIR = path.join(__dirname, "..", "..", "uploads");
 
@@ -68,7 +68,7 @@ function extractSVG(raw) {
  */
 async function generateDiagram(drill) {
   const userPrompt = buildDiagramUserPrompt(drill);
-  const raw = await complete(SVG_DIAGRAM_PROMPT, userPrompt);
+  const { content: raw, debug } = await completeWithDebug(SVG_DIAGRAM_PROMPT, userPrompt);
   const svg = extractSVG(raw);
 
   // Ensure uploads dir exists
@@ -81,7 +81,7 @@ async function generateDiagram(drill) {
   const filepath = path.join(UPLOADS_DIR, filename);
   fs.writeFileSync(filepath, svg, "utf-8");
 
-  return `/uploads/${filename}`;
+  return { path: `/uploads/${filename}`, debug };
 }
 
 module.exports = { generateDiagram };

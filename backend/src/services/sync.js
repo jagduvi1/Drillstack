@@ -224,10 +224,113 @@ async function removeDrill(drillId) {
   }
 }
 
+// ── Embedding similarity check ────────────────────────────────────────────────
+async function checkEmbeddingSimilarity(parentDrillId, newDrillData) {
+  const qdrant = getQdrantClient();
+  const parentPointId = pointId(parentDrillId);
+
+  // Retrieve the parent drill's vector from Qdrant
+  let parentVector;
+  try {
+    const points = await qdrant.getPoints(COLLECTION, {
+      ids: [parentPointId],
+      with_vector: true,
+    });
+    parentVector = points?.[0]?.vector;
+  } catch {
+    // Parent not indexed yet — can't compare
+    return { isSameDrill: true, similarity: 1, reason: "Parent drill not yet indexed." };
+  }
+
+  if (!parentVector) {
+    return { isSameDrill: true, similarity: 1, reason: "Parent drill not yet indexed." };
+  }
+
+  // Compute embedding for the new/modified drill text
+  const text = drillToEmbeddingText(newDrillData);
+  const newVector = await getEmbedding(text);
+
+  // Cosine similarity (vectors are normalized by Voyage, but compute properly just in case)
+  const dot = parentVector.reduce((sum, v, i) => sum + v * newVector[i], 0);
+  const magA = Math.sqrt(parentVector.reduce((sum, v) => sum + v * v, 0));
+  const magB = Math.sqrt(newVector.reduce((sum, v) => sum + v * v, 0));
+  const similarity = magA && magB ? dot / (magA * magB) : 0;
+
+  // Threshold: below 0.90 = fundamentally different drill
+  // (embeddings also capture purpose/goals, so drills training the same skills
+  //  but using different exercises can score ~0.80-0.85 — only match true variants)
+  const THRESHOLD = 0.90;
+  const isSameDrill = similarity >= THRESHOLD;
+
+  return {
+    isSameDrill,
+    similarity: Math.round(similarity * 1000) / 1000,
+    reason: isSameDrill
+      ? "The drill is still a variation of the original."
+      : "The changes are significant enough that this looks like a different drill. Consider saving it as a new drill instead.",
+  };
+}
+
+// ── Find similar drills via Qdrant vector search ─────────────────────────────
+async function findSimilarDrills(drillData, excludeDrillId, limit = 5) {
+  const text = drillToEmbeddingText(drillData);
+  let vector;
+  try {
+    vector = await getEmbedding(text);
+  } catch {
+    return []; // If embedding fails, skip similarity search
+  }
+
+  const qdrant = getQdrantClient();
+  // High threshold: only match drills that are truly the same exercise,
+  // not just drills with similar purpose/learning goals
+  const SIMILARITY_THRESHOLD = 0.92;
+
+  try {
+    const results = await qdrant.search(COLLECTION, {
+      vector,
+      limit: limit + 1, // fetch extra in case we need to exclude self
+      score_threshold: SIMILARITY_THRESHOLD,
+      with_payload: true,
+    });
+
+    // Filter out the drill itself and map to useful data
+    const similar = [];
+    for (const hit of results) {
+      const mongoId = hit.payload?.mongoId;
+      if (mongoId === excludeDrillId?.toString()) continue;
+      if (similar.length >= limit) break;
+
+      const drill = await Drill.findById(mongoId)
+        .select("title description sport intensity parentDrill version")
+        .populate("parentDrill", "title");
+      if (!drill) continue;
+
+      similar.push({
+        _id: drill._id,
+        title: drill.title,
+        description: drill.description,
+        sport: drill.sport,
+        intensity: drill.intensity,
+        parentDrill: drill.parentDrill,
+        version: drill.version,
+        similarity: Math.round(hit.score * 1000) / 1000,
+      });
+    }
+
+    return similar;
+  } catch {
+    return []; // Qdrant not available — skip
+  }
+}
+
 module.exports = {
   indexDrill,
   indexSession,
   indexPlan,
   removeDrill,
   getQueueStatus,
+  checkEmbeddingSimilarity,
+  findSimilarDrills,
+  pointId,
 };

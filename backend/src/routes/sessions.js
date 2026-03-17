@@ -9,7 +9,15 @@ const { indexSession } = require("../services/sync");
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
 async function computeEquipment(session) {
-  const drillIds = session.sections.flatMap((s) => s.drills.map((d) => d.drill));
+  const drillIds = [];
+  for (const block of session.blocks || []) {
+    if (block.type === "drills") {
+      drillIds.push(...block.drills.map((d) => d.drill));
+    } else if (block.type === "stations") {
+      drillIds.push(...block.stations.map((s) => s.drill).filter(Boolean));
+    }
+  }
+  if (drillIds.length === 0) return [];
   const drills = await Drill.find({ _id: { $in: drillIds } });
   const equipmentSet = new Set();
   for (const drill of drills) {
@@ -20,13 +28,18 @@ async function computeEquipment(session) {
   return [...equipmentSet];
 }
 
+const POPULATE_BLOCKS = [
+  { path: "blocks.drills.drill", select: "title intensity setup sport" },
+  { path: "blocks.stations.drill", select: "title intensity setup sport" },
+];
+
 // ── Routes ───────────────────────────────────────────────────────────────────
 
 // GET /api/sessions
 router.get("/", authenticate, async (req, res, next) => {
   try {
     const filter = { createdBy: req.user._id };
-    if (req.query.sport) filter.sport = req.query.sport;
+    if (req.query.sport) filter.sport = String(req.query.sport);
 
     const page = Math.max(1, parseInt(req.query.page, 10) || 1);
     const limit = Math.min(100, parseInt(req.query.limit, 10) || 20);
@@ -34,7 +47,7 @@ router.get("/", authenticate, async (req, res, next) => {
 
     const [sessions, total] = await Promise.all([
       TrainingSession.find(filter)
-        .populate("sections.drills.drill", "title intensity setup")
+        .populate(POPULATE_BLOCKS)
         .sort({ date: -1 })
         .skip(skip)
         .limit(limit),
@@ -50,7 +63,7 @@ router.get("/", authenticate, async (req, res, next) => {
 router.get("/:id", authenticate, async (req, res, next) => {
   try {
     const session = await TrainingSession.findById(req.params.id)
-      .populate("sections.drills.drill")
+      .populate(POPULATE_BLOCKS)
       .populate("createdBy", "name");
     if (!session) return res.status(404).json({ error: "Session not found" });
     res.json(session);
@@ -67,7 +80,8 @@ router.post(
   validate,
   async (req, res, next) => {
     try {
-      const data = { ...req.body, createdBy: req.user._id };
+      const { title, description, date, sport, blocks, expectedPlayers, expectedTrainers, actualPlayers, actualTrainers, group, visibility, aiGenerated, aiConversation } = req.body;
+      const data = { title, description, date, sport, blocks, expectedPlayers, expectedTrainers, actualPlayers, actualTrainers, group, visibility, aiGenerated, aiConversation, createdBy: req.user._id };
       const session = new TrainingSession(data);
       session.equipmentSummary = await computeEquipment(session);
       await session.save();
@@ -88,7 +102,8 @@ router.put("/:id", authenticate, async (req, res, next) => {
     });
     if (!session) return res.status(404).json({ error: "Session not found" });
 
-    Object.assign(session, req.body);
+    const { title, description, date, sport, blocks, expectedPlayers, expectedTrainers, actualPlayers, actualTrainers, group, visibility, aiGenerated, aiConversation } = req.body;
+    Object.assign(session, { title, description, date, sport, blocks, expectedPlayers, expectedTrainers, actualPlayers, actualTrainers, group, visibility, aiGenerated, aiConversation });
     session.equipmentSummary = await computeEquipment(session);
     await session.save();
     indexSession(session).catch((e) => console.error("Index error:", e.message));

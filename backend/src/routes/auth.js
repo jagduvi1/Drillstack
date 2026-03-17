@@ -1,9 +1,13 @@
 const router = require("express").Router();
+const rateLimit = require("express-rate-limit");
 const { body } = require("express-validator");
 const validate = require("../middleware/validate");
 const { signToken, authenticate } = require("../middleware/auth");
 const { checkIsSuperAdmin } = require("../middleware/superAdmin");
 const User = require("../models/User");
+
+const authLimiter = rateLimit({ windowMs: 15 * 60 * 1000, max: 20, standardHeaders: true, legacyHeaders: false });
+router.use(authLimiter);
 
 // POST /api/auth/register
 router.post(
@@ -17,7 +21,7 @@ router.post(
   async (req, res, next) => {
     try {
       const { name, email, password, sports } = req.body;
-      const exists = await User.findOne({ email });
+      const exists = await User.findOne({ email: String(email) });
       if (exists) return res.status(409).json({ error: "Email already registered" });
 
       const user = await User.create({ name, email, password, sports });
@@ -36,7 +40,7 @@ router.post(
   async (req, res, next) => {
     try {
       const { email, password } = req.body;
-      const user = await User.findOne({ email });
+      const user = await User.findOne({ email: String(email) });
       if (!user || !(await user.comparePassword(password))) {
         return res.status(401).json({ error: "Invalid credentials" });
       }

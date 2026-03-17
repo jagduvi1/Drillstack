@@ -540,3 +540,607 @@ th {
     grid-template-columns: 1fr;
   }
 }
+
+/* ── Stars ────────────────────────────────────────── */
+.star-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--color-muted);
+  font-size: 1.1rem;
+  padding: 0.15rem;
+  display: flex;
+  align-items: center;
+  transition: color 0.15s;
+}
+.star-btn:hover { color: #f59e0b; }
+.star-btn-active { color: #f59e0b; }
+.star-btn-active svg { fill: #f59e0b; }
+
+.btn-star-active {
+  background: #fef3c7;
+  color: #92400e;
+  border-color: #f59e0b;
+}
+
+/* ── Creator tag ──────────────────────────────────── */
+.tag-creator {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  background: var(--color-bg);
+  font-style: italic;
+}
+
+/* ── Versions panel ───────────────────────────────── */
+.versions-list { margin-top: 0.75rem; }
+.version-item {
+  padding: 0.5rem 0.75rem;
+  border-bottom: 1px solid var(--color-border);
+}
+.version-item:last-child { border-bottom: none; }
+.version-item-current { background: var(--color-bg); border-radius: var(--radius); }
+.tag-success { background: #d1fae5; color: #065f46; }
+
+/* ── Link button ──────────────────────────────────── */
+.btn-link {
+  background: none;
+  border: none;
+  color: var(--color-primary);
+  cursor: pointer;
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+.btn-link:hover { text-decoration: underline; }
+
+/* ── Warning alert ────────────────────────────────── */
+.alert-warning {
+  background: #fef3c7;
+  color: #92400e;
+  border: 1px solid #f59e0b;
+  padding: 1rem;
+  border-radius: var(--radius);
+}
+
+/* ── Refine Page Layout ──────────────────────────── */
+.refine-layout {
+  display: grid;
+  grid-template-columns: 1fr 360px;
+  gap: 1.5rem;
+  align-items: start;
+}
+.refine-main {
+  min-width: 0;
+}
+
+/* Changes banner */
+.refine-changes-banner {
+  background: #eff6ff;
+  color: #1e40af;
+  border: 1px solid #93c5fd;
+  padding: 0.75rem 1rem;
+  border-radius: var(--radius);
+  font-size: 0.875rem;
+}
+
+/* Section card with change indicator */
+.refine-section-changed {
+  border-left: 3px solid var(--color-primary) !important;
+}
+.refine-section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.5rem;
+}
+.refine-changed-badge {
+  background: var(--color-primary);
+  color: white;
+  font-size: 0.7rem;
+  font-weight: 600;
+  padding: 0.15rem 0.5rem;
+  border-radius: 999px;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+/* Inline diff highlights */
+.diff-add {
+  background: #d1fae5;
+  color: #065f46;
+  border-radius: 2px;
+  padding: 0 2px;
+}
+.diff-del {
+  background: #fee2e2;
+  color: #991b1b;
+  text-decoration: line-through;
+  border-radius: 2px;
+  padding: 0 2px;
+  opacity: 0.7;
+}
+
+/* Responsive: stack on smaller screens */
+@media (max-width: 900px) {
+  .refine-layout {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* ── Similar Drills Banner ───────────────────────── */
+.similar-drills-banner {
+  border-left: 3px solid var(--color-primary);
+}
+.similar-drill-item {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 0.75rem;
+  margin-bottom: 0.5rem;
+  background: var(--color-bg);
+  border-radius: var(--radius);
+  border: 1px solid var(--color-border);
+}
+
+/* ── Embedding Progress (detail page) ────────────── */
+.embedding-progress-detail {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  padding: 1rem;
+}
+.embedding-progress-detail .progress-bar {
+  height: 6px;
+  background: var(--color-border);
+  border-radius: 3px;
+  overflow: hidden;
+  margin-top: 0.5rem;
+}
+.embedding-progress-detail .progress-bar-fill {
+  height: 100%;
+  background: var(--color-primary);
+  border-radius: 3px;
+  transition: width 0.5s ease;
+}
+.embedding-timer {
+  font-variant-numeric: tabular-nums;
+}
+
+/* ── Version Name ────────────────────────────────── */
+.version-name-subtitle {
+  font-size: 0.7em;
+  font-weight: 400;
+  color: var(--color-muted);
+}
+
+/* ── Notification Badge (Sidebar) ───────────────── */
+.nav-notifications {
+  position: relative;
+}
+.notification-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  border-radius: 9px;
+  background: var(--color-danger);
+  color: #fff;
+  font-size: 0.7rem;
+  font-weight: 600;
+  margin-left: auto;
+}
+
+/* ── Notification Cards ─────────────────────────── */
+.notification-unread {
+  border-left: 3px solid var(--color-primary);
+}
+.notification-snapshot {
+  background: var(--color-bg);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  padding: 0.5rem 0.75rem;
+  margin-top: 0.25rem;
+}
+
+/* ── Session Builder: Mode Toggle ───────────────── */
+.mode-toggle {
+  display: flex;
+  gap: 0;
+}
+.mode-toggle-btn {
+  padding: 0.5rem 1.25rem;
+  border: 1px solid var(--color-border);
+  background: var(--color-surface);
+  cursor: pointer;
+  font-size: 0.875rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+.mode-toggle-btn:first-child {
+  border-radius: var(--radius) 0 0 var(--radius);
+}
+.mode-toggle-btn:last-child {
+  border-radius: 0 var(--radius) var(--radius) 0;
+}
+.mode-toggle-btn-active {
+  background: var(--color-primary);
+  color: #fff;
+  border-color: var(--color-primary);
+}
+
+/* ── Session Builder: Block Cards ───────────────── */
+.block-card {
+  position: relative;
+}
+.block-card-drills {
+  border-left: 3px solid var(--color-primary);
+}
+.block-card-stations {
+  border-left: 3px solid var(--color-warning);
+}
+.block-card-matchplay {
+  border-left: 3px solid var(--color-success);
+}
+.block-card-break {
+  border-left: 3px solid var(--color-muted);
+}
+.block-card-custom {
+  border-left: 3px solid #8b5cf6;
+}
+.block-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.75rem;
+}
+.block-controls {
+  display: flex;
+  gap: 0.25rem;
+}
+.block-label-input {
+  border: none;
+  background: none;
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--color-text);
+  padding: 0.1rem 0.25rem;
+  border-radius: 4px;
+  width: auto;
+  min-width: 120px;
+}
+.block-label-input:focus {
+  outline: none;
+  background: var(--color-bg);
+}
+
+/* ── Session Builder: Drill Table ───────────────── */
+.block-drill-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.85rem;
+}
+.block-drill-table th {
+  text-align: left;
+  padding: 0.35rem 0.5rem;
+  border-bottom: 1px solid var(--color-border);
+  color: var(--color-muted);
+  font-weight: 500;
+  font-size: 0.75rem;
+}
+.block-drill-table td {
+  padding: 0.35rem 0.5rem;
+  border-bottom: 1px solid var(--color-bg);
+}
+.form-control-sm {
+  padding: 0.25rem 0.5rem;
+  font-size: 0.8rem;
+}
+
+/* ── Session Builder: Station Grid ──────────────── */
+.station-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  gap: 0.75rem;
+}
+.station-card {
+  background: var(--color-bg);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  padding: 0.75rem;
+  text-align: center;
+}
+.station-number {
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: var(--color-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 0.35rem;
+}
+
+/* ── Session Builder: Add Block Menu ────────────── */
+.add-block-menu {
+  position: relative;
+  display: inline-block;
+  margin-top: 0.5rem;
+}
+.add-block-options {
+  position: absolute;
+  bottom: 100%;
+  left: 0;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-md);
+  z-index: 10;
+  min-width: 200px;
+  margin-bottom: 4px;
+}
+.add-block-option {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  width: 100%;
+  padding: 0.6rem 1rem;
+  border: none;
+  background: none;
+  text-align: left;
+  cursor: pointer;
+  font-size: 0.875rem;
+  color: var(--color-text);
+}
+.add-block-option:hover {
+  background: var(--color-bg);
+}
+.add-block-option:first-child {
+  border-radius: var(--radius) var(--radius) 0 0;
+}
+.add-block-option:last-child {
+  border-radius: 0 0 var(--radius) var(--radius);
+}
+
+/* ── Session Builder: Drill Picker Modal ────────── */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.modal-content {
+  background: var(--color-surface);
+  border-radius: var(--radius);
+  max-width: 700px;
+  width: 92%;
+  max-height: 85vh;
+  overflow-y: auto;
+  padding: 1.5rem;
+}
+.modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+}
+.drill-picker-list {
+  max-height: 55vh;
+  overflow-y: auto;
+}
+.drill-picker-card {
+  display: block;
+  width: 100%;
+  text-align: left;
+  padding: 0.75rem;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  background: var(--color-surface);
+  cursor: pointer;
+  margin-bottom: 0.5rem;
+  transition: box-shadow 0.15s, border-color 0.15s;
+}
+.drill-picker-card:hover {
+  border-color: var(--color-primary);
+  box-shadow: var(--shadow);
+}
+
+/* ── Session Builder: AI Panel ──────────────────── */
+.ai-session-panel {
+  background: #f0f4ff;
+  border: 1px solid #93c5fd;
+}
+.ai-preview-block {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  padding: 0.75rem;
+  margin-bottom: 0.5rem;
+}
+
+/* ── Session Builder: Footer ────────────────────── */
+.session-footer {
+  position: sticky;
+  bottom: 0;
+  background: var(--color-surface);
+  border-top: 1px solid var(--color-border);
+  padding: 0.75rem 1.25rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 1rem;
+  border-radius: var(--radius);
+  box-shadow: 0 -2px 6px rgba(0, 0, 0, 0.08);
+}
+
+/* ── Attendance & Feasibility Check ─────────────── */
+.attendance-check-card {
+  border: 1px solid #93c5fd;
+  background: #f8faff;
+}
+.feasibility-result {
+  padding: 0.75rem;
+  border-radius: var(--radius);
+}
+.feasibility-ok {
+  background: #f0fdf4;
+  border: 1px solid #bbf7d0;
+}
+.feasibility-warning {
+  background: #fffbeb;
+  border: 1px solid #fde68a;
+}
+.feasibility-issue {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  padding: 0.5rem 0.75rem;
+  margin-bottom: 0.5rem;
+}
+.feasibility-adaptation {
+  background: #eff6ff;
+  border: 1px solid #bfdbfe;
+  border-radius: var(--radius);
+  padding: 0.5rem 0.75rem;
+  margin-top: 0.35rem;
+}
+
+/* ── AI Chat Panel ────────────────────────────────────── */
+.ai-chat-panel {
+  border: 1px solid var(--color-primary);
+  border-left: 3px solid var(--color-primary);
+}
+.ai-chat-messages {
+  max-height: 360px;
+  overflow-y: auto;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  padding: 0.75rem;
+  margin-bottom: 0.75rem;
+  background: var(--color-bg);
+}
+.ai-chat-msg {
+  margin-bottom: 0.75rem;
+}
+.ai-chat-msg:last-child {
+  margin-bottom: 0;
+}
+.ai-chat-msg-role {
+  font-size: 0.7rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  margin-bottom: 0.15rem;
+}
+.ai-chat-msg-user .ai-chat-msg-role {
+  color: var(--color-primary);
+}
+.ai-chat-msg-assistant .ai-chat-msg-role {
+  color: var(--color-success);
+}
+.ai-chat-msg-content {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  padding: 0.5rem 0.75rem;
+  font-size: 0.9rem;
+  line-height: 1.5;
+  white-space: pre-wrap;
+}
+.ai-chat-msg-user .ai-chat-msg-content {
+  border-left: 2px solid var(--color-primary);
+}
+.ai-chat-msg-assistant .ai-chat-msg-content {
+  border-left: 2px solid var(--color-success);
+}
+.ai-chat-input {
+  display: flex;
+  gap: 0.5rem;
+  align-items: flex-end;
+}
+.ai-chat-input textarea {
+  flex: 1;
+  resize: vertical;
+  min-height: 40px;
+}
+.ai-chat-input .btn {
+  height: 40px;
+  padding: 0 1rem;
+}
+
+/* ── Debug Panel ──────────────────────────────────────── */
+.debug-panel {
+  background: #1e293b;
+  color: #e2e8f0;
+  border-radius: var(--radius);
+  padding: 1rem;
+  margin-bottom: 1rem;
+}
+.debug-panel h4 {
+  color: #94a3b8;
+  font-size: 0.85rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+.debug-entry {
+  border: 1px solid #334155;
+  border-radius: var(--radius);
+  margin-bottom: 0.5rem;
+  overflow: hidden;
+}
+.debug-entry:last-child {
+  margin-bottom: 0;
+}
+.debug-entry-header {
+  width: 100%;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: #334155;
+  border: none;
+  color: #e2e8f0;
+  padding: 0.5rem 0.75rem;
+  cursor: pointer;
+  font-family: inherit;
+  text-align: left;
+}
+.debug-entry-header:hover {
+  background: #475569;
+}
+.debug-entry-body {
+  padding: 0.75rem;
+}
+.debug-section {
+  margin-bottom: 0.75rem;
+}
+.debug-section:last-child {
+  margin-bottom: 0;
+}
+.debug-section-label {
+  font-size: 0.7rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #94a3b8;
+  margin-bottom: 0.25rem;
+}
+.debug-pre {
+  background: #0f172a;
+  color: #a5f3fc;
+  border: 1px solid #1e293b;
+  border-radius: 4px;
+  padding: 0.5rem 0.75rem;
+  font-size: 0.78rem;
+  font-family: "Fira Code", "Consolas", monospace;
+  white-space: pre-wrap;
+  word-break: break-word;
+  max-height: 300px;
+  overflow-y: auto;
+  margin: 0;
+  line-height: 1.5;
+}

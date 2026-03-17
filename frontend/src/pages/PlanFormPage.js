@@ -2,7 +2,8 @@ import { useState, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { getPlan, createPlan, updatePlan } from "../api/plans";
 import { generateProgram } from "../api/ai";
-import { FiPlus, FiTrash2, FiZap, FiSave, FiX } from "react-icons/fi";
+import DebugPanel from "../components/common/DebugPanel";
+import { FiPlus, FiTrash2, FiZap, FiSave, FiX, FiCode } from "react-icons/fi";
 
 const INTENSITY_COLORS = { high: "tag-danger", medium: "tag-warning", low: "" };
 
@@ -29,6 +30,8 @@ export default function PlanFormPage() {
   const [generated, setGenerated] = useState(false);
   const [newGoal, setNewGoal] = useState("");
   const [newFocus, setNewFocus] = useState("");
+  const [debugOpen, setDebugOpen] = useState(false);
+  const [debugEntries, setDebugEntries] = useState([]);
 
   useEffect(() => {
     if (isEdit) {
@@ -63,6 +66,12 @@ export default function PlanFormPage() {
         endDate: form.endDate,
       });
       const prog = res.data.program;
+      if (res.data.debug) {
+        setDebugEntries((prev) => [
+          ...prev,
+          { label: "Program Generation", debug: res.data.debug },
+        ]);
+      }
       setForm((prev) => ({
         ...prev,
         title: prog.title || "",
@@ -154,8 +163,20 @@ export default function PlanFormPage() {
 
   return (
     <div>
-      <h1>{isEdit ? "Edit Training Program" : "Create Training Program"}</h1>
+      <div className="flex-between mb-1">
+        <h1>{isEdit ? "Edit Training Program" : "Create Training Program"}</h1>
+        {debugEntries.length > 0 && (
+          <button
+            type="button"
+            className={`btn ${debugOpen ? "btn-primary" : "btn-secondary"}`}
+            onClick={() => setDebugOpen(!debugOpen)}
+          >
+            <FiCode /> Debug ({debugEntries.length})
+          </button>
+        )}
+      </div>
       {error && <div className="alert alert-danger">{error}</div>}
+      {debugOpen && <DebugPanel entries={debugEntries} />}
 
       {/* AI generation prompt (new plans only) */}
       {!isEdit && !generated && (
