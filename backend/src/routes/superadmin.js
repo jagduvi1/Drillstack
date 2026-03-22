@@ -1,4 +1,5 @@
 const router = require("express").Router();
+const rateLimit = require("express-rate-limit");
 const mongoose = require("mongoose");
 const { authenticate } = require("../middleware/auth");
 const { requireSuperAdmin } = require("../middleware/superAdmin");
@@ -10,6 +11,9 @@ const User = require("../models/User");
 const Drill = require("../models/Drill");
 const TrainingSession = require("../models/TrainingSession");
 const PeriodPlan = require("../models/PeriodPlan");
+
+const superadminLimiter = rateLimit({ windowMs: 15 * 60 * 1000, max: 100, standardHeaders: true, legacyHeaders: false });
+router.use(superadminLimiter);
 
 // All routes require auth + super admin
 router.use(authenticate, requireSuperAdmin);
@@ -190,6 +194,47 @@ router.get("/users", async (req, res, next) => {
       User.countDocuments(filter),
     ]);
     res.json({ users, total, page, pages: Math.ceil(total / limit) });
+  } catch (err) {
+    next(err);
+  }
+});
+
+// PUT /api/superadmin/users/:id/plan — update a user's plan or grant a trial
+router.put("/users/:id/plan", async (req, res, next) => {
+  try {
+    const user = await User.findById(req.params.id);
+    if (!user) return res.status(404).json({ error: "User not found" });
+
+    const { plan, grantTrial, trialDays } = req.body;
+
+    if (grantTrial) {
+      const days = parseInt(trialDays, 10) || 30;
+      const endsAt = new Date();
+      endsAt.setDate(endsAt.getDate() + days);
+      user.trialPlan = "pro";
+      user.trialEndsAt = endsAt;
+      user.trialUsed = true;
+      await user.save();
+      logAudit("superadmin.user.grantTrial", {
+        userId: req.user._id,
+        email: req.user.email,
+        details: { targetUserId: user._id, trialDays: days },
+      });
+      return res.json({ message: `Granted ${days}-day trial to ${user.email}` });
+    }
+
+    if (plan) {
+      user.plan = plan;
+      await user.save();
+      logAudit("superadmin.user.updatePlan", {
+        userId: req.user._id,
+        email: req.user.email,
+        details: { targetUserId: user._id, plan },
+      });
+      return res.json({ message: `Updated ${user.email} to ${plan} plan` });
+    }
+
+    res.status(400).json({ error: "No update specified" });
   } catch (err) {
     next(err);
   }

@@ -11,7 +11,7 @@ const EMPTY_DRILL = {
   description: "",
   sport: "",
   intensity: "medium",
-  setup: { players: "", space: "", equipment: [], duration: "" },
+  setup: { players: "", space: "", equipment: [] },
   howItWorks: "",
   coachingPoints: [],
   variations: [],
@@ -46,7 +46,7 @@ export default function DrillFormPage() {
           description: d.description || "",
           sport: d.sport || "",
           intensity: d.intensity || "medium",
-          setup: d.setup || { players: "", space: "", equipment: [], duration: "" },
+          setup: d.setup || { players: "", space: "", equipment: [] },
           howItWorks: d.howItWorks || "",
           coachingPoints: d.coachingPoints || [],
           variations: d.variations || [],
@@ -283,15 +283,9 @@ export default function DrillFormPage() {
 
           <div className="card mb-1">
             <h3 style={{ marginBottom: "1rem" }}>{t("drills.setup")}</h3>
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "1rem" }}>
-              <div className="form-group">
-                <label>{t("drills.players").replace(":", "")}</label>
-                <input className="form-control" placeholder={t("drills.playersPlaceholder")} value={form.setup.players} onChange={(e) => setSetup("players", e.target.value)} />
-              </div>
-              <div className="form-group">
-                <label>{t("drills.duration")}</label>
-                <input className="form-control" placeholder={t("drills.durationPlaceholder")} value={form.setup.duration} onChange={(e) => setSetup("duration", e.target.value)} />
-              </div>
+            <div className="form-group">
+              <label>{t("drills.players").replace(":", "")}</label>
+              <input className="form-control" placeholder={t("drills.playersPlaceholder")} value={form.setup.players} onChange={(e) => setSetup("players", e.target.value)} />
             </div>
             <div className="form-group">
               <label>{t("drills.space").replace(":", "")}</label>

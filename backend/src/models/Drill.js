@@ -30,7 +30,6 @@ const drillSchema = new Schema(
       players: { type: String, default: "" },
       space: { type: String, default: "" },
       equipment: [{ type: String }],
-      duration: { type: String, default: "" },
     },
 
     howItWorks: { type: String, default: "" },
