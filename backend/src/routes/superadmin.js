@@ -13,9 +13,10 @@ const TrainingSession = require("../models/TrainingSession");
 const PeriodPlan = require("../models/PeriodPlan");
 
 const superadminLimiter = rateLimit({ windowMs: 15 * 60 * 1000, max: 100, standardHeaders: true, legacyHeaders: false });
+router.use(superadminLimiter);
 
-// All routes require auth + super admin + rate limiting
-router.use(authenticate, requireSuperAdmin, superadminLimiter);
+// All routes require auth + super admin
+router.use(authenticate, requireSuperAdmin);
 
 // ── Overview ─────────────────────────────────────────────────────────────────
 
