@@ -1,4 +1,5 @@
 const router = require("express").Router();
+const rateLimit = require("express-rate-limit");
 const mongoose = require("mongoose");
 const { authenticate } = require("../middleware/auth");
 const { requireSuperAdmin } = require("../middleware/superAdmin");
@@ -11,8 +12,10 @@ const Drill = require("../models/Drill");
 const TrainingSession = require("../models/TrainingSession");
 const PeriodPlan = require("../models/PeriodPlan");
 
-// All routes require auth + super admin
-router.use(authenticate, requireSuperAdmin);
+const superadminLimiter = rateLimit({ windowMs: 15 * 60 * 1000, max: 100, standardHeaders: true, legacyHeaders: false });
+
+// All routes require auth + super admin + rate limiting
+router.use(authenticate, requireSuperAdmin, superadminLimiter);
 
 // ── Overview ─────────────────────────────────────────────────────────────────
 
