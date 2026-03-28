@@ -695,9 +695,9 @@ router.post(
   validate,
   async (req, res, next) => {
     try {
-      const { steps, message, conversationHistory = [] } = req.body;
+      const { steps, message, conversationHistory = [], sport = "football" } = req.body;
       const history = [...conversationHistory, { role: "user", content: message }];
-      const { steps: updatedSteps, message: aiMessage, debug } = await aiService.refineTacticAnimation(steps, history);
+      const { steps: updatedSteps, message: aiMessage, debug } = await aiService.refineTacticAnimation(steps, history, sport);
       res.json({ steps: updatedSteps, message: aiMessage, conversationHistory: history, debug });
     } catch (err) {
       next(err);

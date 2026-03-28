@@ -19,6 +19,30 @@ const {
 
 // ── Field dimensions for tactic board ────────────────────────────────────────
 
+// Sport-specific field dimensions (width × height in meters)
+const SPORT_DIMS = {
+  football:       { w: 105, h: 68 },
+  "football-9":   { w: 75,  h: 55 },
+  "football-7":   { w: 60,  h: 40 },
+  "football-5":   { w: 40,  h: 25 },
+  "football-3":   { w: 30,  h: 20 },
+  handball:       { w: 40,  h: 20 },
+  hockey:         { w: 60,  h: 26 },
+  basketball:     { w: 28,  h: 15 },
+  futsal:         { w: 40,  h: 20 },
+  floorball:      { w: 40,  h: 20 },
+  volleyball:     { w: 18,  h: 9 },
+};
+
+function getFieldDims(sport = "football", fieldType = "full") {
+  const d = SPORT_DIMS[sport] || SPORT_DIMS.football;
+  if (fieldType === "blank") return { xMin: 0, xMax: Math.min(d.w, 40), yMin: 0, yMax: Math.min(d.h, 40) };
+  if (fieldType === "half") return { xMin: d.w / 2, xMax: d.w, yMin: 0, yMax: d.h };
+  if (fieldType === "third") return { xMin: d.w * 2 / 3, xMax: d.w, yMin: 0, yMax: d.h };
+  return { xMin: 0, xMax: d.w, yMin: 0, yMax: d.h };
+}
+
+// Legacy compat
 const FIELD_DIMS = {
   full:  { xMin: 0, xMax: 105, yMin: 0, yMax: 68 },
   half:  { xMin: 52.5, xMax: 105, yMin: 0, yMax: 68 },
@@ -288,19 +312,20 @@ async function generateTacticAnimation(drillDescription, options = {}) {
     awayFormation = "4-4-2",
   } = options;
 
-  const dims = FIELD_DIMS[fieldType] || FIELD_DIMS.full;
-  const system = buildTacticGenerationPrompt(fieldType, dims, numHomePlayers, numAwayPlayers);
+  const dims = getFieldDims(sport, fieldType);
+  const system = buildTacticGenerationPrompt(fieldType, dims, numHomePlayers, numAwayPlayers, sport);
 
-  const prompt = `Create a tactical animation for this drill:
+  const sportLabel = sport === "hockey" ? "ice hockey" : sport;
+  const prompt = `Create a tactical animation for this ${sportLabel} drill:
 
 "${drillDescription}"
 
-Sport: ${sport}
+Sport: ${sportLabel}
 Field view: ${fieldType}
 Home formation: ${homeFormation} (${numHomePlayers} players)
 Away formation: ${awayFormation} (${numAwayPlayers} players)
 
-Generate the step-by-step animation showing how this drill is executed on the pitch.`;
+Generate the step-by-step animation showing how this drill is executed.`;
 
   const { content: raw, debug } = await completeWithDebug(system, prompt);
   try {
@@ -318,17 +343,18 @@ Generate the step-by-step animation showing how this drill is executed on the pi
   }
 }
 
-async function refineTacticAnimation(currentSteps, conversationHistory) {
+async function refineTacticAnimation(currentSteps, conversationHistory, sport = "football") {
   const messages = [
-    { role: "user", content: `Current tactic board state:\n${JSON.stringify(currentSteps, null, 2)}` },
+    { role: "user", content: `Current tactic board state (sport: ${sport}):\n${JSON.stringify(currentSteps, null, 2)}` },
     ...conversationHistory.map((m) => ({ role: m.role, content: m.content })),
   ];
 
+  const dims = getFieldDims(sport, "full");
   const { content: raw, debug } = await completeChatWithDebug(REFINE_TACTIC_PROMPT, messages);
   try {
     const result = parseJSON(raw);
     if (result.steps && Array.isArray(result.steps)) {
-      result.steps = sanitizeTacticSteps(result.steps, FIELD_DIMS.full);
+      result.steps = sanitizeTacticSteps(result.steps, dims);
     }
     return { steps: result.steps, message: result.message, debug };
   } catch {

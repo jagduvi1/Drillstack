@@ -8,12 +8,11 @@ import {
 } from "react-icons/fi";
 import TacticCanvas, {
   FORMATIONS, DRAW_TOOLS, createInitialStep, buildFormationPieces,
+  SPORT_CONFIGS, SPORT_FORMATIONS, getFormations, getDefaultFormation, getPitch,
 } from "../components/tactics/TacticCanvas";
 import DebugPanel from "../components/common/DebugPanel";
 import useDebugPanel from "../hooks/useDebugPanel";
 import { getTactic, createTactic, updateTactic, generateTacticAnimation, refineTacticAnimation } from "../api/tactics";
-
-const PITCH = { width: 105, height: 68 };
 
 function easeInOutQuad(t) {
   return t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2;
@@ -54,6 +53,7 @@ export default function TacticBoardPage() {
   const isNew = !id;
 
   // ── Board state ─────────────────────────────────────────────────────────
+  const [sport, setSport] = useState("football");
   const [title, setTitle] = useState("");
   const [fieldType, setFieldType] = useState("full");
   const [steps, setSteps] = useState([createInitialStep()]);
@@ -97,11 +97,13 @@ export default function TacticBoardPage() {
     getTactic(id)
       .then((res) => {
         const b = res.data;
+        const loadedSport = b.sport || "football";
+        setSport(loadedSport);
         setTitle(b.title || "");
         setFieldType(b.fieldType || "full");
-        setSteps(b.steps?.length ? b.steps : [createInitialStep()]);
-        setHomeFormation(b.homeTeam?.formation || "4-4-2");
-        setAwayFormation(b.awayTeam?.formation || "4-4-2");
+        setSteps(b.steps?.length ? b.steps : [createInitialStep(getDefaultFormation(loadedSport), getDefaultFormation(loadedSport), loadedSport)]);
+        setHomeFormation(b.homeTeam?.formation || getDefaultFormation(loadedSport));
+        setAwayFormation(b.awayTeam?.formation || getDefaultFormation(loadedSport));
         setHomeColor(b.homeTeam?.color || "#2563eb");
         setAwayColor(b.awayTeam?.color || "#ef4444");
         setDrillId(b.drill || null);
@@ -110,6 +112,9 @@ export default function TacticBoardPage() {
       .catch(() => navigate("/tactics"));
   }, [id, navigate]);
 
+  const PITCH = useMemo(() => getPitch(sport), [sport]);
+  const sportFormations = useMemo(() => getFormations(sport), [sport]);
+  const sportFieldViews = useMemo(() => SPORT_CONFIGS[sport]?.fieldViews || SPORT_CONFIGS.football.fieldViews, [sport]);
   const currentStep = steps[currentStepIdx];
 
   // ── Piece counts ────────────────────────────────────────────────────────
@@ -183,10 +188,27 @@ export default function TacticBoardPage() {
       const next = [...prev];
       const step = { ...next[currentStepIdx] };
       const otherPieces = step.pieces.filter((p) => p.team !== team);
-      step.pieces = [...otherPieces, ...buildFormationPieces(team, formation)];
+      step.pieces = [...otherPieces, ...buildFormationPieces(team, formation, sport)];
       next[currentStepIdx] = step;
       return next;
     });
+  };
+
+  // ── Sport change ───────────────────────────────────────────────────────
+  const handleSportChange = (newSport) => {
+    if (newSport === sport) return;
+    const hasPieces = currentStep?.pieces.length > 0 || steps.length > 1;
+    if (hasPieces && !window.confirm(t("tactics.confirmSportChange"))) return;
+    setSport(newSport);
+    const defaultF = getDefaultFormation(newSport);
+    setHomeFormation(defaultF);
+    setAwayFormation(defaultF);
+    const sportViews = SPORT_CONFIGS[newSport]?.fieldViews || {};
+    const newFieldType = sportViews[fieldType] ? fieldType : "full";
+    setFieldType(newFieldType);
+    setSteps([createInitialStep(defaultF, defaultF, newSport)]);
+    setCurrentStepIdx(0);
+    setSelectedPieceId(null);
   };
 
   // ── Add / remove pieces ─────────────────────────────────────────────────
@@ -321,7 +343,7 @@ export default function TacticBoardPage() {
     setSaveMsg("");
     try {
       const data = {
-        title: title || t("tactics.untitled"), fieldType, steps,
+        title: title || t("tactics.untitled"), sport, fieldType, steps,
         homeTeam: { formation: homeFormation, color: homeColor },
         awayTeam: { formation: awayFormation, color: awayColor },
         ...(drillId && { drill: drillId }),
@@ -349,7 +371,7 @@ export default function TacticBoardPage() {
     try {
       const res = await generateTacticAnimation({
         description: aiPrompt.trim(),
-        sport: "football",
+        sport,
         fieldType,
         numHomePlayers: homePlayers.length,
         numAwayPlayers: awayPlayers.length,
@@ -394,6 +416,7 @@ export default function TacticBoardPage() {
         steps,
         message: userMsg,
         conversationHistory: aiChat,
+        sport,
       });
       const { steps: updated, message: aiMessage, debug } = res.data;
       if (debug) {
@@ -428,7 +451,7 @@ export default function TacticBoardPage() {
     const hasPieces = currentStep?.pieces.length > 0 || steps.length > 1;
     if (hasPieces && !window.confirm(t("tactics.confirmFieldChange"))) return;
     setFieldType(newType);
-    setSteps([createInitialStep(homeFormation, awayFormation)]);
+    setSteps([createInitialStep(homeFormation, awayFormation, sport)]);
     setCurrentStepIdx(0);
     setSelectedPieceId(null);
   };
@@ -542,12 +565,20 @@ export default function TacticBoardPage() {
 
         <div className="tactic-tool-divider" />
 
+        {/* Sport selector */}
+        <select className="form-control form-control-sm" value={sport} onChange={(e) => handleSportChange(e.target.value)} style={{ width: "auto" }}>
+          {Object.entries(SPORT_CONFIGS).map(([key, cfg]) => (
+            <option key={key} value={key}>{t(`tactics.sports.${key}`, cfg.label)}</option>
+          ))}
+        </select>
+
+        <div className="tactic-tool-divider" />
+
         {/* Field type */}
         <select className="form-control form-control-sm" value={fieldType} onChange={(e) => handleFieldTypeChange(e.target.value)} style={{ width: "auto" }}>
-          <option value="full">{t("tactics.fieldFull")}</option>
-          <option value="half">{t("tactics.fieldHalf")}</option>
-          <option value="third">{t("tactics.fieldThird")}</option>
-          <option value="blank">{t("tactics.fieldBlank")}</option>
+          {Object.keys(sportFieldViews).map((key) => (
+            <option key={key} value={key}>{t(`tactics.fieldTypes.${key}`, key)}</option>
+          ))}
         </select>
 
         <div className="tactic-tool-divider" />
@@ -556,13 +587,13 @@ export default function TacticBoardPage() {
         <div className="tactic-formation-group">
           <span className="tactic-color-dot" style={{ background: homeColor }} />
           <select className="form-control form-control-sm" value={homeFormation} onChange={(e) => applyFormation("home", e.target.value)} style={{ width: "auto" }}>
-            {Object.keys(FORMATIONS).map((f) => <option key={f} value={f}>{f}</option>)}
+            {Object.keys(sportFormations).map((f) => <option key={f} value={f}>{f}</option>)}
           </select>
         </div>
         <div className="tactic-formation-group">
           <span className="tactic-color-dot" style={{ background: awayColor }} />
           <select className="form-control form-control-sm" value={awayFormation} onChange={(e) => applyFormation("away", e.target.value)} style={{ width: "auto" }}>
-            {Object.keys(FORMATIONS).map((f) => <option key={f} value={f}>{f}</option>)}
+            {Object.keys(sportFormations).map((f) => <option key={f} value={f}>{f}</option>)}
           </select>
         </div>
 
@@ -609,6 +640,7 @@ export default function TacticBoardPage() {
         pieces={displayedPieces} arrows={displayedArrows} ghostPieces={ghostPieces}
         tool={DRAW_TOOLS.includes(tool) ? tool : tool === "ballPass" ? "pass" : tool}
         isPlaying={isPlaying}
+        sport={sport}
         onPieceMove={handlePieceMove} onArrowCreate={(arrow) => {
           // Override style for ballPass tool
           if (tool === "ballPass") arrow.style = "ballPass";

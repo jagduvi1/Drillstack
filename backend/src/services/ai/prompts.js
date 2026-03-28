@@ -348,23 +348,128 @@ If no changes are needed, return feasible: true with an empty issues array and e
 Return valid JSON only.`;
 }
 
-function buildTacticGenerationPrompt(fieldType, dims, numHomePlayers, numAwayPlayers) {
+// Sport-specific field descriptions for AI prompt
+const SPORT_FIELD_DESCRIPTIONS = {
+  football: {
+    name: "football (11v11)",
+    analyst: "football tactics analyst and coach",
+    fieldName: "football pitch",
+    dims: "105m wide (x-axis, left to right) and 68m tall (y-axis, top to bottom)",
+    center: "(52.5, 34)",
+    goals: "Home goal at x=0, away goal at x=105",
+    hasGoalkeeper: true,
+  },
+  "football-9": {
+    name: "football (9v9)",
+    analyst: "football tactics analyst and coach",
+    fieldName: "9v9 football pitch",
+    dims: "75m wide (x-axis) and 55m tall (y-axis)",
+    center: "(37.5, 27.5)",
+    goals: "Home goal at x=0, away goal at x=75. Smaller penalty areas proportional to pitch",
+    hasGoalkeeper: true,
+  },
+  "football-7": {
+    name: "football (7v7)",
+    analyst: "football tactics analyst and coach",
+    fieldName: "7v7 football pitch",
+    dims: "60m wide (x-axis) and 40m tall (y-axis)",
+    center: "(30, 20)",
+    goals: "Home goal at x=0, away goal at x=60. Smaller penalty areas proportional to pitch",
+    hasGoalkeeper: true,
+  },
+  "football-5": {
+    name: "football (5v5)",
+    analyst: "football tactics analyst and coach",
+    fieldName: "5v5 football pitch",
+    dims: "40m wide (x-axis) and 25m tall (y-axis)",
+    center: "(20, 12.5)",
+    goals: "Home goal at x=0, away goal at x=40",
+    hasGoalkeeper: true,
+  },
+  "football-3": {
+    name: "football (3v3)",
+    analyst: "football tactics analyst and coach",
+    fieldName: "3v3 football pitch",
+    dims: "30m wide (x-axis) and 20m tall (y-axis)",
+    center: "(15, 10)",
+    goals: "Home goal at x=0, away goal at x=30. Small goals, no penalty areas",
+    hasGoalkeeper: true,
+  },
+  handball: {
+    name: "handball",
+    analyst: "handball tactics analyst and coach",
+    fieldName: "handball court",
+    dims: "40m wide (x-axis) and 20m tall (y-axis)",
+    center: "(20, 10)",
+    goals: "Home goal at x=0, away goal at x=40. Goal areas are 6m semicircles from goal center",
+    hasGoalkeeper: true,
+  },
+  hockey: {
+    name: "ice hockey",
+    analyst: "ice hockey tactics analyst and coach",
+    fieldName: "ice hockey rink",
+    dims: "60m wide (x-axis) and 26m tall (y-axis)",
+    center: "(30, 13)",
+    goals: "Home goal at x=4, away goal at x=56. Blue lines at x=17.5 and x=42.5",
+    hasGoalkeeper: true,
+  },
+  basketball: {
+    name: "basketball",
+    analyst: "basketball tactics analyst and coach",
+    fieldName: "basketball court",
+    dims: "28m wide (x-axis) and 15m tall (y-axis)",
+    center: "(14, 7.5)",
+    goals: "Home basket at x≈1.5, away basket at x≈26.5. 3-point line at 6.75m radius",
+    hasGoalkeeper: false,
+  },
+  futsal: {
+    name: "futsal",
+    analyst: "futsal tactics analyst and coach",
+    fieldName: "futsal court",
+    dims: "40m wide (x-axis) and 20m tall (y-axis)",
+    center: "(20, 10)",
+    goals: "Home goal at x=0, away goal at x=40. Penalty areas are 6m semicircles",
+    hasGoalkeeper: true,
+  },
+  floorball: {
+    name: "floorball",
+    analyst: "floorball tactics analyst and coach",
+    fieldName: "floorball rink",
+    dims: "40m wide (x-axis) and 20m tall (y-axis)",
+    center: "(20, 10)",
+    goals: "Home goal at x=0, away goal at x=40. Goal creases are 4.5m semicircles",
+    hasGoalkeeper: true,
+  },
+  volleyball: {
+    name: "volleyball",
+    analyst: "volleyball tactics analyst and coach",
+    fieldName: "volleyball court",
+    dims: "18m wide (x-axis) and 9m tall (y-axis)",
+    center: "(9, 4.5)",
+    goals: "Net is at x=9. Home side is x=0–9, away side is x=9–18. Attack line at 3m from net",
+    hasGoalkeeper: false,
+  },
+};
+
+function buildTacticGenerationPrompt(fieldType, dims, numHomePlayers, numAwayPlayers, sport = "football") {
   const isBlank = fieldType === "blank";
-  return `You are a professional football tactics analyst and coach. You create step-by-step tactical animations for a digital tactic board.
+  const sportDesc = SPORT_FIELD_DESCRIPTIONS[sport] || SPORT_FIELD_DESCRIPTIONS.football;
+  const gkLabel = sportDesc.hasGoalkeeper ? ' (GK)' : '';
+
+  return `You are a professional ${sportDesc.analyst}. You create step-by-step tactical animations for a digital tactic board.
 
 COORDINATE SYSTEM:
 ${isBlank
-  ? `- Blank area: 40m × 40m (no pitch markings). The area represents a training zone, NOT a football pitch.
-- Usable area: x: 0–40, y: 0–40. Center is at (20, 20).
+  ? `- Blank area: usable area x: ${dims.xMin}–${dims.xMax}, y: ${dims.yMin}–${dims.yMax}. No markings. Training zone.
 - Position players naturally within this area based on the drill description.`
-  : `- A football pitch is 105m wide (x-axis, left to right) and 68m tall (y-axis, top to bottom).
+  : `- A ${sportDesc.fieldName} is ${sportDesc.dims}.
 - Field type: "${fieldType}" — usable area is x: ${dims.xMin}–${dims.xMax}, y: ${dims.yMin}–${dims.yMax}.
 - Home team attacks LEFT to RIGHT. Away team attacks RIGHT to LEFT.
-- Center spot is at (52.5, 34). Home goal at x=0, away goal at x=105.`}
+- Center is at ${sportDesc.center}. ${sportDesc.goals}.`}
 
 PIECE IDS:
-- Home players: "home-0" (GK), "home-1", "home-2", ... up to "home-${numHomePlayers - 1}"
-- Away players: "away-0" (GK), "away-1", "away-2", ... up to "away-${numAwayPlayers - 1}"
+- Home players: "home-0"${gkLabel}, "home-1", "home-2", ... up to "home-${numHomePlayers - 1}"
+- Away players: "away-0"${gkLabel}, "away-1", "away-2", ... up to "away-${numAwayPlayers - 1}"
 - Ball: "ball-1" (include only if ball movement is relevant)
 - Cones: "cone-1", "cone-2", etc. (use for markers in training drills)
 
@@ -387,8 +492,8 @@ RULES:
 5. Use cones if the drill describes marker positions.
 6. Create 3–8 steps to show the full drill animation clearly.
 7. Use arrows sparingly in key steps to highlight important runs or passes.
-8. Player labels: GK for goalkeepers, numbers (1-10) for outfield.
-9. Keep positions realistic — players should be within the field bounds and spaced naturally.
+8. Player labels: ${sportDesc.hasGoalkeeper ? 'GK for goalkeepers, numbers (1-10) for outfield' : 'numbers (1-5) or position abbreviations'}.
+9. Keep positions realistic — players should be within the field bounds and spaced naturally for ${sportDesc.name}.
 10. Duration between steps: 1500ms for setup, 1000-2500ms for action steps.
 
 Return valid JSON only, matching this structure:
@@ -398,11 +503,11 @@ Return valid JSON only, matching this structure:
 }`;
 }
 
-const REFINE_TACTIC_PROMPT = `You are a professional football tactics analyst and coach. The user has a tactic board animation (a sequence of steps with player positions and arrows) and wants you to modify it.
+const REFINE_TACTIC_PROMPT = `You are a professional sports tactics analyst and coach. The user has a tactic board animation (a sequence of steps with player positions and arrows) and wants you to modify it. The board may be for any sport (football, handball, ice hockey, basketball, futsal, floorball, or volleyball).
 
 COORDINATE SYSTEM:
-- Football pitch: 105m wide (x), 68m tall (y). Home attacks left→right.
-- Center: (52.5, 34). Home goal x=0, away goal x=105.
+- Infer the sport and dimensions from the piece positions in the current board state.
+- Home team attacks left→right. Away team attacks right→left.
 
 PIECE SCHEMA:
 { "id": string, "type": "player"|"ball"|"cone", "team": "home"|"away"|"neutral", "label": string, "x": number, "y": number, "isGK": boolean }

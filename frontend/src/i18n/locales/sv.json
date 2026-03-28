@@ -572,6 +572,26 @@
     "fieldHalf": "Halv plan",
     "fieldThird": "Tredjedels plan",
     "fieldBlank": "Tom yta",
+    "fieldTypes": {
+      "full": "Hel",
+      "half": "Halv",
+      "third": "Tredjedel",
+      "blank": "Tom"
+    },
+    "sports": {
+      "football": "Fotboll 11v11",
+      "football-9": "Fotboll 9v9",
+      "football-7": "Fotboll 7v7",
+      "football-5": "Fotboll 5v5",
+      "football-3": "Fotboll 3v3",
+      "handball": "Handboll",
+      "hockey": "Ishockey",
+      "basketball": "Basket",
+      "futsal": "Futsal",
+      "floorball": "Innebandy",
+      "volleyball": "Volleyboll"
+    },
+    "confirmSportChange": "Att byta sport rensar tavlan. Fortsätta?",
     "confirmFieldChange": "Att byta plantyp rensar tavlan. Fortsätta?",
     "homeColor": "Hemmafärg",
     "awayColor": "Bortafärg",

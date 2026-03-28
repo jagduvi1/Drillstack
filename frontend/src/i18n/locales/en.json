@@ -572,6 +572,26 @@
     "fieldHalf": "Half pitch",
     "fieldThird": "Third pitch",
     "fieldBlank": "Blank area",
+    "fieldTypes": {
+      "full": "Full",
+      "half": "Half",
+      "third": "Third",
+      "blank": "Blank"
+    },
+    "sports": {
+      "football": "Football 11v11",
+      "football-9": "Football 9v9",
+      "football-7": "Football 7v7",
+      "football-5": "Football 5v5",
+      "football-3": "Football 3v3",
+      "handball": "Handball",
+      "hockey": "Ice Hockey",
+      "basketball": "Basketball",
+      "futsal": "Futsal",
+      "floorball": "Floorball",
+      "volleyball": "Volleyball"
+    },
+    "confirmSportChange": "Changing sport will clear the board. Continue?",
     "confirmFieldChange": "Changing field type will clear the board. Continue?",
     "homeColor": "Home color",
     "awayColor": "Away color",
