@@ -14,6 +14,7 @@ const aiLimiter = rateLimit({ windowMs: 15 * 60 * 1000, max: 100, standardHeader
 router.use(aiLimiter);
 const { checkAiLimit } = require("../middleware/planLimits");
 const { generateDiagram } = require("../services/imageGen");
+const { createDrillSnapshot } = require("../utils/drillSnapshot");
 
 // POST /api/ai/generate — generate a complete drill from a description
 router.post(
@@ -110,18 +111,7 @@ router.post(
         }).select("_id");
 
         if (starredUsers.length > 0) {
-          const snapshot = {
-            title: drill.title,
-            description: drill.description,
-            sport: drill.sport,
-            intensity: drill.intensity,
-            setup: drill.setup ? drill.setup.toObject() : {},
-            howItWorks: drill.howItWorks,
-            coachingPoints: [...drill.coachingPoints],
-            variations: [...drill.variations],
-            commonMistakes: [...drill.commonMistakes],
-            diagrams: [...drill.diagrams],
-          };
+          const snapshot = createDrillSnapshot(drill);
           Notification.insertMany(
             starredUsers.map((u) => ({
               userId: u._id,
@@ -669,6 +659,46 @@ router.post(
       await drill.save();
 
       res.json({ diagram: diagramPath, drill, debug });
+    } catch (err) {
+      next(err);
+    }
+  }
+);
+
+// POST /api/ai/generate-tactic-animation — generate tactic board animation from drill description
+router.post(
+  "/generate-tactic-animation",
+  authenticate,
+  checkAiLimit,
+  [body("description").trim().notEmpty()],
+  validate,
+  async (req, res, next) => {
+    try {
+      const { description, sport, fieldType, numHomePlayers, numAwayPlayers, homeFormation, awayFormation } = req.body;
+      const { animation, error, debug } = await aiService.generateTacticAnimation(description, {
+        sport, fieldType, numHomePlayers, numAwayPlayers, homeFormation, awayFormation,
+      });
+      if (error) return res.status(422).json({ error, debug });
+      res.json({ animation, debug });
+    } catch (err) {
+      next(err);
+    }
+  }
+);
+
+// POST /api/ai/refine-tactic-animation — refine an existing tactic board via chat
+router.post(
+  "/refine-tactic-animation",
+  authenticate,
+  checkAiLimit,
+  [body("message").trim().notEmpty(), body("steps").isArray({ min: 1 })],
+  validate,
+  async (req, res, next) => {
+    try {
+      const { steps, message, conversationHistory = [], sport = "football" } = req.body;
+      const history = [...conversationHistory, { role: "user", content: message }];
+      const { steps: updatedSteps, message: aiMessage, debug } = await aiService.refineTacticAnimation(steps, history, sport);
+      res.json({ steps: updatedSteps, message: aiMessage, conversationHistory: history, debug });
     } catch (err) {
       next(err);
     }

@@ -4,6 +4,8 @@ const { body } = require("express-validator");
 const validate = require("../middleware/validate");
 const { authenticate } = require("../middleware/auth");
 const { resolveUserGroups } = require("../middleware/groupAuth");
+const { checkOwnership } = require("../middleware/checkOwnership");
+const { parsePagination } = require("../middleware/pagination");
 const TrainingSession = require("../models/TrainingSession");
 const PeriodPlan = require("../models/PeriodPlan");
 const Drill = require("../models/Drill");
@@ -75,9 +77,7 @@ router.get("/", authenticate, resolveUserGroups, async (req, res, next) => {
     if (req.query.sport) filter.sport = String(req.query.sport);
     if (req.query.group) filter.group = String(req.query.group);
 
-    const page = Math.max(1, parseInt(req.query.page, 10) || 1);
-    const limit = Math.min(100, parseInt(req.query.limit, 10) || 20);
-    const skip = (page - 1) * limit;
+    const { page, limit, skip } = parsePagination(req.query);
 
     const [sessions, total] = await Promise.all([
       TrainingSession.find(filter)
@@ -213,48 +213,40 @@ router.post(
 );
 
 // PUT /api/sessions/:id
-router.put("/:id", authenticate, resolveUserGroups, async (req, res, next) => {
-  try {
-    const session = await TrainingSession.findById(req.params.id);
-    if (!session) return res.status(404).json({ error: "Session not found" });
-
-    // Allow edit if owner OR admin/trainer in the session's group
-    const isOwner = session.createdBy.toString() === req.user._id.toString();
-    const isGroupMember = session.group && req.userTrainerGroupIds &&
-      req.userTrainerGroupIds.some((gid) => gid.toString() === session.group.toString());
-    if (!isOwner && !isGroupMember) {
-      return res.status(403).json({ error: "Not authorized" });
+router.put(
+  "/:id",
+  authenticate,
+  resolveUserGroups,
+  checkOwnership(TrainingSession, { resourceName: "Session" }),
+  async (req, res, next) => {
+    try {
+      const session = req.resource;
+      const { title, description, date, sport, blocks, expectedPlayers, expectedTrainers, actualPlayers, actualTrainers, group, visibility, aiGenerated, aiConversation } = req.body;
+      Object.assign(session, { title, description, date, sport, blocks, expectedPlayers, expectedTrainers, actualPlayers, actualTrainers, group, visibility, aiGenerated, aiConversation });
+      session.equipmentSummary = await computeEquipment(session);
+      await session.save();
+      indexSession(session).catch((e) => console.error("Index error:", e.message));
+      res.json(session);
+    } catch (err) {
+      next(err);
     }
-
-    const { title, description, date, sport, blocks, expectedPlayers, expectedTrainers, actualPlayers, actualTrainers, group, visibility, aiGenerated, aiConversation } = req.body;
-    Object.assign(session, { title, description, date, sport, blocks, expectedPlayers, expectedTrainers, actualPlayers, actualTrainers, group, visibility, aiGenerated, aiConversation });
-    session.equipmentSummary = await computeEquipment(session);
-    await session.save();
-    indexSession(session).catch((e) => console.error("Index error:", e.message));
-    res.json(session);
-  } catch (err) {
-    next(err);
   }
-});
+);
 
 // DELETE /api/sessions/:id
-router.delete("/:id", authenticate, resolveUserGroups, async (req, res, next) => {
-  try {
-    const session = await TrainingSession.findById(req.params.id);
-    if (!session) return res.status(404).json({ error: "Session not found" });
-
-    const isOwner = session.createdBy.toString() === req.user._id.toString();
-    const isGroupAdmin = session.group && req.userTrainerGroupIds &&
-      req.userTrainerGroupIds.some((gid) => gid.toString() === session.group.toString());
-    if (!isOwner && !isGroupAdmin) {
-      return res.status(403).json({ error: "Not authorized" });
+router.delete(
+  "/:id",
+  authenticate,
+  resolveUserGroups,
+  checkOwnership(TrainingSession, { resourceName: "Session" }),
+  async (req, res, next) => {
+    try {
+      await req.resource.deleteOne();
+      res.json({ message: "Deleted" });
+    } catch (err) {
+      next(err);
     }
-
-    await session.deleteOne();
-    res.json({ message: "Deleted" });
-  } catch (err) {
-    next(err);
   }
-});
+);
 
 module.exports = router;

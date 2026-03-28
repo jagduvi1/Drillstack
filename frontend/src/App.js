@@ -25,6 +25,8 @@ import GroupDetailPage from "./pages/GroupDetailPage";
 import GroupFormPage from "./pages/GroupFormPage";
 import GroupJoinPage from "./pages/GroupJoinPage";
 import PricingPage from "./pages/PricingPage";
+import TacticBoardListPage from "./pages/TacticBoardListPage";
+import TacticBoardPage from "./pages/TacticBoardPage";
 import { useAuth } from "./context/AuthContext";
 
 export default function App() {
@@ -65,6 +67,9 @@ export default function App() {
           <Route path="/plans/new" element={<ProtectedRoute><PlanFormPage /></ProtectedRoute>} />
           <Route path="/plans/:id" element={<ProtectedRoute><PlanDetailPage /></ProtectedRoute>} />
           <Route path="/plans/:id/edit" element={<ProtectedRoute><PlanFormPage /></ProtectedRoute>} />
+          <Route path="/tactics" element={<ProtectedRoute><TacticBoardListPage /></ProtectedRoute>} />
+          <Route path="/tactics/new" element={<ProtectedRoute><TacticBoardPage /></ProtectedRoute>} />
+          <Route path="/tactics/:id" element={<ProtectedRoute><TacticBoardPage /></ProtectedRoute>} />
           <Route path="/groups" element={<ProtectedRoute><GroupsPage /></ProtectedRoute>} />
           <Route path="/groups/new" element={<ProtectedRoute><GroupFormPage /></ProtectedRoute>} />
           <Route path="/groups/join/:code" element={<ProtectedRoute><GroupJoinPage /></ProtectedRoute>} />

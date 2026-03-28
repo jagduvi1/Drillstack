@@ -6,7 +6,8 @@ import { useAuth } from "../context/AuthContext";
 import { getDrill, deleteDrill, uploadDiagram, addReflection, retryEmbedding, toggleStar, forkDrill, getVersions, setDefaultVersion, findSimilar, convertToVersion } from "../api/drills";
 import { refineDrill, generateDiagram } from "../api/ai";
 import DebugPanel from "../components/common/DebugPanel";
-import { FiEdit, FiTrash2, FiSend, FiMessageCircle, FiLoader, FiAlertCircle, FiRefreshCw, FiImage, FiStar, FiCopy, FiGitBranch, FiUser, FiCheck, FiLink, FiCode } from "react-icons/fi";
+import useDebugPanel from "../hooks/useDebugPanel";
+import { FiEdit, FiTrash2, FiSend, FiMessageCircle, FiLoader, FiAlertCircle, FiRefreshCw, FiImage, FiStar, FiCopy, FiGitBranch, FiUser, FiCheck, FiLink, FiCode, FiTarget } from "react-icons/fi";
 
 export default function DrillDetailPage() {
   const { t } = useTranslation();
@@ -26,8 +27,7 @@ export default function DrillDetailPage() {
   const [similarDrills, setSimilarDrills] = useState(null);
   const [similarDismissed, setSimilarDismissed] = useState(false);
   const [embeddingElapsed, setEmbeddingElapsed] = useState(0);
-  const [debugOpen, setDebugOpen] = useState(false);
-  const [debugEntries, setDebugEntries] = useState([]);
+  const { debugOpen, debugEntries, toggleDebug, addDebugEntry } = useDebugPanel();
   const similarChecked = useRef(false);
   const embeddingStartRef = useRef(null);
   const chatEndRef = useRef(null);
@@ -123,10 +123,7 @@ export default function DrillDetailPage() {
     try {
       const res = await generateDiagram(id);
       if (res.data.debug) {
-        setDebugEntries((prev) => [
-          ...prev,
-          { label: "Diagram Generation", debug: res.data.debug },
-        ]);
+        addDebugEntry("Diagram Generation", res.data.debug);
       }
       refetch();
     } catch (err) {
@@ -172,10 +169,7 @@ export default function DrillDetailPage() {
     try {
       const res = await refineDrill(id, msg);
       if (res.data.debug) {
-        setDebugEntries((prev) => [
-          ...prev,
-          { label: `Refine: "${msg.slice(0, 40)}${msg.length > 40 ? "..." : ""}"`, debug: res.data.debug },
-        ]);
+        addDebugEntry(`Refine: "${msg.slice(0, 40)}${msg.length > 40 ? "..." : ""}"`, res.data.debug);
       }
       setChatMessage("");
       refetch();
@@ -232,7 +226,7 @@ export default function DrillDetailPage() {
             {debugEntries.length > 0 && (
               <button
                 className={`btn ${debugOpen ? "btn-primary" : "btn-secondary"}`}
-                onClick={() => setDebugOpen(!debugOpen)}
+                onClick={toggleDebug}
               >
                 <FiCode /> Debug ({debugEntries.length})
               </button>
@@ -242,6 +236,21 @@ export default function DrillDetailPage() {
                 <FiMessageCircle /> {showChat ? t("drills.hideChat") : t("drills.refineWithAi")}
               </button>
             )}
+            <button
+              className="btn btn-secondary"
+              onClick={() => {
+                const desc = [drill.description, drill.howItWorks].filter(Boolean).join("\n\n");
+                const params = new URLSearchParams({
+                  drillDescription: desc,
+                  drillTitle: drill.title || "",
+                  drillId: id,
+                });
+                navigate(`/tactics/new?${params.toString()}`);
+              }}
+              title={t("drills.generateTacticBoard")}
+            >
+              <FiTarget /> {t("drills.generateTacticBoard")}
+            </button>
             {drill.isOwner ? (
               <Link to={`/drills/${id}/edit`} className="btn btn-secondary"><FiEdit /> {t("common.edit")}</Link>
             ) : (

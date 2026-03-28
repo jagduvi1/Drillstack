@@ -4,11 +4,14 @@ const { body } = require("express-validator");
 const validate = require("../middleware/validate");
 const { authenticate } = require("../middleware/auth");
 const upload = require("../middleware/upload");
+const { checkOwnership } = require("../middleware/checkOwnership");
+const { parsePagination } = require("../middleware/pagination");
 const Drill = require("../models/Drill");
 const User = require("../models/User");
 const Notification = require("../models/Notification");
 const { indexDrill, removeDrill, getQueueStatus, checkEmbeddingSimilarity, findSimilarDrills } = require("../services/sync");
 const { checkLimit } = require("../middleware/planLimits");
+const { createDrillSnapshot } = require("../utils/drillSnapshot");
 
 const drillsLimiter = rateLimit({ windowMs: 15 * 60 * 1000, max: 200, standardHeaders: true, legacyHeaders: false });
 router.use(drillsLimiter);
@@ -27,9 +30,7 @@ router.get("/", authenticate, async (req, res, next) => {
       filter._id = { $in: u?.starredDrills || [] };
     }
 
-    const page = Math.max(1, parseInt(req.query.page, 10) || 1);
-    const limit = Math.min(100, parseInt(req.query.limit, 10) || 20);
-    const skip = (page - 1) * limit;
+    const { page, limit, skip } = parsePagination(req.query);
 
     const [drills, total] = await Promise.all([
       Drill.find(filter)
@@ -190,18 +191,7 @@ router.put("/:id", authenticate, async (req, res, next) => {
 
     // If others have starred it, create notifications with a snapshot of the old version
     if (starredUsers.length > 0) {
-      const snapshot = {
-        title: before.title,
-        description: before.description,
-        sport: before.sport,
-        intensity: before.intensity,
-        setup: before.setup ? before.setup.toObject() : {},
-        howItWorks: before.howItWorks,
-        coachingPoints: [...before.coachingPoints],
-        variations: [...before.variations],
-        commonMistakes: [...before.commonMistakes],
-        diagrams: [...before.diagrams],
-      };
+      const snapshot = createDrillSnapshot(before);
 
       const notifications = starredUsers.map((u) => ({
         userId: u._id,
@@ -286,24 +276,20 @@ router.post("/:id/convert-to-version", authenticate, async (req, res, next) => {
 });
 
 // DELETE /api/drills/:id — only owner or admin
-router.delete("/:id", authenticate, async (req, res, next) => {
-  try {
-    const drill = await Drill.findById(req.params.id);
-    if (!drill) return res.status(404).json({ error: "Drill not found" });
-
-    const isOwner = drill.createdBy.toString() === req.user._id.toString();
-    const isAdmin = req.user.role === "admin";
-    if (!isOwner && !isAdmin) {
-      return res.status(403).json({ error: "Only the creator or an admin can delete" });
+router.delete(
+  "/:id",
+  authenticate,
+  checkOwnership(Drill, { resourceName: "Drill", allowAdmin: true, allowGroupTrainer: false }),
+  async (req, res, next) => {
+    try {
+      await Drill.findByIdAndDelete(req.params.id);
+      removeDrill(req.resource._id).catch((e) => console.error("Remove index error:", e.message));
+      res.json({ message: "Deleted" });
+    } catch (err) {
+      next(err);
     }
-
-    await Drill.findByIdAndDelete(req.params.id);
-    removeDrill(drill._id).catch((e) => console.error("Remove index error:", e.message));
-    res.json({ message: "Deleted" });
-  } catch (err) {
-    next(err);
   }
-});
+);
 
 // POST /api/drills/:id/star — toggle star
 router.post("/:id/star", authenticate, async (req, res, next) => {

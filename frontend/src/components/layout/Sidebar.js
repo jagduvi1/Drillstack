@@ -5,7 +5,7 @@ import { useAuth } from "../../context/AuthContext";
 import { useGroups } from "../../context/GroupContext";
 import { getUnreadCount } from "../../api/notifications";
 import { getUsage } from "../../api/billing";
-import { FiGrid, FiZap, FiCalendar, FiSearch, FiShield, FiLogOut, FiBell, FiPlay, FiUsers, FiChevronDown, FiCreditCard } from "react-icons/fi";
+import { FiGrid, FiZap, FiCalendar, FiSearch, FiShield, FiLogOut, FiBell, FiPlay, FiUsers, FiChevronDown, FiCreditCard, FiTarget } from "react-icons/fi";
 
 export default function Sidebar() {
   const { t, i18n } = useTranslation();
@@ -106,6 +106,9 @@ export default function Sidebar() {
         </NavLink>
         <NavLink to="/plans">
           <FiCalendar /> {t("nav.plans")}
+        </NavLink>
+        <NavLink to="/tactics">
+          <FiTarget /> {t("nav.tactics")}
         </NavLink>
         <NavLink to="/groups">
           <FiUsers /> {t("nav.groups")}

@@ -5,13 +5,9 @@ import useFetch from "../hooks/useFetch";
 import { getSession, deleteSession } from "../api/sessions";
 import { checkSessionFeasibility, refineSession } from "../api/ai";
 import DebugPanel from "../components/common/DebugPanel";
+import useDebugPanel from "../hooks/useDebugPanel";
 import DrillPreviewModal from "../components/sessions/DrillPreviewModal";
 import {
-  FiZap,
-  FiGrid,
-  FiPlay,
-  FiCoffee,
-  FiFileText,
   FiUsers,
   FiAlertCircle,
   FiCheckCircle,
@@ -20,33 +16,7 @@ import {
   FiSend,
   FiCode,
 } from "react-icons/fi";
-
-const BLOCK_ICONS = {
-  drills: <FiZap />,
-  stations: <FiGrid />,
-  matchplay: <FiPlay />,
-  break: <FiCoffee />,
-  custom: <FiFileText />,
-};
-
-const BLOCK_COLORS = {
-  drills: "var(--color-primary)",
-  stations: "var(--color-warning)",
-  matchplay: "var(--color-success)",
-  break: "var(--color-muted)",
-  custom: "#8b5cf6",
-};
-
-function blockDuration(block) {
-  switch (block.type) {
-    case "drills":
-      return (block.drills || []).reduce((s, d) => s + (d.duration || 0), 0);
-    case "stations":
-      return (block.stationCount || 0) * (block.rotationMinutes || 0);
-    default:
-      return block.duration || 0;
-  }
-}
+import { BLOCK_ICONS, BLOCK_COLORS, blockDuration } from "../constants/blockTypes";
 
 export default function SessionDetailPage() {
   const { t } = useTranslation();
@@ -68,8 +38,7 @@ export default function SessionDetailPage() {
   const chatEndRef = useRef(null);
 
   // Debug panel state
-  const [debugOpen, setDebugOpen] = useState(false);
-  const [debugEntries, setDebugEntries] = useState([]);
+  const { debugOpen, debugEntries, toggleDebug, addDebugEntry } = useDebugPanel();
 
   // Drill preview state
   const [previewDrillId, setPreviewDrillId] = useState(null);
@@ -107,10 +76,7 @@ export default function SessionDetailPage() {
       const res = await checkSessionFeasibility(id, players, trainers);
       setFeasibility(res.data);
       if (res.data.debug) {
-        setDebugEntries((prev) => [
-          ...prev,
-          { label: "Feasibility Check", debug: res.data.debug },
-        ]);
+        addDebugEntry("Feasibility Check", res.data.debug);
       }
       refetch();
     } catch {
@@ -135,10 +101,7 @@ export default function SessionDetailPage() {
       const res = await refineSession(id, msg);
       const data = res.data;
       if (data.debug) {
-        setDebugEntries((prev) => [
-          ...prev,
-          { label: `Chat: "${msg.slice(0, 40)}${msg.length > 40 ? "..." : ""}"`, debug: data.debug },
-        ]);
+        addDebugEntry(`Chat: "${msg.slice(0, 40)}${msg.length > 40 ? "..." : ""}"`, data.debug);
       }
       // The backend returns the full updated session
       if (data.session) {
@@ -177,7 +140,7 @@ export default function SessionDetailPage() {
           </button>
           <button
             className={`btn ${debugOpen ? "btn-primary" : "btn-secondary"}`}
-            onClick={() => setDebugOpen(!debugOpen)}
+            onClick={toggleDebug}
           >
             <FiCode /> {t("common.debug")}
           </button>

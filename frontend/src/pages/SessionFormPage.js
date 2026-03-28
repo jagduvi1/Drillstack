@@ -7,6 +7,7 @@ import BlockList from "../components/sessions/BlockList";
 import DrillPickerModal from "../components/sessions/DrillPickerModal";
 import DrillPreviewModal from "../components/sessions/DrillPreviewModal";
 import DebugPanel from "../components/common/DebugPanel";
+import useDebugPanel from "../hooks/useDebugPanel";
 import { useGroups } from "../context/GroupContext";
 import { FiSave, FiX, FiZap, FiLoader, FiCode } from "react-icons/fi";
 
@@ -40,8 +41,7 @@ export default function SessionFormPage() {
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
-  const [debugOpen, setDebugOpen] = useState(false);
-  const [debugEntries, setDebugEntries] = useState([]);
+  const { debugOpen, debugEntries, toggleDebug, addDebugEntry } = useDebugPanel();
 
   // Drill picker state
   const [pickerOpen, setPickerOpen] = useState(false);
@@ -158,10 +158,7 @@ export default function SessionFormPage() {
       setAiPreview(res.data.suggestion);
       setAiDrills(res.data.availableDrills || []);
       if (res.data.debug) {
-        setDebugEntries((prev) => [
-          ...prev,
-          { label: "Session Generation", debug: res.data.debug },
-        ]);
+        addDebugEntry("Session Generation", res.data.debug);
       }
     } catch {
       setError(t("sessions.aiGenFailed"));
@@ -292,7 +289,7 @@ export default function SessionFormPage() {
         <button
           type="button"
           className={`btn ${debugOpen ? "btn-primary" : "btn-secondary"} mb-1`}
-          onClick={() => setDebugOpen(!debugOpen)}
+          onClick={toggleDebug}
           style={{ float: "right" }}
         >
           <FiCode /> Debug ({debugEntries.length})

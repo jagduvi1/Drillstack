@@ -4,6 +4,7 @@ import { useTranslation } from "react-i18next";
 import useFetch from "../hooks/useFetch";
 import { getDrills, deleteDrill, getEmbeddingStatus, toggleStar } from "../api/drills";
 import { FiPlus, FiTrash2, FiEdit, FiZap, FiLoader, FiCheck, FiAlertCircle, FiStar, FiUser } from "react-icons/fi";
+import Pagination from "../components/common/Pagination";
 
 function EmbeddingBadge({ status }) {
   const { t } = useTranslation();
@@ -156,13 +157,7 @@ export default function DrillsPage() {
             </div>
           )}
 
-          {data?.pages > 1 && (
-            <div className="flex gap-sm mt-1" style={{ justifyContent: "center" }}>
-              <button className="btn btn-secondary btn-sm" disabled={page <= 1} onClick={() => setPage(page - 1)}>{t("common.prev")}</button>
-              <span className="text-sm text-muted">{t("common.page", { page: data.page, pages: data.pages })}</span>
-              <button className="btn btn-secondary btn-sm" disabled={page >= data.pages} onClick={() => setPage(page + 1)}>{t("common.next")}</button>
-            </div>
-          )}
+          <Pagination page={data?.page} pages={data?.pages} onPageChange={setPage} />
         </>
       )}
     </div>
