@@ -11,40 +11,9 @@ import {
   FiAlertTriangle,
   FiChevronDown,
   FiChevronUp,
-  FiZap,
-  FiGrid,
-  FiPlay,
-  FiCoffee,
-  FiFileText,
   FiCalendar,
 } from "react-icons/fi";
-
-const BLOCK_ICONS = {
-  drills: <FiZap />,
-  stations: <FiGrid />,
-  matchplay: <FiPlay />,
-  break: <FiCoffee />,
-  custom: <FiFileText />,
-};
-
-const BLOCK_COLORS = {
-  drills: "#3b82f6",
-  stations: "#f59e0b",
-  matchplay: "#22c55e",
-  break: "#9ca3af",
-  custom: "#8b5cf6",
-};
-
-function blockDuration(block) {
-  switch (block.type) {
-    case "drills":
-      return (block.drills || []).reduce((s, d) => s + (d.duration || 0), 0);
-    case "stations":
-      return (block.stationCount || 0) * (block.rotationMinutes || 0);
-    default:
-      return block.duration || 0;
-  }
-}
+import { BLOCK_ICONS, BLOCK_COLORS, blockDuration } from "../constants/blockTypes";
 
 export default function TodayPage() {
   const { t } = useTranslation();

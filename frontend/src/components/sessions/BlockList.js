@@ -10,59 +10,13 @@ import {
   FiChevronDown,
   FiTrash2,
   FiPlus,
-  FiZap,
-  FiGrid,
-  FiPlay,
-  FiCoffee,
-  FiFileText,
 } from "react-icons/fi";
-
-const BLOCK_DEFAULTS = {
-  drills: { label: "Drill Sequence", drills: [], notes: "" },
-  stations: {
-    label: "Station Rotation",
-    stationCount: 4,
-    rotationMinutes: 5,
-    stations: [
-      { stationNumber: 1, drill: null, notes: "" },
-      { stationNumber: 2, drill: null, notes: "" },
-      { stationNumber: 3, drill: null, notes: "" },
-      { stationNumber: 4, drill: null, notes: "" },
-    ],
-    notes: "",
-  },
-  matchplay: { label: "Match Play", duration: 15, matchDescription: "", rules: "", notes: "" },
-  break: { label: "Break", duration: 3, notes: "" },
-  custom: { label: "Custom", duration: 5, customContent: "", notes: "" },
-};
-
-const BLOCK_ICONS = {
-  drills: <FiZap />,
-  stations: <FiGrid />,
-  matchplay: <FiPlay />,
-  break: <FiCoffee />,
-  custom: <FiFileText />,
-};
-
-const BLOCK_LABELS = {
-  drills: "Drill Sequence",
-  stations: "Station Rotation",
-  matchplay: "Match Play",
-  break: "Break",
-  custom: "Custom",
-};
+import { BLOCK_DEFAULTS, BLOCK_ICONS, getLocalizedBlockLabels, blockDuration } from "../../constants/blockTypes";
 
 export default function BlockList({ blocks, onChange, onPickDrill, onPreviewDrill }) {
   const { t } = useTranslation();
   const [showMenu, setShowMenu] = useState(false);
-
-  const blockLabels = {
-    drills: t("blocks.drillSequence"),
-    stations: t("blocks.stationRotation"),
-    matchplay: t("blocks.matchPlay"),
-    break: t("blocks.break"),
-    custom: t("blocks.custom"),
-  };
+  const blockLabels = getLocalizedBlockLabels(t);
 
   const updateBlock = (idx, updatedBlock) => {
     const updated = [...blocks];
@@ -92,17 +46,6 @@ export default function BlockList({ blocks, onChange, onPickDrill, onPreviewDril
     };
     onChange([...blocks, newBlock]);
     setShowMenu(false);
-  };
-
-  const blockDuration = (block) => {
-    switch (block.type) {
-      case "drills":
-        return block.drills.reduce((s, d) => s + (d.duration || 0), 0);
-      case "stations":
-        return (block.stationCount || 0) * (block.rotationMinutes || 0);
-      default:
-        return block.duration || 0;
-    }
   };
 
   return (

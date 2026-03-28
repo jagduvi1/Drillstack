@@ -4,6 +4,7 @@ import { useTranslation } from "react-i18next";
 import { getDrill, createDrill, updateDrill, checkSimilarity } from "../api/drills";
 import { generateDrill } from "../api/ai";
 import DebugPanel from "../components/common/DebugPanel";
+import useDebugPanel from "../hooks/useDebugPanel";
 import { FiZap, FiSave, FiX, FiPlus, FiTrash2, FiAlertCircle, FiCode } from "react-icons/fi";
 
 const EMPTY_DRILL = {
@@ -32,8 +33,7 @@ export default function DrillFormPage() {
   const [generated, setGenerated] = useState(false);
   const [similarityWarning, setSimilarityWarning] = useState(null);
   const [checking, setChecking] = useState(false);
-  const [debugOpen, setDebugOpen] = useState(false);
-  const [debugEntries, setDebugEntries] = useState([]);
+  const { debugOpen, debugEntries, toggleDebug, addDebugEntry } = useDebugPanel();
   const originalDrill = useRef(null);
 
   useEffect(() => {
@@ -69,10 +69,7 @@ export default function DrillFormPage() {
       const res = await generateDrill(aiPrompt, form.sport || undefined);
       const drill = res.data.drill;
       if (res.data.debug) {
-        setDebugEntries((prev) => [
-          ...prev,
-          { label: "Drill Generation", debug: res.data.debug },
-        ]);
+        addDebugEntry("Drill Generation", res.data.debug);
       }
       setForm({
         title: drill.title || "",
@@ -175,7 +172,7 @@ export default function DrillFormPage() {
           <button
             type="button"
             className={`btn ${debugOpen ? "btn-primary" : "btn-secondary"}`}
-            onClick={() => setDebugOpen(!debugOpen)}
+            onClick={toggleDebug}
           >
             <FiCode /> Debug ({debugEntries.length})
           </button>

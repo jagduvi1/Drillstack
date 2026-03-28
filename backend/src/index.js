@@ -23,6 +23,7 @@ app.use("/api/search", require("./routes/search"));
 app.use("/api/ai", require("./routes/ai"));
 app.use("/api/superadmin", require("./routes/superadmin"));
 app.use("/api/notifications", require("./routes/notifications"));
+app.use("/api/tactics", require("./routes/tactics"));
 
 // Health check
 app.get("/api/health", (_req, res) => res.json({ status: "ok" }));
