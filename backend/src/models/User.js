@@ -36,6 +36,15 @@ const userSchema = new mongoose.Schema(
       expiresAt: { type: Date, required: true },
       createdAt: { type: Date, default: Date.now },
     }],
+
+    // ── Email verification ──────────────────────────────────────────────
+    emailVerified: { type: Boolean, default: false },
+    verificationToken: { type: String, default: null },
+    verificationTokenExpires: { type: Date, default: null },
+
+    // ── Password reset ──────────────────────────────────────────────────
+    resetPasswordToken: { type: String, default: null },
+    resetPasswordExpires: { type: Date, default: null },
   },
   { timestamps: true }
 );
@@ -54,6 +63,8 @@ userSchema.methods.toJSON = function () {
   const obj = this.toObject();
   delete obj.password;
   delete obj.refreshTokens;
+  delete obj.verificationToken;
+  delete obj.resetPasswordToken;
   return obj;
 };
 

@@ -23,6 +23,7 @@
     "meilisearch": "^0.44.1",
     "mongoose": "^8.9.2",
     "multer": "^2.1.1",
+    "nodemailer": "^8.0.4",
     "openai": "^4.77.0"
   },
   "devDependencies": {

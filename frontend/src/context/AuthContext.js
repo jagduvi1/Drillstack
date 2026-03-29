@@ -32,6 +32,9 @@ export function AuthProvider({ children }) {
 
   const register = useCallback(async (data) => {
     const res = await authApi.register(data);
+    if (res.data.emailVerificationRequired) {
+      return { emailVerificationRequired: true };
+    }
     localStorage.setItem("token", res.data.token);
     localStorage.setItem("refreshToken", res.data.refreshToken);
     setUser(res.data.user);

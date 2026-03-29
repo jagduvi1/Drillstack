@@ -56,6 +56,9 @@ export default function LoginPage() {
           </button>
         </form>
         <p className="text-sm text-muted mt-1">
+          <Link to="/forgot-password">{t("auth.forgotPassword")}</Link>
+        </p>
+        <p className="text-sm text-muted mt-1">
           {t("auth.noAccount")} <Link to="/register">{t("auth.register")}</Link>
         </p>
       </div>
