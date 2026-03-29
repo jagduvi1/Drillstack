@@ -11,10 +11,18 @@ const { resetAiUsageIfNeeded } = require("../utils/resetAiUsage");
  */
 function getEffectivePlan(user) {
   if (user.trialPlan && user.trialEndsAt && new Date(user.trialEndsAt) > new Date()) {
-    return user.trialPlan; // Trial is active
+    return user.trialPlan;
   }
   return user.plan || "starter";
 }
+
+/** Resource counter map — add new resources here */
+const resourceCounters = {
+  drills: (userId) => Drill.countDocuments({ createdBy: userId }),
+  sessions: (userId) => TrainingSession.countDocuments({ createdBy: userId }),
+  plans: (userId) => PeriodPlan.countDocuments({ createdBy: userId }),
+  groups: (userId) => Group.countDocuments({ "members.user": userId, createdBy: userId }),
+};
 
 /**
  * Check if creating a new resource would exceed the user's plan limit.
@@ -24,30 +32,14 @@ function checkLimit(resource) {
   return async (req, res, next) => {
     try {
       const plan = getEffectivePlan(req.user);
-      const limit = getLimit(plan, resource);
 
       if (isUnlimited(plan, resource)) return next();
 
-      let count = 0;
-      switch (resource) {
-        case "drills":
-          count = await Drill.countDocuments({ createdBy: req.user._id });
-          break;
-        case "sessions":
-          count = await TrainingSession.countDocuments({ createdBy: req.user._id });
-          break;
-        case "plans":
-          count = await PeriodPlan.countDocuments({ createdBy: req.user._id });
-          break;
-        case "groups":
-          count = await Group.countDocuments({
-            "members.user": req.user._id,
-            createdBy: req.user._id,
-          });
-          break;
-        default:
-          return next();
-      }
+      const counter = resourceCounters[resource];
+      if (!counter) return next();
+
+      const limit = getLimit(plan, resource);
+      const count = await counter(req.user._id);
 
       if (count >= limit) {
         const { getPlan } = require("../config/plans");
@@ -81,7 +73,6 @@ async function checkAiLimit(req, res, next) {
 
     const user = await User.findById(req.user._id);
 
-    // Reset counter if a month has passed
     if (resetAiUsageIfNeeded(user)) {
       await user.save();
     }

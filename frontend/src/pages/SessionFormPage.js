@@ -6,10 +6,12 @@ import { suggestSession } from "../api/ai";
 import BlockList from "../components/sessions/BlockList";
 import DrillPickerModal from "../components/sessions/DrillPickerModal";
 import DrillPreviewModal from "../components/sessions/DrillPreviewModal";
+import SessionAiPanel from "../components/sessions/SessionAiPanel";
+import SessionAiPreview from "../components/sessions/SessionAiPreview";
 import DebugPanel from "../components/common/DebugPanel";
 import useDebugPanel from "../hooks/useDebugPanel";
 import { useGroups } from "../context/GroupContext";
-import { FiSave, FiX, FiZap, FiLoader, FiCode } from "react-icons/fi";
+import { FiSave, FiX, FiZap, FiCode } from "react-icons/fi";
 
 const EMPTY_SESSION = {
   title: "",
@@ -318,181 +320,32 @@ export default function SessionFormPage() {
 
       {/* AI Generation panel */}
       {mode === "ai" && !aiPreview && (
-        <div className="card ai-session-panel mb-1">
-          <h3 style={{ marginBottom: "0.75rem" }}>{t("sessions.describeSession")}</h3>
-          <p className="text-sm text-muted" style={{ marginBottom: "1rem" }}>
-            {t("sessions.describeSessionHint")}
-          </p>
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "0.75rem" }}>
-            <div className="form-group">
-              <label className="text-sm">{t("sessions.sportLabel")}</label>
-              <input
-                className="form-control"
-                placeholder={t("sessions.sportPlaceholder")}
-                value={form.sport}
-                onChange={(e) => setForm((prev) => ({ ...prev, sport: e.target.value }))}
-              />
-            </div>
-            <div className="form-group">
-              <label className="text-sm">{t("sessions.numberOfPlayers")}</label>
-              <input
-                className="form-control"
-                type="number"
-                placeholder="e.g. 16"
-                value={aiNumPlayers}
-                onChange={(e) => setAiNumPlayers(e.target.value)}
-              />
-            </div>
-            <div className="form-group">
-              <label className="text-sm">{t("sessions.totalTime")}</label>
-              <input
-                className="form-control"
-                type="number"
-                placeholder="e.g. 90"
-                value={aiTotalMinutes}
-                onChange={(e) => setAiTotalMinutes(e.target.value)}
-              />
-            </div>
-          </div>
-          <textarea
-            className="form-control"
-            placeholder={t("sessions.sessionDescPlaceholder")}
-            value={aiPrompt}
-            onChange={(e) => setAiPrompt(e.target.value)}
-            style={{ minHeight: 100 }}
-          />
-          <div className="flex gap-sm mt-1">
-            <button
-              type="button"
-              className="btn btn-primary"
-              onClick={handleGenerate}
-              disabled={generating || !aiPrompt.trim()}
-            >
-              {generating ? (
-                <><FiLoader className="spin" /> {t("sessions.generating")}</>
-              ) : (
-                <><FiZap /> {t("sessions.generateSession")}</>
-              )}
-            </button>
-            <button
-              type="button"
-              className="btn btn-secondary"
-              onClick={() => setMode("manual")}
-            >
-              {t("sessions.switchToManual")}
-            </button>
-          </div>
-        </div>
+        <SessionAiPanel
+          sport={form.sport}
+          onSportChange={(v) => setForm((prev) => ({ ...prev, sport: v }))}
+          aiPrompt={aiPrompt}
+          onAiPromptChange={setAiPrompt}
+          aiNumPlayers={aiNumPlayers}
+          onAiNumPlayersChange={setAiNumPlayers}
+          aiTotalMinutes={aiTotalMinutes}
+          onAiTotalMinutesChange={setAiTotalMinutes}
+          generating={generating}
+          onGenerate={handleGenerate}
+          onSwitchToManual={() => setMode("manual")}
+        />
       )}
 
       {/* AI Preview */}
-      {mode === "ai" && aiPreview && (() => {
-        const drillMap = {};
-        for (const d of aiDrills) {
-          drillMap[d.title.toLowerCase()] = d;
-        }
-
-        const renderDrillName = (title) => {
-          const match = drillMap[title.toLowerCase()];
-          if (match) {
-            return (
-              <button
-                type="button"
-                className="drill-name-link"
-                onClick={() => setPreviewDrillId(match._id)}
-              >
-                {title}
-              </button>
-            );
-          }
-          return (
-            <span>
-              <span style={{ color: "var(--color-danger)", textDecoration: "line-through" }}>
-                {title}
-              </span>
-              <span style={{ color: "var(--color-danger)", fontSize: "0.75rem" }}> ({t("sessions.notInSystem")})</span>
-            </span>
-          );
-        };
-
-        return (
-        <div className="card ai-session-panel mb-1">
-          <h3 style={{ marginBottom: "0.5rem" }}>{aiPreview.title || t("sessions.aiSessionPlan")}</h3>
-          {aiPreview.description && (
-            <p className="text-sm text-muted" style={{ marginBottom: "0.75rem" }}>
-              {aiPreview.description}
-            </p>
-          )}
-          {(aiPreview.blocks || []).map((block, i) => (
-            <div key={i} className="ai-preview-block">
-              <div className="flex-between">
-                <strong className="text-sm">{block.label || block.type}</strong>
-                <span className="tag">{block.type}</span>
-              </div>
-              {block.type === "drills" && block.drillTitles && (
-                <div className="text-sm" style={{ marginTop: "0.25rem" }}>
-                  {block.drillTitles.map((title, j) => (
-                    <span key={j}>
-                      {j > 0 && ", "}
-                      {renderDrillName(title)}
-                    </span>
-                  ))}
-                </div>
-              )}
-              {block.type === "stations" && (
-                <div className="text-sm" style={{ marginTop: "0.25rem" }}>
-                  <span className="text-muted">{t("sessions.stationInfo", { count: block.stationCount, minutes: block.rotationMinutes })}</span>
-                  {block.stationDrills && (
-                    <div style={{ marginTop: "0.25rem" }}>
-                      {block.stationDrills.map((s, j) => (
-                        <div key={j} style={{ marginLeft: "0.5rem" }}>
-                          <span className="text-muted">{t("sessions.station", { number: s.stationNumber })}: </span>
-                          {renderDrillName(s.drillTitle || "")}
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              )}
-              {block.type === "matchplay" && (
-                <p className="text-sm text-muted">
-                  {block.matchDescription} {block.rules && `(${block.rules})`} — {block.duration}{" "}
-                  min
-                </p>
-              )}
-              {block.type === "break" && (
-                <p className="text-sm text-muted">{block.duration} min</p>
-              )}
-              {block.type === "custom" && block.customContent && (
-                <p className="text-sm text-muted">{block.customContent}</p>
-              )}
-            </div>
-          ))}
-          <div className="flex gap-sm mt-1">
-            <button type="button" className="btn btn-primary" onClick={importAiPlan}>
-              {t("sessions.useThisPlan")}
-            </button>
-            <button
-              type="button"
-              className="btn btn-secondary"
-              onClick={() => setAiPreview(null)}
-            >
-              {t("sessions.regenerate")}
-            </button>
-            <button
-              type="button"
-              className="btn btn-secondary"
-              onClick={() => {
-                setAiPreview(null);
-                setMode("manual");
-              }}
-            >
-              {t("common.cancel")}
-            </button>
-          </div>
-        </div>
-        );
-      })()}
+      {mode === "ai" && aiPreview && (
+        <SessionAiPreview
+          aiPreview={aiPreview}
+          aiDrills={aiDrills}
+          onAccept={importAiPlan}
+          onRegenerate={() => setAiPreview(null)}
+          onCancel={() => { setAiPreview(null); setMode("manual"); }}
+          onPreviewDrill={(drillId) => setPreviewDrillId(drillId)}
+        />
+      )}
 
       {/* Manual builder form */}
       {mode === "manual" && (

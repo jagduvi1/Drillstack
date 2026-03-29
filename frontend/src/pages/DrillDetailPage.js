@@ -7,7 +7,11 @@ import { getDrill, deleteDrill, uploadDiagram, addReflection, retryEmbedding, to
 import { refineDrill, generateDiagram } from "../api/ai";
 import DebugPanel from "../components/common/DebugPanel";
 import useDebugPanel from "../hooks/useDebugPanel";
-import { FiEdit, FiTrash2, FiSend, FiMessageCircle, FiLoader, FiAlertCircle, FiRefreshCw, FiImage, FiStar, FiCopy, FiGitBranch, FiUser, FiCheck, FiLink, FiCode, FiTarget } from "react-icons/fi";
+import DrillVersionsPanel from "../components/drills/DrillVersionsPanel";
+import DrillEmbeddingStatus from "../components/drills/DrillEmbeddingStatus";
+import SimilarDrillsBanner from "../components/drills/SimilarDrillsBanner";
+import DrillChatPanel from "../components/drills/DrillChatPanel";
+import { FiEdit, FiTrash2, FiMessageCircle, FiLoader, FiAlertCircle, FiImage, FiStar, FiCopy, FiGitBranch, FiUser, FiCode, FiTarget } from "react-icons/fi";
 
 export default function DrillDetailPage() {
   const { t } = useTranslation();
@@ -276,128 +280,29 @@ export default function DrillDetailPage() {
 
         {/* Versions panel */}
         {showVersions && versions && (
-          <div className="card mb-1">
-            <h3>{t("drills.versions")}</h3>
-            <div className="versions-list">
-              {versions.versions.map((v) => (
-                <div key={v._id} className={`version-item ${v._id === id ? "version-item-current" : ""}`}>
-                  <div className="flex-between">
-                    <div>
-                      <Link to={`/drills/${v._id}`}>
-                        <strong>v{v.version}</strong>{v.versionName ? ` — ${v.versionName}` : ` — ${v.title}`}
-                      </Link>
-                      <span className="text-sm text-muted" style={{ marginLeft: "0.5rem" }}>
-                        by {v.forkedBy?.name || v.createdBy?.name || "Unknown"}
-                      </span>
-                    </div>
-                    <div className="flex gap-sm">
-                      {versions.defaultVersionId === v._id.toString() ? (
-                        <span className="tag tag-success"><FiCheck /> {t("drills.default")}</span>
-                      ) : (
-                        <button className="btn btn-secondary btn-sm" onClick={() => handleSetDefault(v._id)}>
-                          {t("drills.setAsDefault")}
-                        </button>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
+          <DrillVersionsPanel
+            versions={versions}
+            currentDrillId={id}
+            defaultVersionId={versions.defaultVersionId}
+            onSetDefault={handleSetDefault}
+          />
         )}
 
         {/* Embedding status with progress */}
-        {drill.embeddingStatus && drill.embeddingStatus !== "indexed" && (
-          <div className="embedding-progress-detail mb-1">
-            {drill.embeddingStatus === "failed" ? (
-              <div className="flex-between">
-                <span>
-                  <FiAlertCircle style={{ color: "var(--color-danger)" }} /> {t("drills.searchIndexingFailed")}{isAdmin && drill.embeddingError ? `: ${drill.embeddingError}` : ""}
-                </span>
-                <button className="btn btn-secondary btn-sm" onClick={handleRetryEmbedding}>
-                  <FiRefreshCw /> {t("drills.retry")}
-                </button>
-              </div>
-            ) : (
-              <>
-                <div className="flex-between">
-                  <span>
-                    <FiLoader className="spin" />{" "}
-                    {drill.embeddingStatus === "pending"
-                      ? t("drills.queuedForIndexing")
-                      : t("drills.indexingForSearch")
-                    }
-                  </span>
-                  <span className="text-sm text-muted embedding-timer">
-                    {embeddingElapsed > 0 && `${embeddingElapsed}s`}
-                    {embeddingElapsed < 25 && ` · ~${Math.max(0, 25 - embeddingElapsed)}s remaining`}
-                  </span>
-                </div>
-                <div className="progress-bar" style={{ marginTop: "0.5rem" }}>
-                  <div
-                    className="progress-bar-fill"
-                    style={{ width: `${Math.min(95, (embeddingElapsed / 25) * 100)}%` }}
-                  />
-                </div>
-                <p className="text-sm text-muted" style={{ marginTop: "0.35rem" }}>
-                  {t("drills.freeTierNote")}
-                </p>
-              </>
-            )}
-          </div>
-        )}
+        <DrillEmbeddingStatus
+          drill={drill}
+          embeddingElapsed={embeddingElapsed}
+          isAdmin={isAdmin}
+          onRetry={handleRetryEmbedding}
+        />
 
         {/* Similar drills found — post-creation deduplication */}
-        {similarDrills && similarDrills.length > 0 && (
-          <div className="card mb-1 similar-drills-banner">
-            <div className="flex gap-sm" style={{ alignItems: "flex-start" }}>
-              <FiLink style={{ marginTop: "0.2rem", flexShrink: 0, color: "var(--color-primary)" }} />
-              <div style={{ flex: 1 }}>
-                <strong>{t("drills.similarDrillsExist")}</strong>
-                <p className="text-sm text-muted" style={{ margin: "0.25rem 0 0.75rem" }}>
-                  {t("drills.similarDrillsDesc")}
-                </p>
-                {similarDrills.map((s) => (
-                  <div key={s._id} className="similar-drill-item">
-                    <div style={{ flex: 1 }}>
-                      <Link to={`/drills/${s._id}`}>
-                        <strong>{s.title}</strong>
-                      </Link>
-                      <span className="text-sm text-muted" style={{ marginLeft: "0.5rem" }}>
-                        {t("drills.similar", { pct: Math.round(s.similarity * 100) })}
-                      </span>
-                      {s.description && (
-                        <p className="text-sm text-muted" style={{ margin: "0.15rem 0 0" }}>
-                          {s.description.slice(0, 100)}{s.description.length > 100 ? "..." : ""}
-                        </p>
-                      )}
-                    </div>
-                    <button
-                      className="btn btn-primary btn-sm"
-                      onClick={() => handleConvertToVersion(s._id)}
-                    >
-                      <FiGitBranch /> {t("drills.addAsVersion")}
-                    </button>
-                  </div>
-                ))}
-                <div className="flex gap-sm mt-1">
-                  <button
-                    className="btn btn-secondary btn-sm"
-                    onClick={() => { setSimilarDrills(null); setSimilarDismissed(true); }}
-                  >
-                    {t("drills.keepAsSeparate")}
-                  </button>
-                  <button
-                    className="btn btn-danger btn-sm"
-                    onClick={handleDiscardDrill}
-                  >
-                    <FiTrash2 /> {t("drills.discardMyDrill")}
-                  </button>
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
+        <SimilarDrillsBanner
+          similarDrills={similarDrills}
+          onConvertToVersion={handleConvertToVersion}
+          onDismiss={() => { setSimilarDrills(null); setSimilarDismissed(true); }}
+          onDiscard={handleDiscardDrill}
+        />
 
         {/* Debug Panel */}
         {debugOpen && debugEntries.length > 0 && (
@@ -531,38 +436,15 @@ export default function DrillDetailPage() {
 
       {/* AI Chat Panel */}
       {showChat && (
-        <div className="chat-panel">
-          <div className="chat-header">
-            <h3>{t("drills.refineWithAi")}</h3>
-            <p className="text-sm text-muted">{t("drills.tellAiChange")}</p>
-          </div>
-          <div className="chat-messages">
-            {drill.aiConversation?.map((msg, i) => (
-              <div key={i} className={`chat-msg chat-msg-${msg.role}`}>
-                <div className="chat-msg-label">{msg.role === "user" ? t("common.you") : t("common.ai")}</div>
-                <div className="chat-msg-content">{msg.content}</div>
-              </div>
-            ))}
-            <div ref={chatEndRef} />
-          </div>
-          <div className="chat-input">
-            <textarea
-              className="form-control"
-              placeholder={t("drills.chatPlaceholder")}
-              value={chatMessage}
-              onChange={(e) => setChatMessage(e.target.value)}
-              onKeyDown={handleChatKeyDown}
-              rows={2}
-            />
-            <button
-              className="btn btn-primary"
-              onClick={handleChatSend}
-              disabled={chatLoading || !chatMessage.trim()}
-            >
-              <FiSend /> {chatLoading ? "..." : t("drills.send")}
-            </button>
-          </div>
-        </div>
+        <DrillChatPanel
+          drill={drill}
+          chatMessage={chatMessage}
+          chatLoading={chatLoading}
+          onMessageChange={setChatMessage}
+          onSend={handleChatSend}
+          onKeyDown={handleChatKeyDown}
+          chatEndRef={chatEndRef}
+        />
       )}
     </div>
   );

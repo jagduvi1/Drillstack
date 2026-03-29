@@ -5,6 +5,7 @@ import { getDrill, createDrill, updateDrill, checkSimilarity } from "../api/dril
 import { generateDrill } from "../api/ai";
 import DebugPanel from "../components/common/DebugPanel";
 import useDebugPanel from "../hooks/useDebugPanel";
+import useFormState from "../hooks/useFormState";
 import { FiZap, FiSave, FiX, FiPlus, FiTrash2, FiAlertCircle, FiCode } from "react-icons/fi";
 
 const EMPTY_DRILL = {
@@ -25,7 +26,8 @@ export default function DrillFormPage() {
   const navigate = useNavigate();
   const isEdit = Boolean(id);
 
-  const [form, setForm] = useState(EMPTY_DRILL);
+  const { form, setForm, set, setNested, addToList, updateInList, removeFromList } = useFormState(EMPTY_DRILL);
+  const setSetup = (field, value) => setNested("setup", field, value);
   const [aiPrompt, setAiPrompt] = useState("");
   const [loading, setLoading] = useState(false);
   const [generating, setGenerating] = useState(false);
@@ -57,9 +59,7 @@ export default function DrillFormPage() {
     }
   }, [id, isEdit]);
 
-  const set = (field, value) => setForm((prev) => ({ ...prev, [field]: value }));
-  const setSetup = (field, value) =>
-    setForm((prev) => ({ ...prev, setup: { ...prev.setup, [field]: value } }));
+  // setSetup is aliased from setNested("setup", field, value) via useFormState
 
   const handleGenerate = async () => {
     if (!aiPrompt.trim()) return;
@@ -155,14 +155,9 @@ export default function DrillFormPage() {
     }
   };
 
-  const addListItem = (field) => set(field, [...form[field], ""]);
-  const updateListItem = (field, idx, value) => {
-    const updated = [...form[field]];
-    updated[idx] = value;
-    set(field, updated);
-  };
-  const removeListItem = (field, idx) =>
-    set(field, form[field].filter((_, i) => i !== idx));
+  const addListItem = (field) => addToList(field, "");
+  const updateListItem = (field, idx, value) => updateInList(field, idx, value);
+  const removeListItem = (field, idx) => removeFromList(field, idx);
 
   return (
     <div>
