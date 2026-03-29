@@ -153,6 +153,8 @@
     "unsavedChangesMessage": "Du har osparade AI-förbättringar. Vill du spara dem innan du lämnar?",
     "leaveWithoutSaving": "Lämna utan att spara",
     "discardChanges": "Kassera AI-förbättringarna?",
+    "drillGenerated": "Övningen skapad! Du kan förfina den vidare eller redigera fälten direkt.",
+    "aiThinking": "Tänker...",
     "readOnlyBanner": "Du visar denna övning i skrivskyddat läge. Kopiera den för att redigera, generera diagram eller ladda upp egna bilder.",
     "diagramsReadOnly": "Kopiera denna övning för att generera AI-diagram eller ladda upp egna.",
     "versions": "Versioner",

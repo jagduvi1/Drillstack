@@ -153,6 +153,8 @@
     "unsavedChangesMessage": "You have unsaved AI refinements. Would you like to save them before leaving?",
     "leaveWithoutSaving": "Leave without saving",
     "discardChanges": "Discard the AI refinements?",
+    "drillGenerated": "Drill generated! You can refine it further or edit the fields directly.",
+    "aiThinking": "Thinking...",
     "readOnlyBanner": "You are viewing this drill in read-only mode. Fork it to make edits, generate diagrams, or add your own images.",
     "diagramsReadOnly": "Fork this drill to generate AI diagrams or upload your own.",
     "versions": "Versions",
