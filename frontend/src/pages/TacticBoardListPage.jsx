@@ -1,6 +1,6 @@
 import { Link } from "react-router-dom";
 import { useTranslation } from "react-i18next";
-import { FiPlus, FiTrash2 } from "react-icons/fi";
+import { FiPlus, FiTrash2, FiTarget } from "react-icons/fi";
 import useFetch from "../hooks/useFetch";
 import { getTactics, deleteTactic } from "../api/tactics";
 
@@ -41,6 +41,11 @@ export default function TacticBoardListPage() {
                 <strong>{b.title || t("tactics.untitled")}</strong>
                 <div className="text-sm text-muted" style={{ marginTop: "0.25rem" }}>
                   {b.sport && <span className="tag" style={{ marginRight: "0.25rem" }}>{b.sport}</span>}
+                  {b.drill?.title && (
+                    <span className="tag" style={{ marginRight: "0.25rem", background: "#dbeafe", color: "#1e40af" }}>
+                      <FiTarget style={{ fontSize: "0.65rem", marginRight: "0.15rem" }} />{b.drill.title}
+                    </span>
+                  )}
                   {b.fieldType === "half" ? t("tactics.fieldHalf") : b.fieldType === "third" ? t("tactics.fieldThird") : t("tactics.fieldFull")}
                   {" · "}
                   {b.homeTeam?.formation || "4-4-2"} vs {b.awayTeam?.formation || "4-4-2"}

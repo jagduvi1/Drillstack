@@ -5,7 +5,7 @@ import {
   FiArrowLeft, FiSave, FiMousePointer, FiArrowRight, FiMoreHorizontal,
   FiTrash2, FiPlus, FiMinus, FiPlay, FiPause, FiSkipBack, FiSkipForward,
   FiRepeat, FiCircle, FiTriangle, FiCpu, FiX, FiSend, FiZoomIn, FiZoomOut,
-  FiMaximize, FiMinimize,
+  FiMaximize, FiMinimize, FiTarget, FiEye, FiEdit3,
 } from "react-icons/fi";
 import TacticCanvas, {
   FORMATIONS, DRAW_TOOLS, createInitialStep, buildFormationPieces,
@@ -64,6 +64,8 @@ export default function TacticBoardPage() {
   const [homeColor, setHomeColor] = useState("#2563eb");
   const [awayColor, setAwayColor] = useState("#ef4444");
   const [drillId, setDrillId] = useState(null);
+  const [drillTitle, setDrillTitle] = useState("");
+  const [isOwner, setIsOwner] = useState(isNew); // New boards are owned by creator
   const [loading, setLoading] = useState(!isNew);
 
   // ── UI state ────────────────────────────────────────────────────────────
@@ -72,6 +74,9 @@ export default function TacticBoardPage() {
   const [isSaving, setIsSaving] = useState(false);
   const [saveMsg, setSaveMsg] = useState("");
   const [zoom, setZoom] = useState(1);
+
+  // ── Coach mode (interactive whiteboard — no editing, just show & draw) ──
+  const [coachMode, setCoachMode] = useState(false);
 
   // ── Fullscreen presentation mode ────────────────────────────────────────
   const [isFullscreen, setIsFullscreen] = useState(false);
@@ -138,7 +143,10 @@ export default function TacticBoardPage() {
         setAwayFormation(b.awayTeam?.formation || getDefaultFormation(loadedSport));
         setHomeColor(b.homeTeam?.color || "#2563eb");
         setAwayColor(b.awayTeam?.color || "#ef4444");
-        setDrillId(b.drill || null);
+        setDrillId(b.drill?._id || b.drill || null);
+        setDrillTitle(b.drill?.title || "");
+        setIsOwner(!!b.isOwner);
+        if (!b.isOwner) setCoachMode(true); // Non-owners open in coach mode
         setLoading(false);
       })
       .catch(() => navigate("/tactics"));
@@ -498,7 +506,7 @@ export default function TacticBoardPage() {
     if (drillDesc) {
       autoGenTriggered.current = true;
       if (drillTitle) setTitle(drillTitle);
-      if (drillIdParam) setDrillId(drillIdParam);
+      if (drillIdParam) { setDrillId(drillIdParam); if (drillTitle) setDrillTitle(drillTitle); }
       setAiPrompt(drillDesc);
       setShowAiModal(true);
     }
@@ -555,26 +563,60 @@ export default function TacticBoardPage() {
       {/* Header — hidden in fullscreen */}
       {!isFullscreen && (
       <div className="tactic-header">
-        <Link to="/tactics" className="btn btn-secondary btn-sm"><FiArrowLeft /> <span className="tactic-hide-xs">{t("tactics.title")}</span></Link>
-        <input className="tactic-title-input" value={title} onChange={(e) => setTitle(e.target.value)} placeholder={t("tactics.untitled")} />
-        <div className="tactic-header-actions">
-          {saveMsg && <span className="text-sm text-muted">{saveMsg}</span>}
-          {debugEntries.length > 0 && (
-            <button className={`btn btn-sm ${debugOpen ? "btn-primary" : "btn-secondary"}`} onClick={toggleDebug}>
-              <FiCpu /> <span className="tactic-hide-xs">Debug ({debugEntries.length})</span>
-            </button>
-          )}
-          <button className="btn btn-secondary btn-sm" onClick={toggleFullscreen} title={`${t("tactics.present")} (F)`}>
-            <FiMaximize />
-          </button>
-          <button className="btn btn-primary btn-sm" onClick={handleSave} disabled={isSaving}>
-            <FiSave /> {isSaving ? t("common.saving") : t("common.save")}
-          </button>
-        </div>
+        {coachMode ? (
+          <>
+            {isOwner && (
+              <button className="btn btn-secondary btn-sm" onClick={() => setCoachMode(false)}>
+                <FiEdit3 /> <span className="tactic-hide-xs">{t("tactics.editMode")}</span>
+              </button>
+            )}
+            {!isOwner && (
+              <Link to="/tactics" className="btn btn-secondary btn-sm"><FiArrowLeft /> <span className="tactic-hide-xs">{t("tactics.title")}</span></Link>
+            )}
+            <span className="tactic-title-readonly">{title || t("tactics.untitled")}</span>
+            {drillId && (
+              <Link to={`/drills/${drillId}`} className="tactic-drill-link" title={drillTitle || t("tactics.linkedDrill")}>
+                <FiTarget /> <span className="tactic-hide-xs">{drillTitle || t("tactics.linkedDrill")}</span>
+              </Link>
+            )}
+            <div className="tactic-header-actions">
+              <button className="btn btn-secondary btn-sm" onClick={toggleFullscreen} title={`${t("tactics.present")} (F)`}>
+                <FiMaximize />
+              </button>
+            </div>
+          </>
+        ) : (
+          <>
+            <Link to="/tactics" className="btn btn-secondary btn-sm"><FiArrowLeft /> <span className="tactic-hide-xs">{t("tactics.title")}</span></Link>
+            <input className="tactic-title-input" value={title} onChange={(e) => setTitle(e.target.value)} placeholder={t("tactics.untitled")} />
+            {drillId && (
+              <Link to={`/drills/${drillId}`} className="tactic-drill-link" title={drillTitle || t("tactics.linkedDrill")}>
+                <FiTarget /> <span className="tactic-hide-xs">{drillTitle || t("tactics.linkedDrill")}</span>
+              </Link>
+            )}
+            <div className="tactic-header-actions">
+              {saveMsg && <span className="text-sm text-muted">{saveMsg}</span>}
+              {debugEntries.length > 0 && (
+                <button className={`btn btn-sm ${debugOpen ? "btn-primary" : "btn-secondary"}`} onClick={toggleDebug}>
+                  <FiCpu /> <span className="tactic-hide-xs">Debug ({debugEntries.length})</span>
+                </button>
+              )}
+              <button className="btn btn-secondary btn-sm" onClick={() => setCoachMode(true)} title={t("tactics.coachMode")}>
+                <FiEye /> <span className="tactic-hide-xs">{t("tactics.coachMode")}</span>
+              </button>
+              <button className="btn btn-secondary btn-sm" onClick={toggleFullscreen} title={`${t("tactics.present")} (F)`}>
+                <FiMaximize />
+              </button>
+              <button className="btn btn-primary btn-sm" onClick={handleSave} disabled={isSaving}>
+                <FiSave /> {isSaving ? t("common.saving") : t("common.save")}
+              </button>
+            </div>
+          </>
+        )}
       </div>
       )}
 
-      {/* Toolbar — row 1: drawing tools + pieces */}
+      {/* Toolbar — row 1: drawing tools (+ pieces in edit mode) */}
       {!isFullscreen && <div className="tactic-toolbar tactic-toolbar-row1">
         <div className="tactic-tool-group">
           <button className={`tactic-tool-btn ${tool === "select" ? "active" : ""}`} onClick={() => setTool("select")} title={`${t("tactics.tools.select")} (1)`}>
@@ -600,27 +642,29 @@ export default function TacticBoardPage() {
           </button>
         </div>
 
-        <div className="tactic-tool-divider" />
-
-        <div className="tactic-player-count">
-          <span className="tactic-color-dot" style={{ background: homeColor }} />
-          <button className="tactic-count-btn" onClick={() => removePieceFromTeam("home")} disabled={homePlayers.length <= 1}><FiMinus /></button>
-          <span className="tactic-count-num">{homePlayers.length}</span>
-          <button className="tactic-count-btn" onClick={() => addPiece("home")}><FiPlus /></button>
-        </div>
-        <div className="tactic-player-count">
-          <span className="tactic-color-dot" style={{ background: awayColor }} />
-          <button className="tactic-count-btn" onClick={() => removePieceFromTeam("away")} disabled={awayPlayers.length <= 1}><FiMinus /></button>
-          <span className="tactic-count-num">{awayPlayers.length}</span>
-          <button className="tactic-count-btn" onClick={() => addPiece("away")}><FiPlus /></button>
-        </div>
-
-        <button className="tactic-tool-btn" onClick={addBall} disabled={hasBall} title={t("tactics.addBall")}>
-          <FiCircle /> <span className="tactic-hide-xs">{t("tactics.ball")}</span>
-        </button>
-        <button className="tactic-tool-btn" onClick={addCone} title={t("tactics.addCone")}>
-          <FiTriangle /> <span className="tactic-hide-xs">{t("tactics.cone")}</span>
-        </button>
+        {!coachMode && (
+          <>
+            <div className="tactic-tool-divider" />
+            <div className="tactic-player-count">
+              <span className="tactic-color-dot" style={{ background: homeColor }} />
+              <button className="tactic-count-btn" onClick={() => removePieceFromTeam("home")} disabled={homePlayers.length <= 1}><FiMinus /></button>
+              <span className="tactic-count-num">{homePlayers.length}</span>
+              <button className="tactic-count-btn" onClick={() => addPiece("home")}><FiPlus /></button>
+            </div>
+            <div className="tactic-player-count">
+              <span className="tactic-color-dot" style={{ background: awayColor }} />
+              <button className="tactic-count-btn" onClick={() => removePieceFromTeam("away")} disabled={awayPlayers.length <= 1}><FiMinus /></button>
+              <span className="tactic-count-num">{awayPlayers.length}</span>
+              <button className="tactic-count-btn" onClick={() => addPiece("away")}><FiPlus /></button>
+            </div>
+            <button className="tactic-tool-btn" onClick={addBall} disabled={hasBall} title={t("tactics.addBall")}>
+              <FiCircle /> <span className="tactic-hide-xs">{t("tactics.ball")}</span>
+            </button>
+            <button className="tactic-tool-btn" onClick={addCone} title={t("tactics.addCone")}>
+              <FiTriangle /> <span className="tactic-hide-xs">{t("tactics.cone")}</span>
+            </button>
+          </>
+        )}
 
         <div className="tactic-tool-divider" />
 
@@ -630,13 +674,15 @@ export default function TacticBoardPage() {
           <button className="tactic-count-btn" onClick={() => setZoom((z) => Math.min(3, +(z + 0.25).toFixed(2)))} disabled={zoom >= 3}><FiZoomIn /></button>
         </div>
 
-        <button className="tactic-tool-btn tactic-ai-btn" onClick={() => setShowAiModal(true)} title={t("tactics.ai.generate")}>
-          <FiCpu /> <span className="tactic-hide-xs">{t("tactics.ai.generate")}</span>
-        </button>
+        {!coachMode && (
+          <button className="tactic-tool-btn tactic-ai-btn" onClick={() => setShowAiModal(true)} title={t("tactics.ai.generate")}>
+            <FiCpu /> <span className="tactic-hide-xs">{t("tactics.ai.generate")}</span>
+          </button>
+        )}
       </div>}
 
-      {/* Toolbar — row 2: sport, field type, formations, colors */}
-      {!isFullscreen && <div className="tactic-toolbar tactic-toolbar-row2">
+      {/* Toolbar — row 2: sport, field type, formations, colors (edit mode only) */}
+      {!isFullscreen && !coachMode && <div className="tactic-toolbar tactic-toolbar-row2">
         <select className="form-control form-control-sm" value={sport} onChange={(e) => handleSportChange(e.target.value)} style={{ width: "auto", minWidth: 0 }}>
           {Object.entries(SPORT_CONFIGS).map(([key, cfg]) => (
             <option key={key} value={key}>{t(`tactics.sports.${key}`, cfg.label)}</option>
@@ -665,8 +711,8 @@ export default function TacticBoardPage() {
         </div>
       </div>}
 
-      {/* Selected piece bar */}
-      {selectedPiece && !isPlaying && !isFullscreen && (
+      {/* Selected piece bar (edit mode only) */}
+      {selectedPiece && !isPlaying && !isFullscreen && !coachMode && (
         <div className="tactic-selection-bar">
           <span>
             {selectedPiece.type === "ball" ? t("tactics.ball") : selectedPiece.type === "cone" ? t("tactics.cone") : `${t("tactics.player")} ${selectedPiece.label}`}
@@ -717,22 +763,22 @@ export default function TacticBoardPage() {
           {steps.map((step, idx) => (
             <div key={step.id} className={`tactic-step ${idx === currentStepIdx && !isPlaying ? "active" : ""}`}>
               <button className="tactic-step-btn" onClick={() => { setIsPlaying(false); setCurrentStepIdx(idx); }}>{idx + 1}</button>
-              {steps.length > 1 && !isPlaying && (
+              {!coachMode && steps.length > 1 && !isPlaying && (
                 <button className="tactic-step-delete" onClick={() => deleteStep(idx)} title={t("common.delete")}>&times;</button>
               )}
-              {idx < steps.length - 1 && (
+              {!coachMode && idx < steps.length - 1 && (
                 <input type="number" className="tactic-step-duration" value={step.duration / 1000}
                   onChange={(e) => setStepDuration(idx, Math.max(0.5, Number(e.target.value)) * 1000)}
                   title={t("tactics.timeline.duration")} min="0.5" max="10" step="0.5" />
               )}
             </div>
           ))}
-          <button className="tactic-step-add" onClick={addStep} disabled={isPlaying} title={t("tactics.timeline.addStep")}><FiPlus /></button>
+          {!coachMode && <button className="tactic-step-add" onClick={addStep} disabled={isPlaying} title={t("tactics.timeline.addStep")}><FiPlus /></button>}
         </div>
       </div>}
 
-      {/* Hints */}
-      {!isFullscreen && (
+      {/* Hints (edit mode only) */}
+      {!isFullscreen && !coachMode && (
       <div className="tactic-hints text-sm text-muted">
         <span><kbd>Space</kbd> {t("tactics.timeline.play")}/{t("tactics.timeline.pause")}</span>
         <span><kbd>1-6</kbd> {t("tactics.tools.select")}</span>
@@ -741,8 +787,8 @@ export default function TacticBoardPage() {
       </div>
       )}
 
-      {/* AI Debug Panel */}
-      {!isFullscreen && debugOpen && <DebugPanel entries={debugEntries} />}
+      {/* AI Debug Panel (edit mode only) */}
+      {!isFullscreen && !coachMode && debugOpen && <DebugPanel entries={debugEntries} />}
 
       {/* AI Generation / Chat Modal */}
       {showAiModal && (
