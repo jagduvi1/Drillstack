@@ -299,7 +299,6 @@ export default function TacticBoardPage() {
   };
 
   const addBall = () => {
-    if (hasBall) return;
     setSteps((prev) => {
       const next = [...prev];
       const step = { ...next[currentStepIdx] };
@@ -677,7 +676,7 @@ export default function TacticBoardPage() {
               <span className="tactic-count-num">{awayPlayers.length}</span>
               <button className="tactic-count-btn" onClick={() => addPiece("away")}><FiPlus /></button>
             </div>
-            <button className="tactic-tool-btn" onClick={addBall} disabled={hasBall} title={t("tactics.addBall")}>
+            <button className="tactic-tool-btn" onClick={addBall} title={t("tactics.addBall")}>
               <FiCircle /> <span className="tactic-hide-xs">{t("tactics.ball")}</span>
             </button>
             <button className="tactic-tool-btn" onClick={addCone} title={t("tactics.addCone")}>
