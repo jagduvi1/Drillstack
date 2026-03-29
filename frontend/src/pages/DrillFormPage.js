@@ -6,7 +6,8 @@ import { generateDrill, refineDraft } from "../api/ai";
 import DebugPanel from "../components/common/DebugPanel";
 import useDebugPanel from "../hooks/useDebugPanel";
 import useFormState from "../hooks/useFormState";
-import { FiZap, FiSave, FiX, FiPlus, FiTrash2, FiAlertCircle, FiCode, FiMessageCircle, FiSend } from "react-icons/fi";
+import { FiZap, FiSave, FiX, FiPlus, FiTrash2, FiAlertCircle, FiCode, FiMessageCircle } from "react-icons/fi";
+import DrillFormAiChat from "../components/drills/DrillFormAiChat";
 
 const EMPTY_DRILL = {
   title: "",
@@ -392,45 +393,15 @@ export default function DrillFormPage() {
 
         {/* AI Chat Panel (for refining during creation) */}
         {showChat && !isEdit && (
-          <div className="chat-panel">
-            <div className="chat-header">
-              <h3>{t("drills.refineWithAi")}</h3>
-              <p className="text-sm text-muted">{t("drills.tellAiChange")}</p>
-            </div>
-            <div className="chat-messages">
-              {chatHistory.map((msg, i) => (
-                <div key={i} className={`chat-msg chat-msg-${msg.role}`}>
-                  <div className="chat-msg-label">{msg.role === "user" ? t("common.you") : t("common.ai")}</div>
-                  <div className="chat-msg-content">{msg.content}</div>
-                </div>
-              ))}
-              {chatLoading && (
-                <div className="chat-msg chat-msg-assistant">
-                  <div className="chat-msg-label">{t("common.ai")}</div>
-                  <div className="chat-msg-content">{t("drills.aiThinking")}</div>
-                </div>
-              )}
-              <div ref={chatEndRef} />
-            </div>
-            <div className="chat-input">
-              <textarea
-                className="form-control"
-                placeholder={t("drills.chatPlaceholder")}
-                value={chatMessage}
-                onChange={(e) => setChatMessage(e.target.value)}
-                onKeyDown={handleChatKeyDown}
-                rows={2}
-              />
-              <button
-                type="button"
-                className="btn btn-primary"
-                onClick={handleChatSend}
-                disabled={chatLoading || !chatMessage.trim()}
-              >
-                <FiSend /> {chatLoading ? "..." : t("drills.send")}
-              </button>
-            </div>
-          </div>
+          <DrillFormAiChat
+            chatHistory={chatHistory}
+            chatMessage={chatMessage}
+            chatLoading={chatLoading}
+            onMessageChange={(e) => setChatMessage(e.target.value)}
+            onSend={handleChatSend}
+            onKeyDown={handleChatKeyDown}
+            chatEndRef={chatEndRef}
+          />
         )}
         </div>
       )}

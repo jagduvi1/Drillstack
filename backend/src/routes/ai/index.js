@@ -1,8 +1,7 @@
 const router = require("express").Router();
-const rateLimit = require("express-rate-limit");
+const { aiLimiter } = require("../../utils/rateLimiters");
 
 // ── Shared rate limiter ─────────────────────────────────────────────────────
-const aiLimiter = rateLimit({ windowMs: 15 * 60 * 1000, max: 100, standardHeaders: true, legacyHeaders: false });
 router.use(aiLimiter);
 
 // ── Mount sub-routers ───────────────────────────────────────────────────────

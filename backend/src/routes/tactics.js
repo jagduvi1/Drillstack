@@ -1,14 +1,13 @@
 const router = require("express").Router();
-const rateLimit = require("express-rate-limit");
 const { body } = require("express-validator");
 const validate = require("../middleware/validate");
 const { authenticate } = require("../middleware/auth");
 const { parsePagination } = require("../middleware/pagination");
 const { checkOwnership } = require("../middleware/checkOwnership");
 const TacticBoard = require("../models/TacticBoard");
+const { standardLimiter } = require("../utils/rateLimiters");
 
-const tacticsLimiter = rateLimit({ windowMs: 15 * 60 * 1000, max: 200, standardHeaders: true, legacyHeaders: false });
-router.use(tacticsLimiter);
+router.use(standardLimiter);
 router.use(authenticate);
 
 // GET /api/tactics

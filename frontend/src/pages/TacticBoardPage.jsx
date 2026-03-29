@@ -2,48 +2,23 @@ import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import { useParams, useNavigate, useSearchParams, Link } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import {
-  FiArrowLeft, FiSave, FiMousePointer, FiArrowRight, FiMoreHorizontal,
-  FiTrash2, FiPlus, FiMinus, FiPlay, FiPause, FiSkipBack, FiSkipForward,
-  FiRepeat, FiCircle, FiTriangle, FiCpu, FiX, FiSend, FiZoomIn, FiZoomOut,
+  FiArrowLeft, FiSave,
+  FiTrash2, FiPlus, FiPlay, FiPause, FiSkipBack, FiSkipForward,
+  FiRepeat, FiCpu, FiZoomIn, FiZoomOut,
   FiMaximize, FiMinimize, FiTarget, FiEye, FiEdit3,
 } from "react-icons/fi";
 import TacticCanvas, {
   FORMATIONS, DRAW_TOOLS, createInitialStep, buildFormationPieces,
   SPORT_CONFIGS, SPORT_FORMATIONS, getFormations, getDefaultFormation, getPitch,
 } from "../components/tactics/TacticCanvas";
+import TacticToolbar from "../components/tactics/TacticToolbar";
+import TacticAiModal from "../components/tactics/TacticAiModal";
 import DebugPanel from "../components/common/DebugPanel";
 import useDebugPanel from "../hooks/useDebugPanel";
 import { getTactic, createTactic, updateTactic, generateTacticAnimation, refineTacticAnimation } from "../api/tactics";
 
 function easeInOutQuad(t) {
   return t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2;
-}
-
-// ── Tool icon components for custom SVG icons ───────────────────────────────
-function IconDribble() {
-  return (
-    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
-      <path d="M2 14 C4 10, 5 12, 7 8 C9 4, 10 6, 14 2" />
-      <path d="M11 2 L14 2 L14 5" />
-    </svg>
-  );
-}
-function IconPass() {
-  return (
-    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round">
-      <line x1="2" y1="14" x2="14" y2="2" strokeDasharray="2 3" />
-      <path d="M11 2 L14 2 L14 5" />
-    </svg>
-  );
-}
-function IconBallPass() {
-  return (
-    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round">
-      <circle cx="3" cy="13" r="2" fill="currentColor" />
-      <line x1="5" y1="11" x2="14" y2="2" strokeDasharray="3 2" />
-      <path d="M11 2 L14 2 L14 5" />
-    </svg>
-  );
 }
 
 export default function TacticBoardPage() {
@@ -635,100 +610,24 @@ export default function TacticBoardPage() {
       </div>
       )}
 
-      {/* Toolbar — row 1: drawing tools (+ pieces in edit mode) */}
-      {!isFullscreen && <div className="tactic-toolbar tactic-toolbar-row1">
-        <div className="tactic-tool-group">
-          <button className={`tactic-tool-btn ${tool === "select" ? "active" : ""}`} onClick={() => setTool("select")} title={`${t("tactics.tools.select")} (1)`}>
-            <FiMousePointer />
-          </button>
-          <button className={`tactic-tool-btn ${tool === "arrow" ? "active" : ""}`} onClick={() => setTool("arrow")} title={`${t("tactics.tools.arrow")} (2)`}>
-            <FiArrowRight />
-          </button>
-          <button className={`tactic-tool-btn ${tool === "pass" ? "active" : ""}`} onClick={() => setTool("pass")} title={`${t("tactics.tools.pass")} (3)`}>
-            <IconPass />
-          </button>
-          <button className={`tactic-tool-btn ${tool === "dribble" ? "active" : ""}`} onClick={() => setTool("dribble")} title={`${t("tactics.tools.dribble")} (4)`}>
-            <IconDribble />
-          </button>
-          <button className={`tactic-tool-btn ${tool === "dashedArrow" ? "active" : ""}`} onClick={() => setTool("dashedArrow")} title={`${t("tactics.tools.dashedArrow")} (5)`}>
-            <FiMoreHorizontal />
-          </button>
-          <button className={`tactic-tool-btn ${tool === "ballPass" ? "active" : ""}`} onClick={() => setTool("ballPass")} title={`${t("tactics.tools.ballPass")} (6)`}>
-            <IconBallPass />
-          </button>
-          <button className={`tactic-tool-btn ${tool === "eraser" ? "active" : ""}`} onClick={() => setTool("eraser")} title={`${t("tactics.tools.eraser")} (0)`}>
-            <FiTrash2 />
-          </button>
-        </div>
-
-        {!coachMode && (
-          <>
-            <div className="tactic-tool-divider" />
-            <div className="tactic-player-count">
-              <span className="tactic-color-dot" style={{ background: homeColor }} />
-              <button className="tactic-count-btn" onClick={() => removePieceFromTeam("home")} disabled={homePlayers.length <= 1}><FiMinus /></button>
-              <span className="tactic-count-num">{homePlayers.length}</span>
-              <button className="tactic-count-btn" onClick={() => addPiece("home")}><FiPlus /></button>
-            </div>
-            <div className="tactic-player-count">
-              <span className="tactic-color-dot" style={{ background: awayColor }} />
-              <button className="tactic-count-btn" onClick={() => removePieceFromTeam("away")} disabled={awayPlayers.length <= 1}><FiMinus /></button>
-              <span className="tactic-count-num">{awayPlayers.length}</span>
-              <button className="tactic-count-btn" onClick={() => addPiece("away")}><FiPlus /></button>
-            </div>
-            <button className="tactic-tool-btn" onClick={addBall} title={t("tactics.addBall")}>
-              <FiCircle /> <span className="tactic-hide-xs">{t("tactics.ball")}</span>
-            </button>
-            <button className="tactic-tool-btn" onClick={addCone} title={t("tactics.addCone")}>
-              <FiTriangle /> <span className="tactic-hide-xs">{t("tactics.cone")}</span>
-            </button>
-          </>
-        )}
-
-        <div className="tactic-tool-divider" />
-
-        <div className="tactic-zoom-group">
-          <button className="tactic-count-btn" onClick={() => setZoom((z) => Math.max(0.5, +(z - 0.25).toFixed(2)))} disabled={zoom <= 0.5}><FiZoomOut /></button>
-          <span className="tactic-count-num">{Math.round(zoom * 100)}%</span>
-          <button className="tactic-count-btn" onClick={() => setZoom((z) => Math.min(3, +(z + 0.25).toFixed(2)))} disabled={zoom >= 3}><FiZoomIn /></button>
-        </div>
-
-        {!coachMode && (
-          <button className="tactic-tool-btn tactic-ai-btn" onClick={() => setShowAiModal(true)} title={t("tactics.ai.generate")}>
-            <FiCpu /> <span className="tactic-hide-xs">{t("tactics.ai.generate")}</span>
-          </button>
-        )}
-      </div>}
-
-      {/* Toolbar — row 2: sport, field type, formations, colors (edit mode only) */}
-      {!isFullscreen && !coachMode && <div className="tactic-toolbar tactic-toolbar-row2">
-        <select className="form-control form-control-sm" value={sport} onChange={(e) => handleSportChange(e.target.value)} style={{ width: "auto", minWidth: 0 }}>
-          {Object.entries(SPORT_CONFIGS).map(([key, cfg]) => (
-            <option key={key} value={key}>{t(`tactics.sports.${key}`, cfg.label)}</option>
-          ))}
-        </select>
-
-        <select className="form-control form-control-sm" value={fieldType} onChange={(e) => handleFieldTypeChange(e.target.value)} style={{ width: "auto", minWidth: 0 }}>
-          {Object.keys(sportFieldViews).map((key) => (
-            <option key={key} value={key}>{t(`tactics.fieldTypes.${key}`, key)}</option>
-          ))}
-        </select>
-
-        <div className="tactic-formation-group">
-          <span className="tactic-color-dot" style={{ background: homeColor }} />
-          <select className="form-control form-control-sm" value={homeFormation} onChange={(e) => applyFormation("home", e.target.value)} style={{ width: "auto", minWidth: 0 }}>
-            {Object.keys(sportFormations).map((f) => <option key={f} value={f}>{f}</option>)}
-          </select>
-          <input type="color" value={homeColor} onChange={(e) => setHomeColor(e.target.value)} className="tactic-color-picker" title={t("tactics.homeColor")} />
-        </div>
-        <div className="tactic-formation-group">
-          <span className="tactic-color-dot" style={{ background: awayColor }} />
-          <select className="form-control form-control-sm" value={awayFormation} onChange={(e) => applyFormation("away", e.target.value)} style={{ width: "auto", minWidth: 0 }}>
-            {Object.keys(sportFormations).map((f) => <option key={f} value={f}>{f}</option>)}
-          </select>
-          <input type="color" value={awayColor} onChange={(e) => setAwayColor(e.target.value)} className="tactic-color-picker" title={t("tactics.awayColor")} />
-        </div>
-      </div>}
+      {/* Toolbar — both rows */}
+      <TacticToolbar
+        tool={tool} onToolChange={setTool}
+        coachMode={coachMode} isFullscreen={isFullscreen}
+        homePlayers={homePlayers} awayPlayers={awayPlayers}
+        homeColor={homeColor} awayColor={awayColor} hasBall={hasBall}
+        zoom={zoom}
+        sport={sport} fieldType={fieldType}
+        homeFormation={homeFormation} awayFormation={awayFormation}
+        sportFormations={sportFormations} sportFieldViews={sportFieldViews}
+        onAddPiece={addPiece} onRemovePiece={removePieceFromTeam}
+        onAddBall={addBall} onAddCone={addCone}
+        onZoomChange={setZoom} onSportChange={handleSportChange}
+        onFieldTypeChange={handleFieldTypeChange}
+        onFormationChange={applyFormation}
+        onColorChange={(team, color) => team === "home" ? setHomeColor(color) : setAwayColor(color)}
+        onShowAiModal={() => setShowAiModal(true)}
+      />
 
       {/* Selected piece bar (edit mode only) */}
       {selectedPiece && !isPlaying && !isFullscreen && !coachMode && (
@@ -810,76 +709,16 @@ export default function TacticBoardPage() {
       {!isFullscreen && !coachMode && debugOpen && <DebugPanel entries={debugEntries} />}
 
       {/* AI Generation / Chat Modal */}
-      {showAiModal && (
-        <div className="tactic-ai-overlay" onClick={() => !aiLoading && setShowAiModal(false)}>
-          <div className="tactic-ai-modal" onClick={(e) => e.stopPropagation()}>
-            <div className="tactic-ai-modal-header">
-              <h3><FiCpu /> {aiHasGenerated ? t("tactics.ai.chatTitle") : t("tactics.ai.title")}</h3>
-              <button className="tactic-ai-close" onClick={() => !aiLoading && setShowAiModal(false)}><FiX /></button>
-            </div>
-
-            {!aiHasGenerated ? (
-              <>
-                <p className="text-sm text-muted">{t("tactics.ai.description")}</p>
-                <textarea
-                  className="tactic-ai-textarea"
-                  rows={5}
-                  value={aiPrompt}
-                  onChange={(e) => setAiPrompt(e.target.value)}
-                  placeholder={t("tactics.ai.placeholder")}
-                  disabled={aiLoading}
-                />
-                {aiError && <p className="tactic-ai-error">{aiError}</p>}
-                <div className="tactic-ai-modal-footer">
-                  <button className="btn btn-secondary" onClick={() => setShowAiModal(false)} disabled={aiLoading}>{t("common.cancel")}</button>
-                  <button className="btn btn-primary" onClick={handleAiGenerate} disabled={aiLoading || !aiPrompt.trim()}>
-                    {aiLoading ? t("tactics.ai.generating") : t("tactics.ai.generate")}
-                  </button>
-                </div>
-              </>
-            ) : (
-              <>
-                <div className="tactic-ai-chat">
-                  {aiChat.map((msg, i) => (
-                    <div key={i} className={`tactic-ai-chat-msg ${msg.role}`}>
-                      <span className="tactic-ai-chat-role">{msg.role === "user" ? t("tactics.ai.you") : "AI"}</span>
-                      <span>{msg.content}</span>
-                    </div>
-                  ))}
-                  {aiLoading && (
-                    <div className="tactic-ai-chat-msg assistant">
-                      <span className="tactic-ai-chat-role">AI</span>
-                      <span className="text-muted">{t("tactics.ai.thinking")}</span>
-                    </div>
-                  )}
-                  <div ref={chatEndRef} />
-                </div>
-                <div className="tactic-ai-chat-input">
-                  <input
-                    type="text"
-                    value={aiChatMsg}
-                    onChange={(e) => setAiChatMsg(e.target.value)}
-                    onKeyDown={(e) => e.key === "Enter" && !e.shiftKey && handleAiRefine()}
-                    placeholder={t("tactics.ai.chatPlaceholder")}
-                    disabled={aiLoading}
-                  />
-                  <button className="btn btn-primary btn-sm" onClick={handleAiRefine} disabled={aiLoading || !aiChatMsg.trim()}>
-                    <FiSend />
-                  </button>
-                </div>
-                <div className="tactic-ai-modal-footer">
-                  <button className="btn btn-secondary btn-sm" onClick={() => { setAiHasGenerated(false); setAiChat([]); }}>
-                    {t("tactics.ai.newGeneration")}
-                  </button>
-                  <button className="btn btn-secondary btn-sm" onClick={() => setShowAiModal(false)}>
-                    {t("common.close")}
-                  </button>
-                </div>
-              </>
-            )}
-          </div>
-        </div>
-      )}
+      <TacticAiModal
+        showAiModal={showAiModal}
+        aiPrompt={aiPrompt} aiLoading={aiLoading} aiError={aiError}
+        aiHasGenerated={aiHasGenerated} aiChat={aiChat} aiChatMsg={aiChatMsg}
+        onClose={() => setShowAiModal(false)}
+        onPromptChange={setAiPrompt} onGenerate={handleAiGenerate}
+        onChatMsgChange={setAiChatMsg} onRefine={handleAiRefine}
+        onNewGeneration={() => { setAiHasGenerated(false); setAiChat([]); }}
+        chatEndRef={chatEndRef}
+      />
     </div>
   );
 }

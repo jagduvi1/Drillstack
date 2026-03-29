@@ -5,9 +5,9 @@ const Notification = require("../models/Notification");
 const Drill = require("../models/Drill");
 const User = require("../models/User");
 const { indexDrill } = require("../services/sync");
+const { standardLimiter } = require("../utils/rateLimiters");
 
-const notifLimiter = rateLimit({ windowMs: 15 * 60 * 1000, max: 200, standardHeaders: true, legacyHeaders: false });
-router.use(notifLimiter);
+router.use(standardLimiter);
 
 // GET /api/notifications — list notifications for current user
 router.get("/", authenticate, async (req, res, next) => {

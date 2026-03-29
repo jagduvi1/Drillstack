@@ -1,6 +1,5 @@
 const router = require("express").Router();
 const crypto = require("crypto");
-const rateLimit = require("express-rate-limit");
 const { body } = require("express-validator");
 const validate = require("../middleware/validate");
 const { authenticate } = require("../middleware/auth");
@@ -8,9 +7,10 @@ const Group = require("../models/Group");
 const User = require("../models/User");
 const { checkLimit } = require("../middleware/planLimits");
 const { getEffectivePlan } = require("../middleware/planLimits");
+const { createLimiter } = require("../utils/rateLimiters");
 
-const memberLimiter = rateLimit({ windowMs: 60 * 60 * 1000, max: 50, standardHeaders: true, legacyHeaders: false });
-const joinLimiter = rateLimit({ windowMs: 15 * 60 * 1000, max: 10, standardHeaders: true, legacyHeaders: false });
+const memberLimiter = createLimiter(60 * 60 * 1000, 50);
+const joinLimiter = createLimiter(15 * 60 * 1000, 10);
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 

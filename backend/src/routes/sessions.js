@@ -1,5 +1,4 @@
 const router = require("express").Router();
-const rateLimit = require("express-rate-limit");
 const { body } = require("express-validator");
 const validate = require("../middleware/validate");
 const { authenticate } = require("../middleware/auth");
@@ -11,9 +10,9 @@ const PeriodPlan = require("../models/PeriodPlan");
 const Drill = require("../models/Drill");
 const { indexSession } = require("../services/sync");
 const { checkLimit } = require("../middleware/planLimits");
+const { standardLimiter } = require("../utils/rateLimiters");
 
-const sessionsLimiter = rateLimit({ windowMs: 15 * 60 * 1000, max: 200, standardHeaders: true, legacyHeaders: false });
-router.use(sessionsLimiter);
+router.use(standardLimiter);
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
