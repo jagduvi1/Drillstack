@@ -1,5 +1,15 @@
 const nodemailer = require("nodemailer");
 
+/** HTML-escape user input to prevent XSS in email templates */
+function escapeHtml(str) {
+  return String(str)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
+}
+
 const SMTP_HOST = process.env.SMTP_HOST;
 const SMTP_PORT = parseInt(process.env.SMTP_PORT, 10) || 587;
 const SMTP_USER = process.env.SMTP_USER;
@@ -42,7 +52,7 @@ async function sendVerificationEmail(to, name, token) {
     subject: "Verify your email — DrillStack",
     html: `
       <div style="font-family:sans-serif;max-width:480px;margin:0 auto;padding:24px;">
-        <h2 style="color:#1a1a1a;">Welcome to DrillStack, ${name}!</h2>
+        <h2 style="color:#1a1a1a;">Welcome to DrillStack, ${escapeHtml(name)}!</h2>
         <p style="color:#444;line-height:1.6;">
           Please verify your email address by clicking the button below.
           This link expires in 24 hours.
@@ -77,7 +87,7 @@ async function sendPasswordResetEmail(to, name, token) {
       <div style="font-family:sans-serif;max-width:480px;margin:0 auto;padding:24px;">
         <h2 style="color:#1a1a1a;">Password Reset</h2>
         <p style="color:#444;line-height:1.6;">
-          Hi ${name}, we received a request to reset your password.
+          Hi ${escapeHtml(name)}, we received a request to reset your password.
           Click the button below to choose a new password.
           This link expires in 1 hour.
         </p>

@@ -76,7 +76,14 @@ router.post(
     try {
       const { name, email, password, sports } = req.body;
       const exists = await User.findOne({ email: String(email) });
-      if (exists) return res.status(409).json({ error: "Email already registered" });
+      if (exists) {
+        // If unverified and SMTP enabled, allow re-registration (overwrite)
+        if (!exists.emailVerified && isEmailEnabled()) {
+          await User.deleteOne({ _id: exists._id });
+        } else {
+          return res.status(409).json({ error: "Email already registered" });
+        }
+      }
 
       const user = await User.create({ name, email, password, sports });
 
@@ -222,6 +229,11 @@ router.get("/me", authenticate, (req, res) => {
   res.json({ user });
 });
 
+/** Add small random delay to prevent timing-based token enumeration */
+function randomDelay() {
+  return new Promise((resolve) => setTimeout(resolve, Math.random() * 100 + 50));
+}
+
 // ── Email verification & password reset rate limiters ───────────────────────
 const verifyEmailLimiter = rateLimit({
   windowMs: 60 * 60 * 1000,
@@ -269,6 +281,8 @@ router.post(
         verificationTokenExpires: { $gt: new Date() },
       });
 
+      await randomDelay();
+
       if (!user) {
         return res.status(400).json({ error: "Invalid or expired verification token" });
       }
@@ -293,19 +307,27 @@ router.post(
   validate,
   async (req, res, next) => {
     try {
+      // Always do the same work to prevent timing-based user enumeration
+      const rawToken = crypto.randomBytes(32).toString("hex");
+      const hashedToken = crypto.createHash("sha256").update(rawToken).digest("hex");
+
       const user = await User.findOne({ email: String(req.body.email) });
 
-      if (user && isEmailEnabled()) {
-        const rawToken = crypto.randomBytes(32).toString("hex");
-        const hashedToken = crypto.createHash("sha256").update(rawToken).digest("hex");
+      if (user) {
+        // Rate limit per email: only allow 1 reset email per 5 minutes
+        if (user.resetPasswordExpires && user.resetPasswordExpires > new Date(Date.now() - 5 * 60 * 1000)) {
+          return res.json({ message: "If an account exists, a reset link has been sent" });
+        }
+
         user.resetPasswordToken = hashedToken;
         user.resetPasswordExpires = new Date(Date.now() + 60 * 60 * 1000);
         await user.save();
 
-        await sendPasswordResetEmail(user.email, user.name, rawToken);
+        if (isEmailEnabled()) {
+          await sendPasswordResetEmail(user.email, user.name, rawToken);
+        }
       }
 
-      // Always return 200 to prevent user enumeration
       res.json({ message: "If an account exists, a reset link has been sent" });
     } catch (err) {
       next(err);
@@ -336,6 +358,8 @@ router.post(
         resetPasswordExpires: { $gt: new Date() },
       });
 
+      await randomDelay();
+
       if (!user) {
         return res.status(400).json({ error: "Invalid or expired reset token" });
       }
@@ -364,6 +388,14 @@ router.post(
 
       if (user.emailVerified) {
         return res.status(400).json({ error: "Email is already verified" });
+      }
+
+      // Per-user rate limit: only allow resend if last token was generated > 2 minutes ago
+      if (user.verificationTokenExpires) {
+        const tokenAge = Date.now() - (user.verificationTokenExpires.getTime() - 24 * 60 * 60 * 1000);
+        if (tokenAge < 2 * 60 * 1000) {
+          return res.status(429).json({ error: "Please wait before requesting another verification email" });
+        }
       }
 
       const rawToken = crypto.randomBytes(32).toString("hex");
