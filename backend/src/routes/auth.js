@@ -6,16 +6,38 @@ const { signToken, authenticate } = require("../middleware/auth");
 const { checkIsSuperAdmin } = require("../middleware/superAdmin");
 const User = require("../models/User");
 
-const authLimiter = rateLimit({ windowMs: 15 * 60 * 1000, max: 20, standardHeaders: true, legacyHeaders: false });
-router.use(authLimiter);
+// Separate rate limits for login vs register
+const loginLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 8,
+  standardHeaders: true,
+  legacyHeaders: false,
+  skipSuccessfulRequests: true,
+  message: { error: "Too many login attempts, please try again later" },
+});
+
+const registerLimiter = rateLimit({
+  windowMs: 60 * 60 * 1000,
+  max: 5,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: "Too many registration attempts, please try again later" },
+});
 
 // POST /api/auth/register
 router.post(
   "/register",
+  registerLimiter,
   [
-    body("name").trim().notEmpty(),
+    body("name").trim().notEmpty().isLength({ max: 100 }),
     body("email").isEmail().normalizeEmail(),
-    body("password").isLength({ min: 6 }),
+    body("password")
+      .isLength({ min: 8 })
+      .withMessage("Password must be at least 8 characters")
+      .matches(/[A-Za-z]/)
+      .withMessage("Password must contain at least one letter")
+      .matches(/\d/)
+      .withMessage("Password must contain at least one number"),
   ],
   validate,
   async (req, res, next) => {
@@ -35,6 +57,7 @@ router.post(
 // POST /api/auth/login
 router.post(
   "/login",
+  loginLimiter,
   [body("email").isEmail().normalizeEmail(), body("password").notEmpty()],
   validate,
   async (req, res, next) => {

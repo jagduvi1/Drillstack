@@ -251,8 +251,9 @@ router.get("/users", async (req, res, next) => {
     const skip = (page - 1) * limit;
 
     const filter = {};
-    if (req.query.search) {
-      const escaped = String(req.query.search).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    if (req.query.search && typeof req.query.search === "string") {
+      const searchTerm = req.query.search.slice(0, 200);
+      const escaped = searchTerm.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
       filter.$or = [
         { name: { $regex: escaped, $options: "i" } },
         { email: { $regex: escaped, $options: "i" } },

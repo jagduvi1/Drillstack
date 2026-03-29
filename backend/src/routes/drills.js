@@ -126,7 +126,7 @@ router.post(
   "/",
   authenticate,
   checkLimit("drills"),
-  [body("title").trim().notEmpty(), body("description").trim().notEmpty()],
+  [body("title").trim().notEmpty().isLength({ max: 200 }), body("description").trim().notEmpty().isLength({ max: 5000 })],
   validate,
   async (req, res, next) => {
     try {

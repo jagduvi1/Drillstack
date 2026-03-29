@@ -2,9 +2,10 @@ const jwt = require("jsonwebtoken");
 const User = require("../models/User");
 
 const JWT_SECRET = process.env.JWT_SECRET || (process.env.NODE_ENV === "production" ? (() => { throw new Error("JWT_SECRET must be set in production"); })() : "dev-jwt-secret");
+const JWT_EXPIRY = process.env.JWT_EXPIRY || "2h";
 
 function signToken(userId) {
-  return jwt.sign({ id: userId }, JWT_SECRET, { expiresIn: "7d" });
+  return jwt.sign({ id: userId }, JWT_SECRET, { expiresIn: JWT_EXPIRY });
 }
 
 async function authenticate(req, res, next) {

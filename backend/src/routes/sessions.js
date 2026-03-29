@@ -204,7 +204,7 @@ router.post(
   "/",
   authenticate,
   checkLimit("sessions"),
-  [body("title").trim().notEmpty()],
+  [body("title").trim().notEmpty().isLength({ max: 200 })],
   validate,
   async (req, res, next) => {
     try {

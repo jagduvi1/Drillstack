@@ -1,5 +1,6 @@
 const router = require("express").Router();
 const crypto = require("crypto");
+const rateLimit = require("express-rate-limit");
 const { body } = require("express-validator");
 const validate = require("../middleware/validate");
 const { authenticate } = require("../middleware/auth");
@@ -7,6 +8,9 @@ const Group = require("../models/Group");
 const User = require("../models/User");
 const { checkLimit } = require("../middleware/planLimits");
 const { getEffectivePlan } = require("../middleware/planLimits");
+
+const memberLimiter = rateLimit({ windowMs: 60 * 60 * 1000, max: 50, standardHeaders: true, legacyHeaders: false });
+const joinLimiter = rateLimit({ windowMs: 15 * 60 * 1000, max: 10, standardHeaders: true, legacyHeaders: false });
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -226,6 +230,7 @@ router.post("/:id/leave-club", authenticate, async (req, res, next) => {
 router.post(
   "/:id/members",
   authenticate,
+  memberLimiter,
   [body("email").isEmail()],
   validate,
   async (req, res, next) => {
@@ -291,10 +296,10 @@ router.delete("/:id/members/:userId", authenticate, async (req, res, next) => {
 // ── Invite ───────────────────────────────────────────────────────────────────
 
 // POST /api/groups/join/:code — join via invite code
-router.post("/join/:code", authenticate, async (req, res, next) => {
+router.post("/join/:code", authenticate, joinLimiter, async (req, res, next) => {
   try {
     const group = await Group.findOne({ inviteCode: req.params.code });
-    if (!group) return res.status(404).json({ error: "Invalid invite code" });
+    if (!group) return res.status(400).json({ error: "Could not join group" });
     if (group.members.some((m) => m.user.toString() === req.user._id.toString())) {
       return res.status(400).json({ error: "Already a member" });
     }
@@ -315,7 +320,7 @@ router.post("/:id/regenerate-invite", authenticate, async (req, res, next) => {
     if (getMemberRole(group, req.user._id) !== "admin") {
       return res.status(403).json({ error: "Admin access required" });
     }
-    group.inviteCode = crypto.randomBytes(6).toString("hex");
+    group.inviteCode = crypto.randomBytes(16).toString("hex");
     await group.save();
     res.json({ inviteCode: group.inviteCode });
   } catch (err) {
