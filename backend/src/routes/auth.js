@@ -157,6 +157,7 @@ router.post(
 // POST /api/auth/logout — revoke refresh token
 router.post(
   "/logout",
+  authenticate,
   [body("refreshToken").optional().notEmpty()],
   validate,
   async (req, res, next) => {
@@ -171,9 +172,14 @@ router.post(
         return res.json({ ok: true }); // Already invalid, nothing to revoke
       }
 
+      // Verify the refresh token belongs to the authenticated user
+      if (decoded.id !== req.user._id.toString()) {
+        return res.status(403).json({ error: "Token does not belong to you" });
+      }
+
       const hash = hashToken(refreshToken);
       await User.updateOne(
-        { _id: decoded.id },
+        { _id: req.user._id },
         { $pull: { refreshTokens: { hash } } }
       );
       res.json({ ok: true });

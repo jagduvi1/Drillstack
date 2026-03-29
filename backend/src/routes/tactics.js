@@ -60,6 +60,11 @@ router.post(
   async (req, res, next) => {
     try {
       const { title, description, sport, fieldType, homeTeam, awayTeam, steps, isPublic, group, tags, drill } = req.body;
+      if (drill) {
+        const Drill = require("../models/Drill");
+        const drillExists = await Drill.exists({ _id: drill });
+        if (!drillExists) return res.status(400).json({ error: "Referenced drill not found" });
+      }
       const board = await TacticBoard.create({
         title, description, sport, fieldType, homeTeam, awayTeam, steps, isPublic, group, tags, drill,
         createdBy: req.user._id,
@@ -75,6 +80,13 @@ router.post(
 router.put(
   "/:id",
   checkOwnership(TacticBoard, { resourceName: "Tactic board", allowGroupTrainer: false }),
+  [
+    body("title").optional().trim().notEmpty().isLength({ max: 200 }),
+    body("description").optional().isLength({ max: 5000 }),
+    body("fieldType").optional().isIn(["full", "half", "third", "blank"]),
+    body("steps").optional().isArray({ max: 50 }),
+  ],
+  validate,
   async (req, res, next) => {
   try {
     const board = req.resource;

@@ -89,6 +89,13 @@ router.put(
   authenticate,
   resolveUserGroups,
   checkOwnership(PeriodPlan, { resourceName: "Plan" }),
+  [
+    body("title").optional().trim().notEmpty().isLength({ max: 200 }),
+    body("startDate").optional().isISO8601(),
+    body("endDate").optional().isISO8601(),
+    body("description").optional().isLength({ max: 5000 }),
+  ],
+  validate,
   async (req, res, next) => {
     try {
       const plan = req.resource;

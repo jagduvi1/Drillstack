@@ -51,7 +51,11 @@ const periodPlanSchema = new Schema(
     // AI conversation for refinement
     aiConversation: [aiMessageSchema],
 
-    createdBy: { type: Schema.Types.ObjectId, ref: "User", required: true },
+    // ── Group sharing ─────────────────────────────────────────────────
+    visibility: { type: String, enum: ["private", "group"], default: "private" },
+    group: { type: Schema.Types.ObjectId, ref: "Group", default: null, index: true },
+
+    createdBy: { type: Schema.Types.ObjectId, ref: "User", required: true, index: true },
   },
   { timestamps: true }
 );

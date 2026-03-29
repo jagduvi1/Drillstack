@@ -49,9 +49,10 @@ router.put("/:id/read", authenticate, async (req, res, next) => {
 });
 
 // POST /api/notifications/:id/fork-snapshot — create a version from the snapshot
+const forkSnapshotLimiter = rateLimit({ windowMs: 60 * 60 * 1000, max: 10, standardHeaders: true, legacyHeaders: false });
 // This also: 1) auto-stars the new version for ALL users who had the same notification
 //            2) removes all notifications for that drill (since the old version now exists again)
-router.post("/:id/fork-snapshot", authenticate, async (req, res, next) => {
+router.post("/:id/fork-snapshot", authenticate, forkSnapshotLimiter, async (req, res, next) => {
   try {
     const notification = await Notification.findOne({
       _id: req.params.id,
