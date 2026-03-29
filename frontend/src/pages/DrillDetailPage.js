@@ -93,6 +93,17 @@ export default function DrillDetailPage() {
     }
   }, [drill?.embeddingStatus, drill?.parentDrill, id, similarDismissed]);
 
+  // Warn on browser close/refresh with unsaved changes
+  useEffect(() => {
+    if (!unsavedChanges) return;
+    const handler = (e) => { e.preventDefault(); e.returnValue = ""; };
+    window.addEventListener("beforeunload", handler);
+    return () => window.removeEventListener("beforeunload", handler);
+  }, [unsavedChanges]);
+
+  // Warn on route navigation with unsaved changes (must be before early returns)
+  const blocker = useBlocker(!!unsavedChanges);
+
   if (loading) return <div className="loading">{t("common.loading")}</div>;
   if (!drill) return <div className="alert alert-danger">{t("drills.notFound")}</div>;
 
@@ -225,17 +236,6 @@ export default function DrillDetailPage() {
     if (!window.confirm(t("drills.discardChanges"))) return;
     setUnsavedChanges(null);
   };
-
-  // Warn on browser close/refresh with unsaved changes
-  useEffect(() => {
-    if (!unsavedChanges) return;
-    const handler = (e) => { e.preventDefault(); e.returnValue = ""; };
-    window.addEventListener("beforeunload", handler);
-    return () => window.removeEventListener("beforeunload", handler);
-  }, [unsavedChanges]);
-
-  // Warn on route navigation with unsaved changes
-  const blocker = useBlocker(!!unsavedChanges);
 
   const handleChatKeyDown = (e) => {
     if (e.key === "Enter" && !e.shiftKey) {
