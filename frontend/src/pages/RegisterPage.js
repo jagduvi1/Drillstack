@@ -16,8 +16,12 @@ export default function RegisterPage() {
     setError("");
     setLoading(true);
     try {
-      await register(form);
-      navigate("/");
+      const result = await register(form);
+      if (result?.emailVerificationRequired) {
+        navigate("/verify-email");
+      } else {
+        navigate("/");
+      }
     } catch (err) {
       setError(err.response?.data?.error || t("auth.registrationFailed"));
     } finally {
