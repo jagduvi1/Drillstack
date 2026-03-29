@@ -155,6 +155,21 @@ export default function TacticBoardPage() {
   const PITCH = useMemo(() => getPitch(sport), [sport]);
   const sportFormations = useMemo(() => getFormations(sport), [sport]);
   const sportFieldViews = useMemo(() => SPORT_CONFIGS[sport]?.fieldViews || SPORT_CONFIGS.football.fieldViews, [sport]);
+
+  // Auto-rotate: in fullscreen, rotate canvas if pitch is landscape and viewport is portrait
+  const [shouldRotate, setShouldRotate] = useState(false);
+  useEffect(() => {
+    if (!isFullscreen) { setShouldRotate(false); return; }
+    const check = () => {
+      const cfg = sportFieldViews[fieldType] || Object.values(sportFieldViews)[0];
+      const pitchIsLandscape = cfg.w > cfg.h;
+      const screenIsPortrait = window.innerHeight > window.innerWidth;
+      setShouldRotate(pitchIsLandscape && screenIsPortrait);
+    };
+    check();
+    window.addEventListener("resize", check);
+    return () => window.removeEventListener("resize", check);
+  }, [isFullscreen, sportFieldViews, fieldType]);
   const currentStep = steps[currentStepIdx];
 
   // ── Piece counts ────────────────────────────────────────────────────────
@@ -535,7 +550,7 @@ export default function TacticBoardPage() {
 
   // ── Render ──────────────────────────────────────────────────────────────
   return (
-    <div className={`tactic-page ${isFullscreen ? "tactic-fullscreen" : ""}`} ref={fullscreenRef}>
+    <div className={`tactic-page ${isFullscreen ? "tactic-fullscreen" : ""} ${shouldRotate ? "tactic-fs-rotated" : ""}`} ref={fullscreenRef}>
 
       {/* ── Fullscreen presentation overlay ── */}
       {isFullscreen && (
@@ -554,9 +569,14 @@ export default function TacticBoardPage() {
               </span>
             )}
           </div>
-          <button className="tactic-fs-btn tactic-fs-exit" onClick={toggleFullscreen}>
-            <FiMinimize />
-          </button>
+          <div className="tactic-fs-playback">
+            <button className="tactic-fs-btn" onClick={() => setZoom((z) => Math.max(0.5, +(z - 0.25).toFixed(2)))} disabled={zoom <= 0.5}><FiZoomOut /></button>
+            <span className="tactic-fs-step-indicator">{Math.round(zoom * 100)}%</span>
+            <button className="tactic-fs-btn" onClick={() => setZoom((z) => Math.min(3, +(z + 0.25).toFixed(2)))} disabled={zoom >= 3}><FiZoomIn /></button>
+            <button className="tactic-fs-btn tactic-fs-exit" onClick={toggleFullscreen}>
+              <FiMinimize />
+            </button>
+          </div>
         </div>
       )}
 

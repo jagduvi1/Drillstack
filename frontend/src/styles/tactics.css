@@ -474,6 +474,25 @@
   margin: 0;
 }
 
+/* Auto-rotate: landscape pitch on portrait screen */
+.tactic-fs-rotated .tactic-canvas-container {
+  transform: rotate(90deg);
+  transform-origin: center center;
+  /* Swap width/height so it fills the rotated viewport */
+  width: 100vh !important;
+  height: 100vw !important;
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  margin-top: -50vw;
+  margin-left: -50vh;
+}
+.tactic-fs-rotated .tactic-fs-controls {
+  /* Controls stay fixed at the physical bottom of the screen (not rotated) */
+  position: fixed;
+  transform: none;
+}
+
 /* Floating controls overlay */
 .tactic-fs-controls {
   position: absolute;
