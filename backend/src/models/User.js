@@ -29,6 +29,13 @@ const userSchema = new mongoose.Schema(
     trialUsed: { type: Boolean, default: false },
     aiRequestsUsed: { type: Number, default: 0 },
     aiRequestsResetAt: { type: Date, default: null },
+
+    // ── Refresh tokens (hashed) ─────────────────────────────────────────
+    refreshTokens: [{
+      hash: { type: String, required: true },
+      expiresAt: { type: Date, required: true },
+      createdAt: { type: Date, default: Date.now },
+    }],
   },
   { timestamps: true }
 );
@@ -46,6 +53,7 @@ userSchema.methods.comparePassword = function (candidate) {
 userSchema.methods.toJSON = function () {
   const obj = this.toObject();
   delete obj.password;
+  delete obj.refreshTokens;
   return obj;
 };
 

@@ -1,11 +1,23 @@
+const crypto = require("crypto");
 const jwt = require("jsonwebtoken");
 const User = require("../models/User");
 
 const JWT_SECRET = process.env.JWT_SECRET || (process.env.NODE_ENV === "production" ? (() => { throw new Error("JWT_SECRET must be set in production"); })() : "dev-jwt-secret");
-const JWT_EXPIRY = process.env.JWT_EXPIRY || "2h";
+const JWT_EXPIRY = process.env.JWT_EXPIRY || "15m";
+const REFRESH_SECRET = process.env.REFRESH_SECRET || (process.env.NODE_ENV === "production" ? (() => { throw new Error("REFRESH_SECRET must be set in production"); })() : "dev-refresh-secret");
+const REFRESH_EXPIRY = process.env.REFRESH_EXPIRY || "7d";
 
 function signToken(userId) {
   return jwt.sign({ id: userId }, JWT_SECRET, { expiresIn: JWT_EXPIRY });
+}
+
+function signRefreshToken(userId) {
+  return jwt.sign({ id: userId, type: "refresh" }, REFRESH_SECRET, { expiresIn: REFRESH_EXPIRY });
+}
+
+/** Hash a refresh token for safe DB storage */
+function hashToken(token) {
+  return crypto.createHash("sha256").update(token).digest("hex");
 }
 
 async function authenticate(req, res, next) {
@@ -15,7 +27,7 @@ async function authenticate(req, res, next) {
   }
   try {
     const decoded = jwt.verify(header.split(" ")[1], JWT_SECRET);
-    const user = await User.findById(decoded.id).select("-password");
+    const user = await User.findById(decoded.id).select("-password -refreshTokens");
     if (!user) return res.status(401).json({ error: "User not found" });
     req.user = user;
     next();
@@ -31,4 +43,4 @@ function authorizeAdmin(req, res, next) {
   next();
 }
 
-module.exports = { signToken, authenticate, authorizeAdmin };
+module.exports = { signToken, signRefreshToken, hashToken, authenticate, authorizeAdmin, REFRESH_SECRET };

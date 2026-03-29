@@ -16,24 +16,35 @@ export function AuthProvider({ children }) {
     authApi
       .getMe()
       .then((res) => setUser(res.data.user))
-      .catch(() => localStorage.removeItem("token"))
+      .catch(() => {
+        localStorage.removeItem("token");
+        localStorage.removeItem("refreshToken");
+      })
       .finally(() => setLoading(false));
   }, []);
 
   const login = useCallback(async (email, password) => {
     const res = await authApi.login({ email, password });
     localStorage.setItem("token", res.data.token);
+    localStorage.setItem("refreshToken", res.data.refreshToken);
     setUser(res.data.user);
   }, []);
 
   const register = useCallback(async (data) => {
     const res = await authApi.register(data);
     localStorage.setItem("token", res.data.token);
+    localStorage.setItem("refreshToken", res.data.refreshToken);
     setUser(res.data.user);
   }, []);
 
-  const logout = useCallback(() => {
+  const logout = useCallback(async () => {
+    const refreshToken = localStorage.getItem("refreshToken");
+    // Revoke server-side (best-effort)
+    try {
+      if (refreshToken) await authApi.logout(refreshToken);
+    } catch { /* ignore */ }
     localStorage.removeItem("token");
+    localStorage.removeItem("refreshToken");
     setUser(null);
   }, []);
 
