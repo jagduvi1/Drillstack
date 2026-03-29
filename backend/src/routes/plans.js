@@ -63,6 +63,7 @@ router.get("/:id", authenticate, resolveUserGroups, async (req, res, next) => {
 router.post(
   "/",
   authenticate,
+  resolveUserGroups,
   checkLimit("plans"),
   [
     body("title").trim().notEmpty().isLength({ max: 200 }),
@@ -73,6 +74,15 @@ router.post(
   async (req, res, next) => {
     try {
       const { title, description, sport, startDate, endDate, goals, focusAreas, weeklyPlans, group, visibility } = req.body;
+
+      // Validate group membership when sharing with a group
+      if (group && visibility && visibility !== "private") {
+        const isMember = req.userTrainerGroupIds?.some((gid) => gid.toString() === group.toString());
+        if (!isMember) {
+          return res.status(403).json({ error: "You are not a member of this group" });
+        }
+      }
+
       const plan = await PeriodPlan.create({ title, description, sport, startDate, endDate, goals, focusAreas, weeklyPlans, group, visibility, createdBy: req.user._id });
       indexPlan(plan).catch((e) => console.error("Index error:", e.message));
       res.status(201).json(plan);

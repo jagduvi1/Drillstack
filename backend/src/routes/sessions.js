@@ -202,6 +202,7 @@ router.get("/:id", authenticate, resolveUserGroups, async (req, res, next) => {
 router.post(
   "/",
   authenticate,
+  resolveUserGroups,
   checkLimit("sessions"),
   [
     body("title").trim().notEmpty().isLength({ max: 200 }),
@@ -213,6 +214,14 @@ router.post(
   async (req, res, next) => {
     try {
       const { title, description, date, sport, blocks, expectedPlayers, expectedTrainers, actualPlayers, actualTrainers, group, visibility, aiGenerated, aiConversation } = req.body;
+
+      // Validate group membership when sharing with a group
+      if (group && visibility && visibility !== "private") {
+        const isMember = req.userGroupIds?.some((gid) => gid.toString() === group.toString());
+        if (!isMember) {
+          return res.status(403).json({ error: "You are not a member of this group" });
+        }
+      }
       const data = { title, description, date, sport, blocks, expectedPlayers, expectedTrainers, actualPlayers, actualTrainers, group, visibility, aiGenerated, aiConversation, createdBy: req.user._id };
       const session = new TrainingSession(data);
       session.equipmentSummary = await computeEquipment(session);

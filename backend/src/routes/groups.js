@@ -249,7 +249,12 @@ router.post(
       if (group.members.some((m) => m.user.toString() === user._id.toString())) {
         return res.status(400).json({ error: "User is already a member" });
       }
-      group.members.push({ user: user._id, role: req.body.role || "member" });
+      const validRoles = ["admin", "trainer", "member"];
+      const role = req.body.role || "member";
+      if (!validRoles.includes(role)) {
+        return res.status(400).json({ error: "Invalid role. Must be admin, trainer, or member" });
+      }
+      group.members.push({ user: user._id, role });
       await group.save();
       await group.populate("members.user", "name email");
       res.json(group);
@@ -269,6 +274,10 @@ router.put("/:id/members/:userId", authenticate, async (req, res, next) => {
     }
     const member = group.members.find((m) => m.user.toString() === req.params.userId);
     if (!member) return res.status(404).json({ error: "Member not found" });
+    const validRoles = ["admin", "trainer", "member"];
+    if (req.body.role && !validRoles.includes(req.body.role)) {
+      return res.status(400).json({ error: "Invalid role. Must be admin, trainer, or member" });
+    }
     member.role = req.body.role || member.role;
     await group.save();
     await group.populate("members.user", "name email");
