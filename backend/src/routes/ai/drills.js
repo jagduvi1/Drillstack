@@ -157,4 +157,44 @@ router.post(
   }
 );
 
+// POST /api/ai/refine-draft — refine a draft drill (not yet saved) via chat
+router.post(
+  "/refine-draft",
+  authenticate,
+  checkAiLimit,
+  [
+    body("message").trim().notEmpty().isLength({ max: 2000 }),
+    body("drill").notEmpty(),
+    body("conversationHistory").optional().isArray(),
+  ],
+  validate,
+  async (req, res, next) => {
+    try {
+      const { message, drill: currentDrill, conversationHistory = [] } = req.body;
+
+      const messages = [
+        ...conversationHistory.slice(-10),
+        { role: "user", content: sanitizeAiInput(message) },
+      ];
+
+      const result = await aiService.refineDrill(currentDrill, messages);
+
+      const updatedHistory = [
+        ...conversationHistory,
+        { role: "user", content: message },
+        { role: "assistant", content: result.drill ? "Drill refined." : (result.message || "No changes.") },
+      ];
+
+      res.json({
+        refinedFields: result.drill || null,
+        message: result.message || null,
+        conversationHistory: updatedHistory,
+        debug: sanitizeDebug(result.debug),
+      });
+    } catch (err) {
+      next(err);
+    }
+  }
+);
+
 module.exports = router;

@@ -9,6 +9,9 @@ export const generateAndSaveDrill = (description, sport) =>
 export const refineDrill = (id, message) =>
   api.post(`/ai/refine/${id}`, { message });
 
+export const refineDraft = (drill, message, conversationHistory) =>
+  api.post("/ai/refine-draft", { drill, message, conversationHistory });
+
 export const suggestSession = (data) =>
   api.post("/ai/suggest-session", data);
 
