@@ -65,6 +65,7 @@ export default function TacticBoardPage() {
   const [awayColor, setAwayColor] = useState("#ef4444");
   const [drillId, setDrillId] = useState(null);
   const [drillTitle, setDrillTitle] = useState("");
+  const [isOwner, setIsOwner] = useState(isNew); // New boards are owned by creator
   const [loading, setLoading] = useState(!isNew);
 
   // ── UI state ────────────────────────────────────────────────────────────
@@ -144,6 +145,8 @@ export default function TacticBoardPage() {
         setAwayColor(b.awayTeam?.color || "#ef4444");
         setDrillId(b.drill?._id || b.drill || null);
         setDrillTitle(b.drill?.title || "");
+        setIsOwner(!!b.isOwner);
+        if (!b.isOwner) setCoachMode(true); // Non-owners open in coach mode
         setLoading(false);
       })
       .catch(() => navigate("/tactics"));
@@ -562,9 +565,14 @@ export default function TacticBoardPage() {
       <div className="tactic-header">
         {coachMode ? (
           <>
-            <button className="btn btn-secondary btn-sm" onClick={() => setCoachMode(false)}>
-              <FiEdit3 /> <span className="tactic-hide-xs">{t("tactics.editMode")}</span>
-            </button>
+            {isOwner && (
+              <button className="btn btn-secondary btn-sm" onClick={() => setCoachMode(false)}>
+                <FiEdit3 /> <span className="tactic-hide-xs">{t("tactics.editMode")}</span>
+              </button>
+            )}
+            {!isOwner && (
+              <Link to="/tactics" className="btn btn-secondary btn-sm"><FiArrowLeft /> <span className="tactic-hide-xs">{t("tactics.title")}</span></Link>
+            )}
             <span className="tactic-title-readonly">{title || t("tactics.untitled")}</span>
             {drillId && (
               <Link to={`/drills/${drillId}`} className="tactic-drill-link" title={drillTitle || t("tactics.linkedDrill")}>

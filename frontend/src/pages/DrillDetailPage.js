@@ -252,21 +252,23 @@ export default function DrillDetailPage() {
                 <FiMessageCircle /> {showChat ? t("drills.hideChat") : t("drills.refineWithAi")}
               </button>
             )}
-            <button
-              className="btn btn-secondary"
-              onClick={() => {
-                const desc = [drill.description, drill.howItWorks].filter(Boolean).join("\n\n");
-                const params = new URLSearchParams({
-                  drillDescription: desc,
-                  drillTitle: drill.title || "",
-                  drillId: id,
-                });
-                navigate(`/tactics/new?${params.toString()}`);
-              }}
-              title={t("drills.generateTacticBoard")}
-            >
-              <FiTarget /> {t("drills.generateTacticBoard")}
-            </button>
+            {drill.isOwner && (
+              <button
+                className="btn btn-secondary"
+                onClick={() => {
+                  const desc = [drill.description, drill.howItWorks].filter(Boolean).join("\n\n");
+                  const params = new URLSearchParams({
+                    drillDescription: desc,
+                    drillTitle: drill.title || "",
+                    drillId: id,
+                  });
+                  navigate(`/tactics/new?${params.toString()}`);
+                }}
+                title={t("drills.generateTacticBoard")}
+              >
+                <FiTarget /> {t("drills.generateTacticBoard")}
+              </button>
+            )}
             {drill.isOwner ? (
               <Link to={`/drills/${id}/edit`} className="btn btn-secondary"><FiEdit /> {t("common.edit")}</Link>
             ) : (
@@ -432,12 +434,14 @@ export default function DrillDetailPage() {
         <div className="card mb-1">
           <div className="flex-between">
             <h3><FiTarget style={{ marginRight: "0.4rem" }} />{t("drills.tacticBoards")}</h3>
-            <Link
-              to={`/tactics/new?${new URLSearchParams({ drillDescription: [drill.description, drill.howItWorks].filter(Boolean).join("\n\n"), drillTitle: drill.title || "", drillId: id }).toString()}`}
-              className="btn btn-primary btn-sm"
-            >
-              <FiPlus /> {t("drills.newTacticBoard")}
-            </Link>
+            {drill.isOwner && (
+              <Link
+                to={`/tactics/new?${new URLSearchParams({ drillDescription: [drill.description, drill.howItWorks].filter(Boolean).join("\n\n"), drillTitle: drill.title || "", drillId: id }).toString()}`}
+                className="btn btn-primary btn-sm"
+              >
+                <FiPlus /> {t("drills.newTacticBoard")}
+              </Link>
+            )}
           </div>
           {linkedTactics === null ? (
             <p className="text-sm text-muted mt-1"><FiLoader className="spin" /> {t("common.loading")}</p>

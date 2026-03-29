@@ -22,8 +22,9 @@ router.get("/", async (req, res, next) => {
 
     const [boards, total] = await Promise.all([
       TacticBoard.find(filter)
-        .select("title sport fieldType homeTeam awayTeam updatedAt drill tags")
+        .select("title sport fieldType homeTeam awayTeam updatedAt drill tags createdBy")
         .populate("drill", "title")
+        .populate("createdBy", "name")
         .sort({ updatedAt: -1 })
         .skip(skip)
         .limit(limit),
@@ -39,15 +40,17 @@ router.get("/", async (req, res, next) => {
 // GET /api/tactics/:id
 router.get("/:id", async (req, res, next) => {
   try {
-    const board = await TacticBoard.findById(req.params.id).populate("drill", "title");
+    const board = await TacticBoard.findById(req.params.id)
+      .populate("drill", "title createdBy")
+      .populate("createdBy", "name");
     if (!board) return res.status(404).json({ error: "Not found" });
-    if (
-      board.createdBy.toString() !== req.user._id.toString() &&
-      !board.isPublic
-    ) {
+    const isOwner = board.createdBy._id.toString() === req.user._id.toString();
+    if (!isOwner && !board.isPublic) {
       return res.status(403).json({ error: "Forbidden" });
     }
-    res.json(board);
+    const obj = board.toObject();
+    obj.isOwner = isOwner;
+    res.json(obj);
   } catch (err) {
     next(err);
   }
@@ -63,8 +66,11 @@ router.post(
       const { title, description, sport, fieldType, homeTeam, awayTeam, steps, isPublic, group, tags, drill } = req.body;
       if (drill) {
         const Drill = require("../models/Drill");
-        const drillExists = await Drill.exists({ _id: drill });
-        if (!drillExists) return res.status(400).json({ error: "Referenced drill not found" });
+        const drillDoc = await Drill.findById(drill).select("createdBy");
+        if (!drillDoc) return res.status(400).json({ error: "Referenced drill not found" });
+        if (drillDoc.createdBy.toString() !== req.user._id.toString()) {
+          return res.status(403).json({ error: "You can only link tactic boards to your own drills. Fork the drill first." });
+        }
       }
       const board = await TacticBoard.create({
         title, description, sport, fieldType, homeTeam, awayTeam, steps, isPublic, group, tags, drill,
