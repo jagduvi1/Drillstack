@@ -126,7 +126,7 @@ router.post(
   "/",
   authenticate,
   checkLimit("drills"),
-  [body("title").trim().notEmpty(), body("description").trim().notEmpty()],
+  [body("title").trim().notEmpty().isLength({ max: 200 }), body("description").trim().notEmpty().isLength({ max: 5000 })],
   validate,
   async (req, res, next) => {
     try {
@@ -345,6 +345,7 @@ router.post("/:id/retry-embedding", authenticate, async (req, res, next) => {
 });
 
 // POST /api/drills/:id/diagrams
+const MAX_DIAGRAMS = 10;
 router.post(
   "/:id/diagrams",
   authenticate,
@@ -352,12 +353,16 @@ router.post(
   async (req, res, next) => {
     try {
       if (!req.file) return res.status(400).json({ error: "No file uploaded" });
+      const existing = await Drill.findOne({ _id: req.params.id, createdBy: req.user._id }).select("diagrams");
+      if (!existing) return res.status(404).json({ error: "Drill not found" });
+      if ((existing.diagrams?.length || 0) >= MAX_DIAGRAMS) {
+        return res.status(400).json({ error: `Maximum ${MAX_DIAGRAMS} diagrams per drill` });
+      }
       const drill = await Drill.findOneAndUpdate(
         { _id: req.params.id, createdBy: req.user._id },
         { $push: { diagrams: `/uploads/${req.file.filename}` } },
         { new: true }
       );
-      if (!drill) return res.status(404).json({ error: "Drill not found" });
       res.json(drill);
     } catch (err) {
       next(err);
@@ -366,10 +371,12 @@ router.post(
 );
 
 // POST /api/drills/:id/reflections — any user can add reflections
+const reflectionLimiter = rateLimit({ windowMs: 60 * 60 * 1000, max: 20, standardHeaders: true, legacyHeaders: false });
 router.post(
   "/:id/reflections",
   authenticate,
-  [body("note").trim().notEmpty()],
+  reflectionLimiter,
+  [body("note").trim().notEmpty().isLength({ max: 2000 })],
   validate,
   async (req, res, next) => {
     try {

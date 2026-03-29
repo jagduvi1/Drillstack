@@ -16,18 +16,44 @@ const { checkAiLimit } = require("../middleware/planLimits");
 const { generateDiagram } = require("../services/imageGen");
 const { createDrillSnapshot } = require("../utils/drillSnapshot");
 
+const isDev = process.env.NODE_ENV !== "production";
+
+/** Strip debug info from AI responses in production */
+function sanitizeDebug(debug) {
+  if (!debug || isDev) return debug;
+  return {
+    provider: debug.provider,
+    model: debug.model,
+    durationMs: debug.durationMs,
+  };
+}
+
+/** Sanitize user message before injecting into AI prompt context */
+function sanitizeAiInput(text) {
+  if (typeof text !== "string") return "";
+  return text
+    .replace(/\r\n/g, "\n")
+    .replace(/\r/g, "\n")
+    .slice(0, 5000);
+}
+
+/** Escape regex special characters in a string for safe use in $regex */
+function escapeRegex(str) {
+  return String(str).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
 // POST /api/ai/generate — generate a complete drill from a description
 router.post(
   "/generate",
   authenticate,
   checkAiLimit,
-  [body("description").trim().notEmpty()],
+  [body("description").trim().notEmpty().isLength({ max: 5000 }), body("sport").optional().trim().isLength({ max: 100 })],
   validate,
   async (req, res, next) => {
     try {
       const { description, sport } = req.body;
       const { drill: generated, debug } = await aiService.generateDrill(description, sport);
-      res.json({ drill: generated, debug });
+      res.json({ drill: generated, debug: sanitizeDebug(debug) });
     } catch (err) {
       next(err);
     }
@@ -39,7 +65,7 @@ router.post(
   "/generate-and-save",
   authenticate,
   checkAiLimit,
-  [body("description").trim().notEmpty()],
+  [body("description").trim().notEmpty().isLength({ max: 5000 }), body("sport").optional().trim().isLength({ max: 100 })],
   validate,
   async (req, res, next) => {
     try {
@@ -56,7 +82,7 @@ router.post(
       });
 
       indexDrill(drill).catch((e) => console.error("Index error:", e.message));
-      res.status(201).json({ ...drill.toObject(), debug });
+      res.status(201).json({ ...drill.toObject(), debug: sanitizeDebug(debug) });
     } catch (err) {
       next(err);
     }
@@ -68,7 +94,7 @@ router.post(
   "/refine/:id",
   authenticate,
   checkAiLimit,
-  [body("message").trim().notEmpty()],
+  [body("message").trim().notEmpty().isLength({ max: 2000 })],
   validate,
   async (req, res, next) => {
     try {
@@ -78,10 +104,10 @@ router.post(
       });
       if (!drill) return res.status(404).json({ error: "Drill not found" });
 
-      // Add user message to conversation
+      // Add user message to conversation (sanitized)
       drill.aiConversation.push({
         role: "user",
-        content: req.body.message,
+        content: sanitizeAiInput(req.body.message),
       });
 
       // Build current drill state for AI
@@ -148,7 +174,7 @@ router.post(
 
       await drill.save();
       indexDrill(drill).catch((e) => console.error("Index error:", e.message));
-      res.json({ ...drill.toObject(), debug: result.debug });
+      res.json({ ...drill.toObject(), debug: sanitizeDebug(result.debug) });
     } catch (err) {
       next(err);
     }
@@ -161,7 +187,7 @@ router.post(
   "/suggest-session",
   authenticate,
   checkAiLimit,
-  [body("description").trim().notEmpty()],
+  [body("description").trim().notEmpty().isLength({ max: 5000 }), body("sport").optional().trim().isLength({ max: 100 })],
   validate,
   async (req, res, next) => {
     try {
@@ -214,6 +240,7 @@ router.post(
 
       // Post-process: strip out any drill references that don't match existing drills
       const drillTitleSet = new Set(drills.map((d) => d.title.toLowerCase()));
+      const unmatchedDrills = [];
       if (result.plan?.blocks) {
         for (const block of result.plan.blocks) {
           if (block.type === "drills" && block.drillTitles) {
@@ -221,6 +248,7 @@ router.post(
             block.drillTitles = block.drillTitles.filter((title, idx) => {
               const valid = drillTitleSet.has(title.toLowerCase());
               if (valid) validIndices.push(idx);
+              else unmatchedDrills.push(title);
               return valid;
             });
             if (block.durations) {
@@ -247,7 +275,8 @@ router.post(
         availableDrills: drills,
         starredCount,
         semanticCount: drills.length,
-        debug: result.debug,
+        ...(unmatchedDrills.length > 0 && { unmatchedDrills }),
+        debug: sanitizeDebug(result.debug),
       });
     } catch (err) {
       next(err);
@@ -259,12 +288,13 @@ router.post(
 router.post(
   "/summarize",
   authenticate,
+  checkAiLimit,
   [body("drill").notEmpty()],
   validate,
   async (req, res, next) => {
     try {
       const { summary, debug } = await aiService.summarizeDrill(req.body.drill);
-      res.json({ summary, debug });
+      res.json({ summary, debug: sanitizeDebug(debug) });
     } catch (err) {
       next(err);
     }
@@ -277,7 +307,8 @@ router.post(
 router.post(
   "/generate-program",
   authenticate,
-  [body("description").trim().notEmpty()],
+  checkAiLimit,
+  [body("description").trim().notEmpty().isLength({ max: 5000 }), body("sessionsPerWeek").optional().isInt({ min: 1, max: 14 })],
   validate,
   async (req, res, next) => {
     try {
@@ -291,7 +322,7 @@ router.post(
         startDate,
         endDate,
       });
-      res.json({ program: generated, debug });
+      res.json({ program: generated, debug: sanitizeDebug(debug) });
     } catch (err) {
       next(err);
     }
@@ -302,10 +333,12 @@ router.post(
 router.post(
   "/generate-and-save-program",
   authenticate,
+  checkAiLimit,
   [
-    body("description").trim().notEmpty(),
+    body("description").trim().notEmpty().isLength({ max: 5000 }),
     body("startDate").isISO8601(),
     body("endDate").isISO8601(),
+    body("sessionsPerWeek").optional().isInt({ min: 1, max: 14 }),
   ],
   validate,
   async (req, res, next) => {
@@ -313,9 +346,11 @@ router.post(
       const { description, sport, sessionsPerWeek, startDate, endDate } =
         req.body;
 
-      // Calculate weeks from dates
       const start = new Date(startDate);
       const end = new Date(endDate);
+      if (end <= start) {
+        return res.status(400).json({ error: "End date must be after start date" });
+      }
       const weeks = Math.max(1, Math.ceil((end - start) / (7 * 24 * 60 * 60 * 1000)));
 
       const { program: generated, debug } = await aiService.generateTrainingProgram({
@@ -345,7 +380,7 @@ router.post(
       });
 
       indexPlan(plan).catch((e) => console.error("Index error:", e.message));
-      res.status(201).json({ ...plan.toObject(), debug });
+      res.status(201).json({ ...plan.toObject(), debug: sanitizeDebug(debug) });
     } catch (err) {
       next(err);
     }
@@ -356,7 +391,8 @@ router.post(
 router.post(
   "/refine-program/:id",
   authenticate,
-  [body("message").trim().notEmpty()],
+  checkAiLimit,
+  [body("message").trim().notEmpty().isLength({ max: 2000 })],
   validate,
   async (req, res, next) => {
     try {
@@ -368,7 +404,7 @@ router.post(
 
       plan.aiConversation.push({
         role: "user",
-        content: req.body.message,
+        content: sanitizeAiInput(req.body.message),
       });
 
       const currentProgram = {
@@ -423,7 +459,7 @@ router.post(
 
       await plan.save();
       indexPlan(plan).catch((e) => console.error("Index error:", e.message));
-      res.json({ ...plan.toObject(), debug: result.debug });
+      res.json({ ...plan.toObject(), debug: sanitizeDebug(result.debug) });
     } catch (err) {
       next(err);
     }
@@ -434,7 +470,8 @@ router.post(
 router.post(
   "/refine-session/:id",
   authenticate,
-  [body("message").trim().notEmpty()],
+  checkAiLimit,
+  [body("message").trim().notEmpty().isLength({ max: 2000 })],
   validate,
   async (req, res, next) => {
     try {
@@ -449,7 +486,7 @@ router.post(
 
       session.aiConversation.push({
         role: "user",
-        content: req.body.message,
+        content: sanitizeAiInput(req.body.message),
       });
 
       // Build current session state for AI
@@ -556,7 +593,7 @@ router.post(
               block.drills = [];
               for (const d of ab.drills) {
                 const match = await Drill.findOne({
-                  title: { $regex: new RegExp(`^${d.drillTitle}$`, "i") },
+                  title: { $regex: new RegExp(`^${escapeRegex(d.drillTitle)}$`, "i") },
                 }).select("_id");
                 block.drills.push({
                   drill: match?._id || null,
@@ -574,7 +611,7 @@ router.post(
               block.stations = [];
               for (const sd of ab.stationDrills || []) {
                 const match = await Drill.findOne({
-                  title: { $regex: new RegExp(`^${sd.drillTitle}$`, "i") },
+                  title: { $regex: new RegExp(`^${escapeRegex(sd.drillTitle)}$`, "i") },
                 }).select("_id");
                 block.stations.push({
                   stationNumber: sd.stationNumber,
@@ -620,7 +657,7 @@ router.post(
       // Re-populate for the response
       await session.populate("blocks.drills.drill", "title intensity setup sport");
       await session.populate("blocks.stations.drill", "title intensity setup sport");
-      res.json({ session, debug: result.debug });
+      res.json({ session, debug: sanitizeDebug(result.debug) });
     } catch (err) {
       next(err);
     }
@@ -631,13 +668,14 @@ router.post(
 router.post(
   "/adapt-session",
   authenticate,
-  [body("session").notEmpty(), body("constraints").trim().notEmpty()],
+  checkAiLimit,
+  [body("session").notEmpty(), body("constraints").trim().notEmpty().isLength({ max: 2000 })],
   validate,
   async (req, res, next) => {
     try {
       const { session, constraints } = req.body;
       const result = await aiService.adaptSession(session, constraints);
-      res.json({ adapted: result.adapted, debug: result.debug });
+      res.json({ adapted: result.adapted, debug: sanitizeDebug(result.debug) });
     } catch (err) {
       next(err);
     }
@@ -648,17 +686,21 @@ router.post(
 router.post(
   "/generate-diagram/:id",
   authenticate,
+  checkAiLimit,
   async (req, res, next) => {
     try {
       const drill = await Drill.findById(req.params.id);
       if (!drill) return res.status(404).json({ error: "Drill not found" });
+      if (drill.createdBy.toString() !== req.user._id.toString()) {
+        return res.status(403).json({ error: "Not authorized to generate diagrams for this drill" });
+      }
 
       const { path: diagramPath, debug } = await generateDiagram(drill);
 
       drill.diagrams.push(diagramPath);
       await drill.save();
 
-      res.json({ diagram: diagramPath, drill, debug });
+      res.json({ diagram: diagramPath, drill, debug: sanitizeDebug(debug) });
     } catch (err) {
       next(err);
     }
@@ -670,7 +712,7 @@ router.post(
   "/generate-tactic-animation",
   authenticate,
   checkAiLimit,
-  [body("description").trim().notEmpty()],
+  [body("description").trim().notEmpty().isLength({ max: 5000 })],
   validate,
   async (req, res, next) => {
     try {
@@ -678,8 +720,8 @@ router.post(
       const { animation, error, debug } = await aiService.generateTacticAnimation(description, {
         sport, fieldType, numHomePlayers, numAwayPlayers, homeFormation, awayFormation,
       });
-      if (error) return res.status(422).json({ error, debug });
-      res.json({ animation, debug });
+      if (error) return res.status(422).json({ error, debug: sanitizeDebug(debug) });
+      res.json({ animation, debug: sanitizeDebug(debug) });
     } catch (err) {
       next(err);
     }
@@ -691,14 +733,14 @@ router.post(
   "/refine-tactic-animation",
   authenticate,
   checkAiLimit,
-  [body("message").trim().notEmpty(), body("steps").isArray({ min: 1 })],
+  [body("message").trim().notEmpty().isLength({ max: 2000 }), body("steps").isArray({ min: 1, max: 50 })],
   validate,
   async (req, res, next) => {
     try {
       const { steps, message, conversationHistory = [], sport = "football" } = req.body;
       const history = [...conversationHistory, { role: "user", content: message }];
       const { steps: updatedSteps, message: aiMessage, debug } = await aiService.refineTacticAnimation(steps, history, sport);
-      res.json({ steps: updatedSteps, message: aiMessage, conversationHistory: history, debug });
+      res.json({ steps: updatedSteps, message: aiMessage, conversationHistory: history, debug: sanitizeDebug(debug) });
     } catch (err) {
       next(err);
     }
@@ -735,7 +777,7 @@ router.post(
         actualTrainers
       );
       const { debug, ...feasibility } = result;
-      res.json({ ...feasibility, debug });
+      res.json({ ...feasibility, debug: sanitizeDebug(debug) });
     } catch (err) {
       next(err);
     }

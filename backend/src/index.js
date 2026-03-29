@@ -1,6 +1,7 @@
 require("dotenv").config();
 const express = require("express");
 const cors = require("cors");
+const helmet = require("helmet");
 const path = require("path");
 const connectDB = require("./config/db");
 const { ensureCollection } = require("./config/qdrant");
@@ -9,12 +10,23 @@ const errorHandler = require("./middleware/errorHandler");
 
 const app = express();
 
-// ── Middleware ───────────────────────────────────────────────────────────────
-app.use(cors({
-  origin: process.env.CORS_ORIGIN || (process.env.NODE_ENV === "production" ? false : true),
+// ── Security headers ────────────────────────────────────────────────────────
+app.use(helmet({
+  crossOriginResourcePolicy: { policy: "cross-origin" }, // Allow uploads to load cross-origin
 }));
-app.use(express.json({ limit: "5mb" }));
-app.use("/uploads", express.static(path.join(__dirname, "..", "uploads")));
+
+// ── Middleware ───────────────────────────────────────────────────────────────
+const allowedOrigins = (process.env.CORS_ORIGIN || "").split(",").map((s) => s.trim()).filter(Boolean);
+app.use(cors({
+  origin: allowedOrigins.length > 0 ? allowedOrigins : (process.env.NODE_ENV === "production" ? false : true),
+  credentials: true,
+}));
+app.use(express.json({ limit: "1mb" }));
+app.use("/uploads", (req, res, next) => {
+  res.setHeader("Cache-Control", "public, max-age=86400");
+  res.setHeader("X-Content-Type-Options", "nosniff");
+  next();
+}, express.static(path.join(__dirname, "..", "uploads")));
 
 // ── Routes ──────────────────────────────────────────────────────────────────
 app.use("/api/auth", require("./routes/auth"));

@@ -66,7 +66,7 @@ router.post(
   authenticate,
   checkLimit("plans"),
   [
-    body("title").trim().notEmpty(),
+    body("title").trim().notEmpty().isLength({ max: 200 }),
     body("startDate").isISO8601(),
     body("endDate").isISO8601(),
   ],

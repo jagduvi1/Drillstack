@@ -1,3 +1,5 @@
+const isDev = process.env.NODE_ENV !== "production";
+
 function errorHandler(err, _req, res, _next) {
   console.error(err.stack || err.message);
 
@@ -7,15 +9,16 @@ function errorHandler(err, _req, res, _next) {
   }
 
   if (err.code === 11000) {
-    return res.status(409).json({ error: "Duplicate entry", details: err.keyValue });
+    return res.status(409).json({ error: "Duplicate entry" });
   }
 
   if (err.name === "CastError") {
-    return res.status(400).json({ error: `Invalid ${err.path}: ${err.value}` });
+    return res.status(400).json({ error: "Invalid request parameter" });
   }
 
-  res.status(err.status || 500).json({
-    error: err.message || "Internal server error",
+  const statusCode = err.status || 500;
+  res.status(statusCode).json({
+    error: statusCode >= 500 && !isDev ? "Internal server error" : (err.message || "Internal server error"),
   });
 }
 

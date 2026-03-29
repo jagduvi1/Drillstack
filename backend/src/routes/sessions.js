@@ -204,7 +204,12 @@ router.post(
   "/",
   authenticate,
   checkLimit("sessions"),
-  [body("title").trim().notEmpty()],
+  [
+    body("title").trim().notEmpty().isLength({ max: 200 }),
+    body("blocks").optional().isArray({ max: 50 }),
+    body("blocks.*.type").optional().isIn(["drills", "stations", "matchplay", "break", "custom"]),
+    body("description").optional().isLength({ max: 5000 }),
+  ],
   validate,
   async (req, res, next) => {
     try {
