@@ -1073,30 +1073,7 @@ th {
     width: 100%;
   }
 
-  /* Tactic page */
-  .tactic-page {
-    height: calc(100vh - var(--mobile-header-h) - 1rem);
-    padding: 0.25rem;
-  }
-  .tactic-header {
-    flex-wrap: wrap;
-    gap: 0.5rem;
-  }
-  .tactic-toolbar {
-    gap: 0.25rem;
-    padding: 0.35rem;
-    overflow-x: auto;
-    -webkit-overflow-scrolling: touch;
-    flex-wrap: nowrap;
-  }
-  .tactic-hints {
-    display: none;
-  }
-  .tactic-timeline {
-    gap: 0.5rem;
-    padding: 0.35rem;
-    overflow-x: auto;
-  }
+  /* Tactic page — handled in dedicated tactic responsive section */
 
   /* Station grid: 2 columns */
   .station-grid {
@@ -2268,4 +2245,201 @@ th {
   border-color: #6366f1;
 }
 
-/* Tactic responsive — handled in main responsive block */
+/* ── Tactic Board List ────────────────────────────── */
+.tactic-list-page {
+  max-width: 800px;
+}
+.tactic-list-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+.tactic-list-card {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.75rem;
+}
+.tactic-list-card-link {
+  flex: 1;
+  color: var(--color-text);
+  min-width: 0;
+}
+.tactic-list-card-link:hover strong {
+  color: var(--color-primary);
+}
+
+/* ── Tactic Board: Mobile helpers ────────────────── */
+.tactic-hide-xs {
+  /* visible by default, hidden on mobile via media query */
+}
+.tactic-header-actions {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+/* ── Tactic Board: Two-row toolbar ───────────────── */
+.tactic-toolbar-row2 {
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+.tactic-toolbar-row2 .form-control-sm {
+  min-height: 36px;
+}
+
+/* ── Tactic Board: Mobile responsive ─────────────── */
+@media (max-width: 767px) {
+  .tactic-page {
+    height: calc(100vh - var(--mobile-header-h) - 0.5rem);
+    padding: 0.25rem;
+    gap: 0.25rem;
+  }
+
+  /* Header: compact */
+  .tactic-header {
+    padding: 0.25rem 0;
+    gap: 0.5rem;
+  }
+  .tactic-title-input {
+    font-size: 1rem;
+    padding: 0.2rem 0.35rem;
+    min-width: 0;
+  }
+  .tactic-header-actions {
+    gap: 0.35rem;
+  }
+  .tactic-hide-xs {
+    display: none;
+  }
+
+  /* Toolbar row 1: scrollable */
+  .tactic-toolbar-row1 {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    flex-wrap: nowrap;
+    gap: 0.25rem;
+    padding: 0.3rem 0.4rem;
+    scrollbar-width: none;
+  }
+  .tactic-toolbar-row1::-webkit-scrollbar {
+    display: none;
+  }
+
+  /* Larger touch targets for tool buttons */
+  .tactic-tool-btn {
+    min-width: 40px;
+    min-height: 40px;
+    padding: 0.4rem 0.5rem;
+    font-size: 0.9rem;
+  }
+  .tactic-count-btn {
+    width: 32px;
+    height: 32px;
+    font-size: 0.8rem;
+  }
+  .tactic-color-picker {
+    width: 36px;
+    height: 36px;
+  }
+
+  /* Toolbar row 2: wrap compactly */
+  .tactic-toolbar-row2 {
+    gap: 0.35rem;
+    padding: 0.3rem 0.4rem;
+    flex-wrap: wrap;
+  }
+  .tactic-toolbar-row2 .form-control-sm {
+    font-size: 0.8rem;
+    padding: 0.25rem 0.35rem;
+    min-height: 36px;
+  }
+
+  /* Tool dividers: smaller */
+  .tactic-tool-divider {
+    height: 20px;
+  }
+
+  /* Selection bar */
+  .tactic-selection-bar {
+    padding: 0.3rem 0.5rem;
+    font-size: 0.8rem;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+  }
+
+  /* Canvas: maximize space */
+  .tactic-canvas-container {
+    margin: 0.25rem 0;
+    border-radius: 4px;
+  }
+
+  /* Timeline: scrollable */
+  .tactic-timeline {
+    gap: 0.35rem;
+    padding: 0.3rem 0.4rem;
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+  .tactic-playback-controls {
+    gap: 0.15rem;
+    flex-shrink: 0;
+  }
+  .tactic-play-btn {
+    width: 36px;
+    height: 36px;
+  }
+  .tactic-step-btn {
+    width: 36px;
+    height: 36px;
+  }
+  .tactic-step-add {
+    width: 36px;
+    height: 36px;
+  }
+  .tactic-steps {
+    gap: 0.35rem;
+    flex-shrink: 0;
+  }
+
+  /* Hints: hidden */
+  .tactic-hints {
+    display: none;
+  }
+
+  /* AI modal: full screen */
+  .tactic-ai-overlay {
+    padding: 0;
+    align-items: stretch;
+  }
+  .tactic-ai-modal {
+    max-width: 100%;
+    border-radius: 0;
+    max-height: 100vh;
+    overflow-y: auto;
+  }
+  .tactic-ai-textarea {
+    min-height: 80px;
+  }
+
+  /* List page */
+  .tactic-list-page {
+    max-width: 100%;
+  }
+  .tactic-list-card {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  .tactic-list-card .btn {
+    align-self: flex-end;
+  }
+}
+
+/* Tactic tablet adjustments */
+@media (min-width: 768px) and (max-width: 1024px) {
+  .tactic-toolbar-row1 {
+    flex-wrap: wrap;
+  }
+}

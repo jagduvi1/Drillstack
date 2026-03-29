@@ -497,13 +497,13 @@ export default function TacticBoardPage() {
     <div className="tactic-page">
       {/* Header */}
       <div className="tactic-header">
-        <Link to="/tactics" className="btn btn-secondary btn-sm"><FiArrowLeft /> {t("tactics.title")}</Link>
+        <Link to="/tactics" className="btn btn-secondary btn-sm"><FiArrowLeft /> <span className="tactic-hide-xs">{t("tactics.title")}</span></Link>
         <input className="tactic-title-input" value={title} onChange={(e) => setTitle(e.target.value)} placeholder={t("tactics.untitled")} />
-        <div style={{ display: "flex", gap: "0.5rem", alignItems: "center" }}>
+        <div className="tactic-header-actions">
           {saveMsg && <span className="text-sm text-muted">{saveMsg}</span>}
           {debugEntries.length > 0 && (
             <button className={`btn btn-sm ${debugOpen ? "btn-primary" : "btn-secondary"}`} onClick={toggleDebug}>
-              <FiCpu /> Debug ({debugEntries.length})
+              <FiCpu /> <span className="tactic-hide-xs">Debug ({debugEntries.length})</span>
             </button>
           )}
           <button className="btn btn-primary btn-sm" onClick={handleSave} disabled={isSaving}>
@@ -512,9 +512,8 @@ export default function TacticBoardPage() {
         </div>
       </div>
 
-      {/* Toolbar */}
-      <div className="tactic-toolbar">
-        {/* Tools */}
+      {/* Toolbar — row 1: drawing tools + pieces */}
+      <div className="tactic-toolbar tactic-toolbar-row1">
         <div className="tactic-tool-group">
           <button className={`tactic-tool-btn ${tool === "select" ? "active" : ""}`} onClick={() => setTool("select")} title={`${t("tactics.tools.select")} (1)`}>
             <FiMousePointer />
@@ -541,7 +540,6 @@ export default function TacticBoardPage() {
 
         <div className="tactic-tool-divider" />
 
-        {/* Player counts with +/- */}
         <div className="tactic-player-count">
           <span className="tactic-color-dot" style={{ background: homeColor }} />
           <button className="tactic-count-btn" onClick={() => removePieceFromTeam("home")} disabled={homePlayers.length <= 1}><FiMinus /></button>
@@ -555,69 +553,54 @@ export default function TacticBoardPage() {
           <button className="tactic-count-btn" onClick={() => addPiece("away")}><FiPlus /></button>
         </div>
 
-        {/* Ball & Cone */}
         <button className="tactic-tool-btn" onClick={addBall} disabled={hasBall} title={t("tactics.addBall")}>
-          <FiCircle /> {t("tactics.ball")}
+          <FiCircle /> <span className="tactic-hide-xs">{t("tactics.ball")}</span>
         </button>
         <button className="tactic-tool-btn" onClick={addCone} title={t("tactics.addCone")}>
-          <FiTriangle /> {t("tactics.cone")}
+          <FiTriangle /> <span className="tactic-hide-xs">{t("tactics.cone")}</span>
         </button>
 
         <div className="tactic-tool-divider" />
 
-        {/* Sport selector */}
-        <select className="form-control form-control-sm" value={sport} onChange={(e) => handleSportChange(e.target.value)} style={{ width: "auto" }}>
-          {Object.entries(SPORT_CONFIGS).map(([key, cfg]) => (
-            <option key={key} value={key}>{t(`tactics.sports.${key}`, cfg.label)}</option>
-          ))}
-        </select>
-
-        <div className="tactic-tool-divider" />
-
-        {/* Field type */}
-        <select className="form-control form-control-sm" value={fieldType} onChange={(e) => handleFieldTypeChange(e.target.value)} style={{ width: "auto" }}>
-          {Object.keys(sportFieldViews).map((key) => (
-            <option key={key} value={key}>{t(`tactics.fieldTypes.${key}`, key)}</option>
-          ))}
-        </select>
-
-        <div className="tactic-tool-divider" />
-
-        {/* Formations */}
-        <div className="tactic-formation-group">
-          <span className="tactic-color-dot" style={{ background: homeColor }} />
-          <select className="form-control form-control-sm" value={homeFormation} onChange={(e) => applyFormation("home", e.target.value)} style={{ width: "auto" }}>
-            {Object.keys(sportFormations).map((f) => <option key={f} value={f}>{f}</option>)}
-          </select>
-        </div>
-        <div className="tactic-formation-group">
-          <span className="tactic-color-dot" style={{ background: awayColor }} />
-          <select className="form-control form-control-sm" value={awayFormation} onChange={(e) => applyFormation("away", e.target.value)} style={{ width: "auto" }}>
-            {Object.keys(sportFormations).map((f) => <option key={f} value={f}>{f}</option>)}
-          </select>
-        </div>
-
-        <div className="tactic-tool-divider" />
-
-        {/* Colors */}
-        <input type="color" value={homeColor} onChange={(e) => setHomeColor(e.target.value)} className="tactic-color-picker" title={t("tactics.homeColor")} />
-        <input type="color" value={awayColor} onChange={(e) => setAwayColor(e.target.value)} className="tactic-color-picker" title={t("tactics.awayColor")} />
-
-        <div className="tactic-tool-divider" />
-
-        {/* Zoom */}
         <div className="tactic-zoom-group">
           <button className="tactic-count-btn" onClick={() => setZoom((z) => Math.max(0.5, +(z - 0.25).toFixed(2)))} disabled={zoom <= 0.5}><FiZoomOut /></button>
           <span className="tactic-count-num">{Math.round(zoom * 100)}%</span>
           <button className="tactic-count-btn" onClick={() => setZoom((z) => Math.min(3, +(z + 0.25).toFixed(2)))} disabled={zoom >= 3}><FiZoomIn /></button>
         </div>
 
-        <div className="tactic-tool-divider" />
-
-        {/* AI Generate */}
         <button className="tactic-tool-btn tactic-ai-btn" onClick={() => setShowAiModal(true)} title={t("tactics.ai.generate")}>
-          <FiCpu /> {t("tactics.ai.generate")}
+          <FiCpu /> <span className="tactic-hide-xs">{t("tactics.ai.generate")}</span>
         </button>
+      </div>
+
+      {/* Toolbar — row 2: sport, field type, formations, colors */}
+      <div className="tactic-toolbar tactic-toolbar-row2">
+        <select className="form-control form-control-sm" value={sport} onChange={(e) => handleSportChange(e.target.value)} style={{ width: "auto", minWidth: 0 }}>
+          {Object.entries(SPORT_CONFIGS).map(([key, cfg]) => (
+            <option key={key} value={key}>{t(`tactics.sports.${key}`, cfg.label)}</option>
+          ))}
+        </select>
+
+        <select className="form-control form-control-sm" value={fieldType} onChange={(e) => handleFieldTypeChange(e.target.value)} style={{ width: "auto", minWidth: 0 }}>
+          {Object.keys(sportFieldViews).map((key) => (
+            <option key={key} value={key}>{t(`tactics.fieldTypes.${key}`, key)}</option>
+          ))}
+        </select>
+
+        <div className="tactic-formation-group">
+          <span className="tactic-color-dot" style={{ background: homeColor }} />
+          <select className="form-control form-control-sm" value={homeFormation} onChange={(e) => applyFormation("home", e.target.value)} style={{ width: "auto", minWidth: 0 }}>
+            {Object.keys(sportFormations).map((f) => <option key={f} value={f}>{f}</option>)}
+          </select>
+          <input type="color" value={homeColor} onChange={(e) => setHomeColor(e.target.value)} className="tactic-color-picker" title={t("tactics.homeColor")} />
+        </div>
+        <div className="tactic-formation-group">
+          <span className="tactic-color-dot" style={{ background: awayColor }} />
+          <select className="form-control form-control-sm" value={awayFormation} onChange={(e) => applyFormation("away", e.target.value)} style={{ width: "auto", minWidth: 0 }}>
+            {Object.keys(sportFormations).map((f) => <option key={f} value={f}>{f}</option>)}
+          </select>
+          <input type="color" value={awayColor} onChange={(e) => setAwayColor(e.target.value)} className="tactic-color-picker" title={t("tactics.awayColor")} />
+        </div>
       </div>
 
       {/* Selected piece bar */}
