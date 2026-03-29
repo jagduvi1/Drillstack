@@ -5,7 +5,7 @@ import {
   FiArrowLeft, FiSave, FiMousePointer, FiArrowRight, FiMoreHorizontal,
   FiTrash2, FiPlus, FiMinus, FiPlay, FiPause, FiSkipBack, FiSkipForward,
   FiRepeat, FiCircle, FiTriangle, FiCpu, FiX, FiSend, FiZoomIn, FiZoomOut,
-  FiMaximize, FiMinimize,
+  FiMaximize, FiMinimize, FiTarget,
 } from "react-icons/fi";
 import TacticCanvas, {
   FORMATIONS, DRAW_TOOLS, createInitialStep, buildFormationPieces,
@@ -64,6 +64,7 @@ export default function TacticBoardPage() {
   const [homeColor, setHomeColor] = useState("#2563eb");
   const [awayColor, setAwayColor] = useState("#ef4444");
   const [drillId, setDrillId] = useState(null);
+  const [drillTitle, setDrillTitle] = useState("");
   const [loading, setLoading] = useState(!isNew);
 
   // ── UI state ────────────────────────────────────────────────────────────
@@ -138,7 +139,8 @@ export default function TacticBoardPage() {
         setAwayFormation(b.awayTeam?.formation || getDefaultFormation(loadedSport));
         setHomeColor(b.homeTeam?.color || "#2563eb");
         setAwayColor(b.awayTeam?.color || "#ef4444");
-        setDrillId(b.drill || null);
+        setDrillId(b.drill?._id || b.drill || null);
+        setDrillTitle(b.drill?.title || "");
         setLoading(false);
       })
       .catch(() => navigate("/tactics"));
@@ -498,7 +500,7 @@ export default function TacticBoardPage() {
     if (drillDesc) {
       autoGenTriggered.current = true;
       if (drillTitle) setTitle(drillTitle);
-      if (drillIdParam) setDrillId(drillIdParam);
+      if (drillIdParam) { setDrillId(drillIdParam); if (drillTitle) setDrillTitle(drillTitle); }
       setAiPrompt(drillDesc);
       setShowAiModal(true);
     }
@@ -557,6 +559,11 @@ export default function TacticBoardPage() {
       <div className="tactic-header">
         <Link to="/tactics" className="btn btn-secondary btn-sm"><FiArrowLeft /> <span className="tactic-hide-xs">{t("tactics.title")}</span></Link>
         <input className="tactic-title-input" value={title} onChange={(e) => setTitle(e.target.value)} placeholder={t("tactics.untitled")} />
+        {drillId && (
+          <Link to={`/drills/${drillId}`} className="tactic-drill-link" title={drillTitle || t("tactics.linkedDrill")}>
+            <FiTarget /> <span className="tactic-hide-xs">{drillTitle || t("tactics.linkedDrill")}</span>
+          </Link>
+        )}
         <div className="tactic-header-actions">
           {saveMsg && <span className="text-sm text-muted">{saveMsg}</span>}
           {debugEntries.length > 0 && (

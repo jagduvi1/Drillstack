@@ -770,10 +770,12 @@ export default function TacticCanvas({
   useEffect(() => {
     if (!containerRef.current) return;
     const obs = new ResizeObserver((entries) => {
-      const { width } = entries[0].contentRect;
+      const { width, height: containerH } = entries[0].contentRect;
       const cfg = sportFieldConfigs[fieldType] || Object.values(sportFieldConfigs)[0];
-      const maxH = fieldType === "blank" ? window.innerHeight * 0.75 : window.innerHeight * 0.65;
-      const h = Math.min(width * (cfg.h / cfg.w), maxH);
+      // Use the actual container height (flex: 1 fills remaining space)
+      // Fall back to aspect ratio if container height isn't available yet
+      const aspectH = width * (cfg.h / cfg.w);
+      const h = containerH > 100 ? Math.min(aspectH, containerH) : aspectH;
       setDims({ width, height: h });
     });
     obs.observe(containerRef.current);

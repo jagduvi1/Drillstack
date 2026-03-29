@@ -5,13 +5,14 @@ import useFetch from "../hooks/useFetch";
 import { useAuth } from "../context/AuthContext";
 import { getDrill, deleteDrill, uploadDiagram, addReflection, retryEmbedding, toggleStar, forkDrill, getVersions, setDefaultVersion, findSimilar, convertToVersion } from "../api/drills";
 import { refineDrill, generateDiagram } from "../api/ai";
+import { getTactics } from "../api/tactics";
 import DebugPanel from "../components/common/DebugPanel";
 import useDebugPanel from "../hooks/useDebugPanel";
 import DrillVersionsPanel from "../components/drills/DrillVersionsPanel";
 import DrillEmbeddingStatus from "../components/drills/DrillEmbeddingStatus";
 import SimilarDrillsBanner from "../components/drills/SimilarDrillsBanner";
 import DrillChatPanel from "../components/drills/DrillChatPanel";
-import { FiEdit, FiTrash2, FiMessageCircle, FiLoader, FiAlertCircle, FiImage, FiStar, FiCopy, FiGitBranch, FiUser, FiCode, FiTarget } from "react-icons/fi";
+import { FiEdit, FiTrash2, FiMessageCircle, FiLoader, FiAlertCircle, FiImage, FiStar, FiCopy, FiGitBranch, FiUser, FiCode, FiTarget, FiPlus } from "react-icons/fi";
 
 export default function DrillDetailPage() {
   const { t } = useTranslation();
@@ -31,10 +32,19 @@ export default function DrillDetailPage() {
   const [similarDrills, setSimilarDrills] = useState(null);
   const [similarDismissed, setSimilarDismissed] = useState(false);
   const [embeddingElapsed, setEmbeddingElapsed] = useState(0);
+  const [linkedTactics, setLinkedTactics] = useState(null);
   const { debugOpen, debugEntries, toggleDebug, addDebugEntry } = useDebugPanel();
   const similarChecked = useRef(false);
   const embeddingStartRef = useRef(null);
   const chatEndRef = useRef(null);
+
+  // Fetch tactic boards linked to this drill
+  useEffect(() => {
+    if (!id) return;
+    getTactics({ drill: id })
+      .then((res) => setLinkedTactics(res.data.boards || []))
+      .catch(() => {});
+  }, [id]);
 
   useEffect(() => {
     if (chatEndRef.current) {
@@ -415,6 +425,38 @@ export default function DrillDetailPage() {
               {t("drills.diagramsReadOnly")}{" "}
               <button className="btn-link" onClick={handleFork}>{t("drills.forkAndEdit")}</button>
             </p>
+          )}
+        </div>
+
+        {/* Linked Tactic Boards */}
+        <div className="card mb-1">
+          <div className="flex-between">
+            <h3><FiTarget style={{ marginRight: "0.4rem" }} />{t("drills.tacticBoards")}</h3>
+            <Link
+              to={`/tactics/new?${new URLSearchParams({ drillDescription: [drill.description, drill.howItWorks].filter(Boolean).join("\n\n"), drillTitle: drill.title || "", drillId: id }).toString()}`}
+              className="btn btn-primary btn-sm"
+            >
+              <FiPlus /> {t("drills.newTacticBoard")}
+            </Link>
+          </div>
+          {linkedTactics === null ? (
+            <p className="text-sm text-muted mt-1"><FiLoader className="spin" /> {t("common.loading")}</p>
+          ) : linkedTactics.length === 0 ? (
+            <p className="text-sm text-muted mt-1">{t("drills.noTacticBoards")}</p>
+          ) : (
+            <div className="mt-1" style={{ display: "flex", flexDirection: "column", gap: "0.5rem" }}>
+              {linkedTactics.map((tb) => (
+                <Link key={tb._id} to={`/tactics/${tb._id}`} className="drill-tactic-card">
+                  <div>
+                    <strong>{tb.title || t("tactics.untitled")}</strong>
+                    <span className="text-sm text-muted" style={{ marginLeft: "0.5rem" }}>
+                      {tb.fieldType} · {tb.homeTeam?.formation || "4-4-2"} vs {tb.awayTeam?.formation || "4-4-2"}
+                    </span>
+                  </div>
+                  <span className="text-sm text-muted">{new Date(tb.updatedAt).toLocaleDateString()}</span>
+                </Link>
+              ))}
+            </div>
           )}
         </div>
 

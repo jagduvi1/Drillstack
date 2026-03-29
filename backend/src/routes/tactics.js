@@ -23,6 +23,7 @@ router.get("/", async (req, res, next) => {
     const [boards, total] = await Promise.all([
       TacticBoard.find(filter)
         .select("title sport fieldType homeTeam awayTeam updatedAt drill tags")
+        .populate("drill", "title")
         .sort({ updatedAt: -1 })
         .skip(skip)
         .limit(limit),
@@ -38,7 +39,7 @@ router.get("/", async (req, res, next) => {
 // GET /api/tactics/:id
 router.get("/:id", async (req, res, next) => {
   try {
-    const board = await TacticBoard.findById(req.params.id);
+    const board = await TacticBoard.findById(req.params.id).populate("drill", "title");
     if (!board) return res.status(404).json({ error: "Not found" });
     if (
       board.createdBy.toString() !== req.user._id.toString() &&
