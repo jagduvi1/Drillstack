@@ -2,6 +2,7 @@ import api from "./client";
 
 export const getOverview = () => api.get("/superadmin/overview");
 export const getServices = () => api.get("/superadmin/services");
+export const getProcess = () => api.get("/superadmin/process");
 export const getDatabase = () => api.get("/superadmin/database");
 export const getAISettings = () => api.get("/superadmin/ai");
 export const updateAISetting = (key, value) => api.put(`/superadmin/ai/${key}`, { value });

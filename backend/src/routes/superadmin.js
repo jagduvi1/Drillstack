@@ -34,12 +34,32 @@ router.get("/overview", async (_req, res, next) => {
       { $group: { _id: "$role", count: { $sum: 1 } } },
     ]);
 
+    // Plan breakdown
+    const planBreakdown = await User.aggregate([
+      { $group: { _id: "$plan", count: { $sum: 1 } } },
+    ]);
+
+    // Registrations over last 12 months
+    const twelveMonthsAgo = new Date();
+    twelveMonthsAgo.setMonth(twelveMonthsAgo.getMonth() - 12);
+    const registrationsOverTime = await User.aggregate([
+      { $match: { createdAt: { $gte: twelveMonthsAgo } } },
+      { $group: { _id: { year: { $year: "$createdAt" }, month: { $month: "$createdAt" } }, count: { $sum: 1 } } },
+      { $sort: { "_id.year": 1, "_id.month": 1 } },
+    ]);
+
+    // Recent users
+    const recentUsers = await User.find()
+      .select("name email plan role createdAt")
+      .sort({ createdAt: -1 })
+      .limit(10);
+
     res.json({
-      users: userCount,
-      drills: drillCount,
-      sessions: sessionCount,
-      plans: planCount,
-      roles: Object.fromEntries(roles.map((r) => [r._id, r.count])),
+      counts: { totalUsers: userCount, totalDrills: drillCount, totalSessions: sessionCount, totalPlans: planCount },
+      roles: Object.fromEntries(roles.map((r) => [r._id || "user", r.count])),
+      byPlan: Object.fromEntries(planBreakdown.map((p) => [p._id || "starter", p.count])),
+      registrationsOverTime,
+      recentUsers,
     });
   } catch (err) {
     next(err);
@@ -97,24 +117,70 @@ router.get("/services", async (_req, res) => {
   res.json(checks);
 });
 
-// ── Database stats ───────────────────────────────────────────────────────────
+// ── Process stats ───────────────────────────────────────────────────────────
+
+router.get("/process", (_req, res) => {
+  const mem = process.memoryUsage();
+  const uptimeS = Math.floor(process.uptime());
+  const d = Math.floor(uptimeS / 86400);
+  const h = Math.floor((uptimeS % 86400) / 3600);
+  const m = Math.floor((uptimeS % 3600) / 60);
+  const s = uptimeS % 60;
+  const uptimeFormatted = `${d}d ${h}h ${m}m ${s}s`;
+
+  res.json({
+    nodeVersion: process.version,
+    pid: process.pid,
+    platform: process.platform,
+    arch: process.arch,
+    uptimeSeconds: uptimeS,
+    uptimeFormatted,
+    memory: {
+      rssBytes: mem.rss,
+      heapTotalBytes: mem.heapTotal,
+      heapUsedBytes: mem.heapUsed,
+      externalBytes: mem.external,
+      heapUsedPct: Math.round((mem.heapUsed / mem.heapTotal) * 100),
+    },
+    env: {
+      nodeEnv: process.env.NODE_ENV || "development",
+      port: process.env.PORT || "4000",
+    },
+  });
+});
+
+// ── Database stats (MongoDB) ────────────────────────────────────────────────
 
 router.get("/database", async (_req, res, next) => {
   try {
     const db = mongoose.connection.db;
+    const dbStats = await db.stats();
     const collections = await db.listCollections().toArray();
-    const stats = [];
+    const collectionStats = [];
     for (const col of collections) {
       const s = await db.collection(col.name).stats();
-      stats.push({
+      collectionStats.push({
         name: col.name,
-        documents: s.count,
+        count: s.count,
         size: s.size,
+        storageSize: s.storageSize || 0,
         avgObjSize: s.avgObjSize || 0,
-        indexes: s.nindexes,
+        nindexes: s.nindexes,
+        totalIndexSize: s.totalIndexSize || 0,
       });
     }
-    res.json(stats);
+    collectionStats.sort((a, b) => b.count - a.count);
+
+    res.json({
+      database: dbStats.db,
+      collections: dbStats.collections,
+      objects: dbStats.objects,
+      dataSize: dbStats.dataSize,
+      storageSize: dbStats.storageSize,
+      indexSize: dbStats.indexSize,
+      avgObjSize: dbStats.avgObjSize || 0,
+      collectionStats,
+    });
   } catch (err) {
     next(err);
   }

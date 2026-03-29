@@ -18,7 +18,7 @@ import PlanFormPage from "./pages/PlanFormPage";
 import PlanDetailPage from "./pages/PlanDetailPage";
 import TodayPage from "./pages/TodayPage";
 import SearchPage from "./pages/SearchPage";
-import SuperAdminPage from "./pages/SuperAdminPage";
+import SuperAdminPage from "./pages/SuperAdmin";
 import NotificationsPage from "./pages/NotificationsPage";
 import GroupsPage from "./pages/GroupsPage";
 import GroupDetailPage from "./pages/GroupDetailPage";
