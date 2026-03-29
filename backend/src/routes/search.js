@@ -1,9 +1,8 @@
 const router = require("express").Router();
-const rateLimit = require("express-rate-limit");
 const { authenticate } = require("../middleware/auth");
 const { semanticSearch, keywordSearch, hybridSearch } = require("../services/search");
+const { searchLimiter } = require("../utils/rateLimiters");
 
-const searchLimiter = rateLimit({ windowMs: 15 * 60 * 1000, max: 100, standardHeaders: true, legacyHeaders: false });
 router.use(searchLimiter);
 
 function parseSearchLimit(val) {

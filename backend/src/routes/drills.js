@@ -12,9 +12,9 @@ const Notification = require("../models/Notification");
 const { indexDrill, removeDrill, getQueueStatus, checkEmbeddingSimilarity, findSimilarDrills } = require("../services/sync");
 const { checkLimit } = require("../middleware/planLimits");
 const { createDrillSnapshot } = require("../utils/drillSnapshot");
+const { standardLimiter } = require("../utils/rateLimiters");
 
-const drillsLimiter = rateLimit({ windowMs: 15 * 60 * 1000, max: 200, standardHeaders: true, legacyHeaders: false });
-router.use(drillsLimiter);
+router.use(standardLimiter);
 
 // GET /api/drills — public: returns ALL drills (no createdBy filter)
 router.get("/", authenticate, async (req, res, next) => {
