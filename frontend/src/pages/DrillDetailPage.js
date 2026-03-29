@@ -1,9 +1,9 @@
-import { useState, useRef, useEffect } from "react";
-import { useParams, Link, useNavigate } from "react-router-dom";
+import { useState, useRef, useEffect, useCallback } from "react";
+import { useParams, Link, useNavigate, useBlocker } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import useFetch from "../hooks/useFetch";
 import { useAuth } from "../context/AuthContext";
-import { getDrill, deleteDrill, uploadDiagram, addReflection, retryEmbedding, toggleStar, forkDrill, getVersions, setDefaultVersion, findSimilar, convertToVersion } from "../api/drills";
+import { getDrill, deleteDrill, updateDrill, uploadDiagram, addReflection, retryEmbedding, toggleStar, forkDrill, getVersions, setDefaultVersion, findSimilar, convertToVersion } from "../api/drills";
 import { refineDrill, generateDiagram } from "../api/ai";
 import { getTactics } from "../api/tactics";
 import DebugPanel from "../components/common/DebugPanel";
@@ -12,7 +12,7 @@ import DrillVersionsPanel from "../components/drills/DrillVersionsPanel";
 import DrillEmbeddingStatus from "../components/drills/DrillEmbeddingStatus";
 import SimilarDrillsBanner from "../components/drills/SimilarDrillsBanner";
 import DrillChatPanel from "../components/drills/DrillChatPanel";
-import { FiEdit, FiTrash2, FiMessageCircle, FiLoader, FiAlertCircle, FiImage, FiStar, FiCopy, FiGitBranch, FiUser, FiCode, FiTarget, FiPlus } from "react-icons/fi";
+import { FiEdit, FiTrash2, FiMessageCircle, FiLoader, FiAlertCircle, FiImage, FiStar, FiCopy, FiGitBranch, FiUser, FiCode, FiTarget, FiPlus, FiSave } from "react-icons/fi";
 
 export default function DrillDetailPage() {
   const { t } = useTranslation();
@@ -33,6 +33,8 @@ export default function DrillDetailPage() {
   const [similarDismissed, setSimilarDismissed] = useState(false);
   const [embeddingElapsed, setEmbeddingElapsed] = useState(0);
   const [linkedTactics, setLinkedTactics] = useState(null);
+  const [unsavedChanges, setUnsavedChanges] = useState(null); // refined fields not yet saved
+  const [isSaving, setIsSaving] = useState(false);
   const { debugOpen, debugEntries, toggleDebug, addDebugEntry } = useDebugPanel();
   const similarChecked = useRef(false);
   const embeddingStartRef = useRef(null);
@@ -93,6 +95,9 @@ export default function DrillDetailPage() {
 
   if (loading) return <div className="loading">{t("common.loading")}</div>;
   if (!drill) return <div className="alert alert-danger">{t("drills.notFound")}</div>;
+
+  // Merge unsaved AI refinements with the fetched drill for display
+  const displayDrill = unsavedChanges ? { ...drill, ...unsavedChanges } : drill;
 
   const handleDelete = async () => {
     if (!window.confirm(t("drills.deleteDrill"))) return;
@@ -188,13 +193,49 @@ export default function DrillDetailPage() {
         addDebugEntry(`Refine: "${msg.slice(0, 40)}${msg.length > 40 ? "..." : ""}"`, res.data.debug);
       }
       setChatMessage("");
-      refetch();
+      // If AI returned refined fields, apply locally (not saved yet)
+      if (res.data.refinedFields) {
+        setUnsavedChanges(res.data.refinedFields);
+      }
+      refetch(); // Refresh conversation history
     } catch {
       alert(t("drills.aiRefineFailed"));
     } finally {
       setChatLoading(false);
     }
   };
+
+  // Save unsaved AI refinements
+  const handleSaveRefinement = async () => {
+    if (!unsavedChanges) return;
+    setIsSaving(true);
+    try {
+      await updateDrill(id, unsavedChanges);
+      setUnsavedChanges(null);
+      refetch();
+    } catch {
+      alert(t("common.saveFailed"));
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  // Discard unsaved refinements
+  const handleDiscardRefinement = () => {
+    if (!window.confirm(t("drills.discardChanges"))) return;
+    setUnsavedChanges(null);
+  };
+
+  // Warn on browser close/refresh with unsaved changes
+  useEffect(() => {
+    if (!unsavedChanges) return;
+    const handler = (e) => { e.preventDefault(); e.returnValue = ""; };
+    window.addEventListener("beforeunload", handler);
+    return () => window.removeEventListener("beforeunload", handler);
+  }, [unsavedChanges]);
+
+  // Warn on route navigation with unsaved changes
+  const blocker = useBlocker(!!unsavedChanges);
 
   const handleChatKeyDown = (e) => {
     if (e.key === "Enter" && !e.shiftKey) {
@@ -209,7 +250,7 @@ export default function DrillDetailPage() {
         <div className="flex-between mb-1">
           <div>
             <h1 style={{ marginBottom: "0.25rem" }}>
-              {drill.title}
+              {displayDrill.title}
               {drill.versionName && (
                 <span className="version-name-subtitle"> — {drill.versionName}</span>
               )}
@@ -321,28 +362,64 @@ export default function DrillDetailPage() {
           <DebugPanel entries={debugEntries} />
         )}
 
+        {/* Unsaved changes banner */}
+        {unsavedChanges && (
+          <div className="alert alert-warning mb-1" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "0.5rem" }}>
+            <span><FiAlertCircle style={{ marginRight: "0.4rem" }} />{t("drills.unsavedChanges")}</span>
+            <div className="flex gap-sm">
+              <button className="btn btn-primary btn-sm" onClick={handleSaveRefinement} disabled={isSaving}>
+                <FiSave /> {isSaving ? t("common.saving") : t("common.save")}
+              </button>
+              <button className="btn btn-secondary btn-sm" onClick={handleDiscardRefinement}>
+                {t("common.discard")}
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* Navigation blocker modal */}
+        {blocker.state === "blocked" && (
+          <div className="modal-overlay">
+            <div className="modal-content" style={{ maxWidth: 400, textAlign: "center" }}>
+              <h3 style={{ marginBottom: "1rem" }}>{t("drills.unsavedChangesTitle")}</h3>
+              <p className="text-muted" style={{ marginBottom: "1.5rem" }}>{t("drills.unsavedChangesMessage")}</p>
+              <div className="flex gap-sm" style={{ justifyContent: "center" }}>
+                <button className="btn btn-primary" onClick={() => { handleSaveRefinement().then(() => blocker.proceed()); }}>
+                  <FiSave /> {t("common.save")}
+                </button>
+                <button className="btn btn-danger" onClick={() => blocker.proceed()}>
+                  {t("drills.leaveWithoutSaving")}
+                </button>
+                <button className="btn btn-secondary" onClick={() => blocker.reset()}>
+                  {t("common.cancel")}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Description & meta */}
         <div className="card mb-1">
           <h3>{t("drills.description")}</h3>
-          <p style={{ marginTop: "0.5rem" }}>{drill.description}</p>
+          <p style={{ marginTop: "0.5rem" }}>{displayDrill.description}</p>
           <div className="flex gap-sm mt-1" style={{ flexWrap: "wrap" }}>
-            {drill.sport && <span className="tag">{drill.sport}</span>}
-            <span className={`tag tag-${drill.intensity === "high" ? "danger" : drill.intensity === "low" ? "" : "warning"}`}>{drill.intensity}</span>
-            {drill.setup?.duration && <span className="tag">{drill.setup.duration}</span>}
+            {displayDrill.sport && <span className="tag">{displayDrill.sport}</span>}
+            <span className={`tag tag-${displayDrill.intensity === "high" ? "danger" : displayDrill.intensity === "low" ? "" : "warning"}`}>{displayDrill.intensity}</span>
+            {displayDrill.setup?.duration && <span className="tag">{displayDrill.setup.duration}</span>}
           </div>
         </div>
 
         {/* Setup */}
-        {(drill.setup?.players || drill.setup?.space || drill.setup?.equipment?.length > 0) && (
+        {(displayDrill.setup?.players || displayDrill.setup?.space || displayDrill.setup?.equipment?.length > 0) && (
           <div className="card mb-1">
             <h3>{t("drills.setup")}</h3>
-            {drill.setup.players && <p style={{ marginTop: "0.5rem" }}><strong>{t("drills.players")}</strong> {drill.setup.players}</p>}
-            {drill.setup.space && <p><strong>{t("drills.space")}</strong> {drill.setup.space}</p>}
-            {drill.setup.equipment?.length > 0 && (
+            {displayDrill.setup.players && <p style={{ marginTop: "0.5rem" }}><strong>{t("drills.players")}</strong> {displayDrill.setup.players}</p>}
+            {displayDrill.setup.space && <p><strong>{t("drills.space")}</strong> {displayDrill.setup.space}</p>}
+            {displayDrill.setup.equipment?.length > 0 && (
               <div style={{ marginTop: "0.5rem" }}>
                 <strong>{t("drills.equipment")}</strong>
                 <div className="flex gap-sm mt-1" style={{ flexWrap: "wrap" }}>
-                  {drill.setup.equipment.map((eq, i) => <span key={i} className="tag">{eq}</span>)}
+                  {displayDrill.setup.equipment.map((eq, i) => <span key={i} className="tag">{eq}</span>)}
                 </div>
               </div>
             )}
@@ -350,39 +427,39 @@ export default function DrillDetailPage() {
         )}
 
         {/* How It Works */}
-        {drill.howItWorks && (
+        {displayDrill.howItWorks && (
           <div className="card mb-1">
             <h3>{t("drills.howItWorks")}</h3>
-            <p style={{ marginTop: "0.5rem", whiteSpace: "pre-wrap" }}>{drill.howItWorks}</p>
+            <p style={{ marginTop: "0.5rem", whiteSpace: "pre-wrap" }}>{displayDrill.howItWorks}</p>
           </div>
         )}
 
         {/* Coaching Points */}
-        {drill.coachingPoints?.length > 0 && (
+        {displayDrill.coachingPoints?.length > 0 && (
           <div className="card mb-1">
             <h3>{t("drills.coachingPoints")}</h3>
             <ul style={{ paddingLeft: "1.25rem", marginTop: "0.5rem" }}>
-              {drill.coachingPoints.map((p, i) => <li key={i}>{p}</li>)}
+              {displayDrill.coachingPoints.map((p, i) => <li key={i}>{p}</li>)}
             </ul>
           </div>
         )}
 
         {/* Variations */}
-        {drill.variations?.length > 0 && (
+        {displayDrill.variations?.length > 0 && (
           <div className="card mb-1">
             <h3>{t("drills.variations")}</h3>
             <ul style={{ paddingLeft: "1.25rem", marginTop: "0.5rem" }}>
-              {drill.variations.map((v, i) => <li key={i}>{v}</li>)}
+              {displayDrill.variations.map((v, i) => <li key={i}>{v}</li>)}
             </ul>
           </div>
         )}
 
         {/* Common Mistakes */}
-        {drill.commonMistakes?.length > 0 && (
+        {displayDrill.commonMistakes?.length > 0 && (
           <div className="card mb-1">
             <h3>{t("drills.commonMistakes")}</h3>
             <ul style={{ paddingLeft: "1.25rem", marginTop: "0.5rem" }}>
-              {drill.commonMistakes.map((m, i) => <li key={i}>{m}</li>)}
+              {displayDrill.commonMistakes.map((m, i) => <li key={i}>{m}</li>)}
             </ul>
           </div>
         )}
