@@ -1,0 +1,313 @@
+/* ── Responsive ────────────────────────────────────── */
+
+/* ===== TABLET & BELOW (< 768px) ===== */
+@media (max-width: 767px) {
+  /* Mobile header bar */
+  .mobile-header {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: calc(var(--mobile-header-h) + env(safe-area-inset-top));
+    padding-top: env(safe-area-inset-top);
+    background: var(--color-surface);
+    border-bottom: 1px solid var(--color-border);
+    padding-left: max(1rem, env(safe-area-inset-left));
+    padding-right: max(1rem, env(safe-area-inset-right));
+    z-index: 90;
+    box-shadow: var(--shadow);
+  }
+
+  .mobile-hamburger {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 44px;
+    height: 44px;
+    border: none;
+    background: none;
+    cursor: pointer;
+    font-size: 1.4rem;
+    color: var(--color-text);
+    border-radius: var(--radius);
+    -webkit-tap-highlight-color: transparent;
+  }
+  .mobile-hamburger:active {
+    background: var(--color-bg);
+  }
+
+  .mobile-header-title {
+    font-size: var(--fs-lg);
+    font-weight: 700;
+    color: var(--color-text);
+  }
+
+  /* Sidebar becomes a slide-out drawer */
+  .app-sidebar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    bottom: 0;
+    width: 280px;
+    z-index: 200;
+    transform: translateX(-100%);
+    transition: transform 0.3s ease;
+    box-shadow: none;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+  .app-sidebar.open {
+    transform: translateX(0);
+    box-shadow: 4px 0 24px rgba(0, 0, 0, 0.15);
+  }
+
+  .sidebar-close-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 44px;
+    height: 44px;
+    border: none;
+    background: none;
+    cursor: pointer;
+    font-size: 1.3rem;
+    color: var(--color-muted);
+    border-radius: var(--radius);
+  }
+
+  .sidebar-backdrop {
+    display: block;
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.4);
+    z-index: 150;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  /* Main content pushed down by mobile header */
+  .app-layout {
+    flex-direction: column;
+    padding-top: var(--mobile-header-h);
+  }
+
+  .app-main {
+    padding: 1rem;
+    max-width: 100%;
+  }
+
+  /* Typography & headings */
+  h1 { font-size: var(--fs-xl) !important; }
+  h2 { font-size: var(--fs-lg) !important; }
+
+  /* Flex-between stacks on mobile when content is long */
+  .flex-between {
+    flex-wrap: wrap;
+    gap: 0.5rem;
+  }
+
+  /* Cards: slightly smaller padding */
+  .card {
+    padding: 1rem;
+  }
+
+  /* Drill detail layout: stack */
+  .drill-detail-layout {
+    flex-direction: column;
+  }
+
+  .chat-panel {
+    width: 100%;
+    position: static;
+    max-height: 400px;
+  }
+
+  /* Drill grid: single column on small phones */
+  .drill-grid {
+    grid-template-columns: 1fr;
+  }
+
+  /* Drill card action row: larger touch targets */
+  .drill-card-actions .btn {
+    min-height: 40px;
+    min-width: 40px;
+  }
+
+  /* Modals: full width on mobile */
+  .modal-content {
+    width: 100%;
+    max-width: 100%;
+    max-height: 100vh;
+    border-radius: 0;
+    padding: 1rem;
+    height: 100%;
+  }
+  .modal-overlay {
+    align-items: stretch;
+  }
+
+  /* Tables: ensure horizontal scroll */
+  .table-wrap {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  /* Search bar: stack on very small screens */
+  .search-bar {
+    flex-direction: column;
+  }
+
+  /* Session builder footer: full width */
+  .session-footer {
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    padding: 0.75rem;
+  }
+
+  /* Refine layout: stack */
+  .refine-layout {
+    grid-template-columns: 1fr;
+  }
+
+  /* Similar drills: stack actions */
+  .similar-drill-item {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.5rem;
+  }
+
+  /* Pricing grid */
+  .pricing-grid {
+    grid-template-columns: 1fr !important;
+  }
+
+  /* Today page */
+  .today-attendance-inputs {
+    flex-direction: column;
+  }
+  .today-att-field {
+    width: 100%;
+  }
+  .today-check-btn {
+    width: 100%;
+  }
+
+  /* Tactic page — handled in dedicated tactic responsive section */
+
+  /* Station grid: 2 columns */
+  .station-grid {
+    grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  }
+
+  /* Block drill table: make scrollable */
+  .block-drill-table {
+    display: block;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  /* Add block menu: wider */
+  .add-block-options {
+    min-width: 240px;
+  }
+  .add-block-option {
+    padding: 0.75rem 1rem;
+    min-height: 44px;
+  }
+
+  /* Mode toggle: full width */
+  .mode-toggle {
+    width: 100%;
+  }
+  .mode-toggle-btn {
+    flex: 1;
+    justify-content: center;
+    min-height: 44px;
+  }
+
+  /* Dashboard grid */
+  .pricing-usage-grid {
+    grid-template-columns: 1fr !important;
+  }
+
+  /* Alert */
+  .alert {
+    font-size: var(--fs-sm);
+  }
+
+  /* Notification cards */
+  .notification-card .flex.gap-sm {
+    flex-direction: column;
+  }
+
+  /* Version list items */
+  .version-item .flex-between {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.5rem;
+  }
+
+  /* Drill detail: action buttons wrap */
+  .drill-detail-main > .flex-between .flex.gap-sm {
+    flex-wrap: wrap;
+  }
+}
+
+/* ===== SMALL PHONES (< 400px) ===== */
+@media (max-width: 399px) {
+  .app-main {
+    padding: 0.75rem;
+  }
+
+  .card {
+    padding: 0.75rem;
+  }
+
+  .btn {
+    padding: 0.4rem 0.75rem;
+    font-size: 0.8rem;
+  }
+
+  .tag {
+    font-size: 0.65rem;
+  }
+}
+
+/* ===== TABLET (768px - 1024px) ===== */
+@media (min-width: 768px) and (max-width: 1024px) {
+  .app-main {
+    padding: 1.25rem;
+  }
+
+  .refine-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .chat-panel {
+    width: 320px;
+  }
+
+  .drill-detail-layout {
+    flex-direction: column;
+  }
+}
+
+/* ===== DESKTOP (>= 768px) ===== */
+@media (min-width: 768px) {
+  /* Keep sidebar always visible */
+  .app-sidebar {
+    transform: none !important;
+  }
+
+  /* Backdrop never shows on desktop */
+  .sidebar-backdrop {
+    display: none !important;
+  }
+
+  /* Close button hidden on desktop */
+  .sidebar-close-btn {
+    display: none !important;
+  }
+}
