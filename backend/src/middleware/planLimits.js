@@ -99,8 +99,7 @@ async function checkAiLimit(req, res, next) {
       });
     }
 
-    user.aiRequestsUsed += 1;
-    await user.save();
+    await User.updateOne({ _id: req.user._id }, { $inc: { aiRequestsUsed: 1 } });
 
     next();
   } catch (err) {

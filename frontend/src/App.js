@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useState, useEffect } from "react";
 import { Routes, Route } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import Sidebar from "./components/layout/Sidebar";
@@ -28,12 +28,24 @@ import PricingPage from "./pages/PricingPage";
 import TacticBoardListPage from "./pages/TacticBoardListPage";
 import TacticBoardPage from "./pages/TacticBoardPage";
 import { useAuth } from "./context/AuthContext";
+import { FiMenu } from "react-icons/fi";
 
 export default function App() {
   const { t, i18n } = useTranslation();
   const { user, loading } = useAuth();
+  const [sidebarOpen, setSidebarOpen] = useState(false);
 
   useEffect(() => { document.documentElement.lang = i18n.language; }, [i18n.language]);
+
+  // Lock body scroll when sidebar is open on mobile
+  useEffect(() => {
+    if (sidebarOpen) {
+      document.body.classList.add("sidebar-open-body");
+    } else {
+      document.body.classList.remove("sidebar-open-body");
+    }
+    return () => document.body.classList.remove("sidebar-open-body");
+  }, [sidebarOpen]);
 
   if (loading) return <div className="loading">{t("common.loading")}</div>;
 
@@ -49,7 +61,19 @@ export default function App() {
 
   return (
     <div className="app-layout">
-      <Sidebar />
+      {/* Mobile top header */}
+      <header className="mobile-header">
+        <button
+          className="mobile-hamburger"
+          onClick={() => setSidebarOpen(true)}
+          aria-label="Open menu"
+        >
+          <FiMenu />
+        </button>
+        <span className="mobile-header-title">{t("common.appName")}</span>
+      </header>
+
+      <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
       <main className="app-main">
         <Routes>
           <Route path="/" element={<ProtectedRoute><DashboardPage /></ProtectedRoute>} />

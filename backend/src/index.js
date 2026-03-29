@@ -10,7 +10,9 @@ const errorHandler = require("./middleware/errorHandler");
 const app = express();
 
 // ── Middleware ───────────────────────────────────────────────────────────────
-app.use(cors());
+app.use(cors({
+  origin: process.env.CORS_ORIGIN || (process.env.NODE_ENV === "production" ? false : true),
+}));
 app.use(express.json({ limit: "5mb" }));
 app.use("/uploads", express.static(path.join(__dirname, "..", "uploads")));
 

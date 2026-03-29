@@ -80,7 +80,11 @@ const sessionSchema = new Schema(
       },
     ],
 
-    createdBy: { type: Schema.Types.ObjectId, ref: "User", required: true },
+    // ── Group sharing ─────────────────────────────────────────────────
+    visibility: { type: String, enum: ["private", "group", "club"], default: "private" },
+    group: { type: Schema.Types.ObjectId, ref: "Group", default: null, index: true },
+
+    createdBy: { type: Schema.Types.ObjectId, ref: "User", required: true, index: true },
   },
   { timestamps: true }
 );

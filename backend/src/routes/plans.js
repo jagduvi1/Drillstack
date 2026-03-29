@@ -40,12 +40,20 @@ router.get("/", authenticate, resolveUserGroups, async (req, res, next) => {
 });
 
 // GET /api/plans/:id
-router.get("/:id", authenticate, async (req, res, next) => {
+router.get("/:id", authenticate, resolveUserGroups, async (req, res, next) => {
   try {
     const plan = await PeriodPlan.findById(req.params.id)
       .populate("weeklyPlans.sessions.session", "title description sport totalDuration blocks date")
       .populate("createdBy", "name");
     if (!plan) return res.status(404).json({ error: "Plan not found" });
+
+    // Check the user has access
+    const isOwner = plan.createdBy._id.toString() === req.user._id.toString();
+    const isGroupShared = plan.visibility === "group" && req.userTrainerGroupIds?.some((gid) => gid.toString() === plan.group?.toString());
+    if (!isOwner && !isGroupShared) {
+      return res.status(403).json({ error: "Forbidden" });
+    }
+
     res.json(plan);
   } catch (err) {
     next(err);

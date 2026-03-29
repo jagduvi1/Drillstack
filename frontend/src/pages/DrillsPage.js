@@ -49,7 +49,7 @@ export default function DrillsPage() {
       } catch { /* ignore */ }
     };
     poll();
-    const iv = setInterval(() => { poll(); refetch(); }, 3000);
+    const iv = setInterval(() => { if (!cancelled) { poll(); refetch(); } }, 3000);
     return () => { cancelled = true; clearInterval(iv); };
   }, [hasActive, refetch]);
 

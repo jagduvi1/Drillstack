@@ -21,6 +21,14 @@ const userSchema = new mongoose.Schema(
       of: mongoose.Schema.Types.ObjectId,
       default: () => new Map(),
     },
+
+    // ── Billing / plan fields ───────────────────────────────────────────
+    plan: { type: String, enum: ["starter", "coach", "pro"], default: "starter" },
+    trialPlan: { type: String, default: null },
+    trialEndsAt: { type: Date, default: null },
+    trialUsed: { type: Boolean, default: false },
+    aiRequestsUsed: { type: Number, default: 0 },
+    aiRequestsResetAt: { type: Date, default: null },
   },
   { timestamps: true }
 );

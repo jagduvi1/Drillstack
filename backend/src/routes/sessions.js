@@ -178,12 +178,21 @@ router.get("/today", authenticate, resolveUserGroups, async (req, res, next) => 
 });
 
 // GET /api/sessions/:id
-router.get("/:id", authenticate, async (req, res, next) => {
+router.get("/:id", authenticate, resolveUserGroups, async (req, res, next) => {
   try {
     const session = await TrainingSession.findById(req.params.id)
       .populate(POPULATE_BLOCKS)
       .populate("createdBy", "name");
     if (!session) return res.status(404).json({ error: "Session not found" });
+
+    // Check the user has access to this session
+    const isOwner = session.createdBy._id.toString() === req.user._id.toString();
+    const isGroupShared = session.visibility === "group" && req.userGroupIds?.some((gid) => gid.toString() === session.group?.toString());
+    const isClubShared = session.visibility === "club" && req.userClubGroupIds?.some((gid) => gid.toString() === session.group?.toString());
+    if (!isOwner && !isGroupShared && !isClubShared) {
+      return res.status(403).json({ error: "Forbidden" });
+    }
+
     res.json(session);
   } catch (err) {
     next(err);

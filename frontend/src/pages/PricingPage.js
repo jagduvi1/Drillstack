@@ -115,7 +115,7 @@ export default function PricingPage() {
     <div>
       <h1 style={{ marginBottom: "0.5rem" }}>{t("pricing.title")}</h1>
       <p className="text-muted" style={{ marginBottom: "1.5rem" }}>
-        <span dangerouslySetInnerHTML={{ __html: t("pricing.youreOnPlan", { plan: usage?.planName || t("pricing.planStarter") }) }} />
+        <span>{t("pricing.youreOnPlan", { plan: usage?.planName || t("pricing.planStarter") })}</span>
         {trial?.active && (
           <span> ({t("pricing.trialActive", { days: trial.daysLeft })})</span>
         )}
