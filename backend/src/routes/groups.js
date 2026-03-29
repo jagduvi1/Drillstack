@@ -89,7 +89,11 @@ router.get("/:id", authenticate, async (req, res, next) => {
 });
 
 // PUT /api/groups/:id — update group
-router.put("/:id", authenticate, async (req, res, next) => {
+router.put("/:id", authenticate, [
+  body("name").optional().trim().notEmpty().isLength({ max: 100 }),
+  body("description").optional().isLength({ max: 1000 }),
+  body("sport").optional().trim().isLength({ max: 100 }),
+], validate, async (req, res, next) => {
   try {
     const group = await Group.findById(req.params.id);
     if (!group) return res.status(404).json({ error: "Group not found" });

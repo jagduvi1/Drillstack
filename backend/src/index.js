@@ -38,6 +38,8 @@ app.use("/api/ai", require("./routes/ai"));
 app.use("/api/superadmin", require("./routes/superadmin"));
 app.use("/api/notifications", require("./routes/notifications"));
 app.use("/api/tactics", require("./routes/tactics"));
+app.use("/api/billing", require("./routes/billing"));
+app.use("/api/groups", require("./routes/groups"));
 
 // Health check
 app.get("/api/health", (_req, res) => res.json({ status: "ok" }));

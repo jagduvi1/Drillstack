@@ -141,7 +141,8 @@ router.post(
 );
 
 // POST /api/drills/:id/fork — create a personal version of a drill
-router.post("/:id/fork", authenticate, async (req, res, next) => {
+const forkLimiter = rateLimit({ windowMs: 60 * 60 * 1000, max: 20, standardHeaders: true, legacyHeaders: false });
+router.post("/:id/fork", authenticate, forkLimiter, async (req, res, next) => {
   try {
     const original = await Drill.findById(req.params.id);
     if (!original) return res.status(404).json({ error: "Drill not found" });
@@ -346,9 +347,11 @@ router.post("/:id/retry-embedding", authenticate, async (req, res, next) => {
 
 // POST /api/drills/:id/diagrams
 const MAX_DIAGRAMS = 10;
+const uploadLimiter = rateLimit({ windowMs: 60 * 60 * 1000, max: 30, standardHeaders: true, legacyHeaders: false });
 router.post(
   "/:id/diagrams",
   authenticate,
+  uploadLimiter,
   upload.single("diagram"),
   async (req, res, next) => {
     try {
