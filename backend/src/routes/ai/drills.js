@@ -99,26 +99,16 @@ router.post(
       const result = await aiService.refineDrill(currentDrill, recentMessages);
 
       if (result.drill) {
-        // Snapshot & notify starred users BEFORE applying changes
-        const starredUsers = await User.find({
-          starredDrills: drill._id,
-          _id: { $ne: req.user._id },
-        }).select("_id");
+        // Save only the conversation history — the refined fields are returned
+        // as a preview for the frontend. The user must explicitly save.
+        drill.aiConversation.push({
+          role: "assistant",
+          content: "Drill refined. Review the changes and save when ready.",
+        });
+        await drill.save();
 
-        if (starredUsers.length > 0) {
-          const snapshot = createDrillSnapshot(drill);
-          Notification.insertMany(
-            starredUsers.map((u) => ({
-              userId: u._id,
-              type: "drill_changed",
-              drillId: drill._id,
-              message: `"${drill.title}" was updated by its owner. You can create your own version from the previous state.`,
-              snapshot,
-            }))
-          ).catch((e) => console.error("Notification insert error:", e.message));
-        }
-
-        Object.assign(drill, {
+        // Return the refined fields as a preview (not persisted yet)
+        const refined = {
           title: result.drill.title || drill.title,
           description: result.drill.description || drill.description,
           sport: result.drill.sport || drill.sport,
@@ -128,22 +118,22 @@ router.post(
           coachingPoints: result.drill.coachingPoints || drill.coachingPoints,
           variations: result.drill.variations || drill.variations,
           commonMistakes: result.drill.commonMistakes || drill.commonMistakes,
-        });
+        };
 
-        drill.aiConversation.push({
-          role: "assistant",
-          content: "Drill updated based on your feedback.",
+        res.json({
+          ...drill.toObject(),
+          refinedFields: refined,
+          debug: sanitizeDebug(result.debug),
         });
       } else {
         drill.aiConversation.push({
           role: "assistant",
           content: result.message,
         });
-      }
+        await drill.save();
 
-      await drill.save();
-      indexDrill(drill).catch((e) => console.error("Index error:", e.message));
-      res.json({ ...drill.toObject(), debug: sanitizeDebug(result.debug) });
+        res.json({ ...drill.toObject(), debug: sanitizeDebug(result.debug) });
+      }
     } catch (err) {
       next(err);
     }
