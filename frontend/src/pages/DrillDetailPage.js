@@ -49,11 +49,13 @@ export default function DrillDetailPage() {
       return;
     }
     if (!embeddingStartRef.current) embeddingStartRef.current = Date.now();
+    let mounted = true;
     const iv = setInterval(() => {
+      if (!mounted) return;
       refetch();
       setEmbeddingElapsed(Math.floor((Date.now() - embeddingStartRef.current) / 1000));
     }, 1000);
-    return () => clearInterval(iv);
+    return () => { mounted = false; clearInterval(iv); };
   }, [drill?.embeddingStatus, refetch]);
 
   // Check for similar drills once embedding is indexed (only for new drills without a parent)

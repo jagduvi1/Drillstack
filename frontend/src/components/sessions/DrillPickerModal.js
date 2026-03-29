@@ -15,10 +15,12 @@ export default function DrillPickerModal({ onSelect, onClose, sport }) {
     const params = { limit: 100, starredFirst: true };
     if (sport) params.sport = sport;
     if (starredOnly) params.starred = true;
+    let mounted = true;
     getDrills(params)
-      .then((res) => setDrills(res.data.drills || []))
+      .then((res) => { if (mounted) setDrills(res.data.drills || []); })
       .catch(() => {})
-      .finally(() => setLoading(false));
+      .finally(() => { if (mounted) setLoading(false); });
+    return () => { mounted = false; };
   }, [sport, starredOnly]);
 
   const filtered = drills.filter((d) => {

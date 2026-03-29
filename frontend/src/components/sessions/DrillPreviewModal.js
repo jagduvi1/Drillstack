@@ -100,7 +100,7 @@ export default function DrillPreviewModal({ drillId, onClose }) {
                 <strong className="text-sm">{t("picker.diagram")}</strong>
                 <div style={{ marginTop: "0.25rem" }}>
                   <img
-                    src={drill.diagrams[0].url}
+                    src={drill.diagrams[0]}
                     alt="Drill diagram"
                     style={{ maxWidth: "100%", borderRadius: "var(--radius)" }}
                   />

@@ -11,14 +11,14 @@ export default function NotificationsPage() {
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState(null);
 
-  const load = () => {
+  useEffect(() => {
+    let mounted = true;
     getNotifications()
-      .then((res) => setNotifications(res.data))
+      .then((res) => { if (mounted) setNotifications(res.data); })
       .catch(() => {})
-      .finally(() => setLoading(false));
-  };
-
-  useEffect(load, []);
+      .finally(() => { if (mounted) setLoading(false); });
+    return () => { mounted = false; };
+  }, []);
 
   const handleFork = async (notifId) => {
     setActionLoading(notifId);

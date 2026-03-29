@@ -18,8 +18,8 @@ export default function TacticBoardListPage() {
   if (loading) return <div className="loading">{t("common.loading")}</div>;
 
   return (
-    <div style={{ maxWidth: 800, margin: "0 auto" }}>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "1.5rem" }}>
+    <div className="tactic-list-page">
+      <div className="flex-between mb-1">
         <h1>{t("tactics.title")}</h1>
         <Link to="/tactics/new" className="btn btn-primary">
           <FiPlus /> {t("tactics.newBoard")}
@@ -29,21 +29,23 @@ export default function TacticBoardListPage() {
       {boards.length === 0 ? (
         <div className="card" style={{ textAlign: "center", padding: "3rem" }}>
           <p className="text-muted">{t("tactics.noBoards")}</p>
-          <Link to="/tactics/new" className="btn btn-primary" style={{ marginTop: "1rem" }}>
+          <Link to="/tactics/new" className="btn btn-primary mt-1">
             <FiPlus /> {t("tactics.newBoard")}
           </Link>
         </div>
       ) : (
-        <div style={{ display: "grid", gap: "0.75rem" }}>
+        <div className="tactic-list-grid">
           {boards.map((b) => (
-            <div key={b._id} className="card" style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-              <Link to={`/tactics/${b._id}`} style={{ flex: 1 }}>
+            <div key={b._id} className="card tactic-list-card">
+              <Link to={`/tactics/${b._id}`} className="tactic-list-card-link">
                 <strong>{b.title || t("tactics.untitled")}</strong>
                 <div className="text-sm text-muted" style={{ marginTop: "0.25rem" }}>
+                  {b.sport && <span className="tag" style={{ marginRight: "0.25rem" }}>{b.sport}</span>}
                   {b.fieldType === "half" ? t("tactics.fieldHalf") : b.fieldType === "third" ? t("tactics.fieldThird") : t("tactics.fieldFull")}
                   {" · "}
                   {b.homeTeam?.formation || "4-4-2"} vs {b.awayTeam?.formation || "4-4-2"}
-                  {" · "}
+                </div>
+                <div className="text-sm text-muted" style={{ marginTop: "0.15rem" }}>
                   {new Date(b.updatedAt).toLocaleDateString()}
                 </div>
               </Link>

@@ -5,6 +5,7 @@ import {
   FiArrowLeft, FiSave, FiMousePointer, FiArrowRight, FiMoreHorizontal,
   FiTrash2, FiPlus, FiMinus, FiPlay, FiPause, FiSkipBack, FiSkipForward,
   FiRepeat, FiCircle, FiTriangle, FiCpu, FiX, FiSend, FiZoomIn, FiZoomOut,
+  FiMaximize, FiMinimize,
 } from "react-icons/fi";
 import TacticCanvas, {
   FORMATIONS, DRAW_TOOLS, createInitialStep, buildFormationPieces,
@@ -71,6 +72,37 @@ export default function TacticBoardPage() {
   const [isSaving, setIsSaving] = useState(false);
   const [saveMsg, setSaveMsg] = useState("");
   const [zoom, setZoom] = useState(1);
+
+  // ── Fullscreen presentation mode ────────────────────────────────────────
+  const [isFullscreen, setIsFullscreen] = useState(false);
+  const fullscreenRef = useRef(null);
+
+  const toggleFullscreen = useCallback(() => {
+    if (!isFullscreen) {
+      const el = fullscreenRef.current;
+      if (el?.requestFullscreen) el.requestFullscreen().catch(() => {});
+      else if (el?.webkitRequestFullscreen) el.webkitRequestFullscreen();
+      setIsFullscreen(true);
+    } else {
+      if (document.exitFullscreen) document.exitFullscreen().catch(() => {});
+      else if (document.webkitExitFullscreen) document.webkitExitFullscreen();
+      setIsFullscreen(false);
+    }
+  }, [isFullscreen]);
+
+  // Sync state when user exits fullscreen via Escape/browser UI
+  useEffect(() => {
+    const handler = () => {
+      const fsEl = document.fullscreenElement || document.webkitFullscreenElement;
+      if (!fsEl) setIsFullscreen(false);
+    };
+    document.addEventListener("fullscreenchange", handler);
+    document.addEventListener("webkitfullscreenchange", handler);
+    return () => {
+      document.removeEventListener("fullscreenchange", handler);
+      document.removeEventListener("webkitfullscreenchange", handler);
+    };
+  }, []);
 
   // ── AI generation state ────────────────────────────────────────────────
   const [showAiModal, setShowAiModal] = useState(false);
@@ -485,36 +517,65 @@ export default function TacticBoardPage() {
       else if (e.key === "5") setTool("dashedArrow");
       else if (e.key === "6") setTool("ballPass");
       else if (e.key === "0") setTool("eraser");
+      else if (e.key === "f" || e.key === "F") toggleFullscreen();
     };
     window.addEventListener("keydown", handler);
     return () => window.removeEventListener("keydown", handler);
-  }, [deleteSelectedPiece]);
+  }, [deleteSelectedPiece, toggleFullscreen]);
 
   if (loading) return <div className="loading">{t("common.loading")}</div>;
 
   // ── Render ──────────────────────────────────────────────────────────────
   return (
-    <div className="tactic-page">
-      {/* Header */}
+    <div className={`tactic-page ${isFullscreen ? "tactic-fullscreen" : ""}`} ref={fullscreenRef}>
+
+      {/* ── Fullscreen presentation overlay ── */}
+      {isFullscreen && (
+        <div className="tactic-fs-controls">
+          <div className="tactic-fs-playback">
+            <button className="tactic-fs-btn" disabled={steps.length < 2}
+              onClick={() => { if (isPlaying) setIsPlaying(false); else { setCurrentStepIdx(0); setIsPlaying(true); } }}>
+              {isPlaying ? <FiPause /> : <FiPlay />}
+            </button>
+            <button className="tactic-fs-btn" onClick={() => { setIsPlaying(false); setCurrentStepIdx(0); }}><FiSkipBack /></button>
+            <button className="tactic-fs-btn" onClick={() => { setIsPlaying(false); setCurrentStepIdx(steps.length - 1); }}><FiSkipForward /></button>
+            <button className={`tactic-fs-btn ${looping ? "active" : ""}`} onClick={() => setLooping((l) => !l)}><FiRepeat /></button>
+            {steps.length > 1 && (
+              <span className="tactic-fs-step-indicator">
+                {currentStepIdx + 1} / {steps.length}
+              </span>
+            )}
+          </div>
+          <button className="tactic-fs-btn tactic-fs-exit" onClick={toggleFullscreen}>
+            <FiMinimize />
+          </button>
+        </div>
+      )}
+
+      {/* Header — hidden in fullscreen */}
+      {!isFullscreen && (
       <div className="tactic-header">
-        <Link to="/tactics" className="btn btn-secondary btn-sm"><FiArrowLeft /> {t("tactics.title")}</Link>
+        <Link to="/tactics" className="btn btn-secondary btn-sm"><FiArrowLeft /> <span className="tactic-hide-xs">{t("tactics.title")}</span></Link>
         <input className="tactic-title-input" value={title} onChange={(e) => setTitle(e.target.value)} placeholder={t("tactics.untitled")} />
-        <div style={{ display: "flex", gap: "0.5rem", alignItems: "center" }}>
+        <div className="tactic-header-actions">
           {saveMsg && <span className="text-sm text-muted">{saveMsg}</span>}
           {debugEntries.length > 0 && (
             <button className={`btn btn-sm ${debugOpen ? "btn-primary" : "btn-secondary"}`} onClick={toggleDebug}>
-              <FiCpu /> Debug ({debugEntries.length})
+              <FiCpu /> <span className="tactic-hide-xs">Debug ({debugEntries.length})</span>
             </button>
           )}
+          <button className="btn btn-secondary btn-sm" onClick={toggleFullscreen} title={`${t("tactics.present")} (F)`}>
+            <FiMaximize />
+          </button>
           <button className="btn btn-primary btn-sm" onClick={handleSave} disabled={isSaving}>
             <FiSave /> {isSaving ? t("common.saving") : t("common.save")}
           </button>
         </div>
       </div>
+      )}
 
-      {/* Toolbar */}
-      <div className="tactic-toolbar">
-        {/* Tools */}
+      {/* Toolbar — row 1: drawing tools + pieces */}
+      {!isFullscreen && <div className="tactic-toolbar tactic-toolbar-row1">
         <div className="tactic-tool-group">
           <button className={`tactic-tool-btn ${tool === "select" ? "active" : ""}`} onClick={() => setTool("select")} title={`${t("tactics.tools.select")} (1)`}>
             <FiMousePointer />
@@ -541,7 +602,6 @@ export default function TacticBoardPage() {
 
         <div className="tactic-tool-divider" />
 
-        {/* Player counts with +/- */}
         <div className="tactic-player-count">
           <span className="tactic-color-dot" style={{ background: homeColor }} />
           <button className="tactic-count-btn" onClick={() => removePieceFromTeam("home")} disabled={homePlayers.length <= 1}><FiMinus /></button>
@@ -555,73 +615,58 @@ export default function TacticBoardPage() {
           <button className="tactic-count-btn" onClick={() => addPiece("away")}><FiPlus /></button>
         </div>
 
-        {/* Ball & Cone */}
         <button className="tactic-tool-btn" onClick={addBall} disabled={hasBall} title={t("tactics.addBall")}>
-          <FiCircle /> {t("tactics.ball")}
+          <FiCircle /> <span className="tactic-hide-xs">{t("tactics.ball")}</span>
         </button>
         <button className="tactic-tool-btn" onClick={addCone} title={t("tactics.addCone")}>
-          <FiTriangle /> {t("tactics.cone")}
+          <FiTriangle /> <span className="tactic-hide-xs">{t("tactics.cone")}</span>
         </button>
 
         <div className="tactic-tool-divider" />
 
-        {/* Sport selector */}
-        <select className="form-control form-control-sm" value={sport} onChange={(e) => handleSportChange(e.target.value)} style={{ width: "auto" }}>
-          {Object.entries(SPORT_CONFIGS).map(([key, cfg]) => (
-            <option key={key} value={key}>{t(`tactics.sports.${key}`, cfg.label)}</option>
-          ))}
-        </select>
-
-        <div className="tactic-tool-divider" />
-
-        {/* Field type */}
-        <select className="form-control form-control-sm" value={fieldType} onChange={(e) => handleFieldTypeChange(e.target.value)} style={{ width: "auto" }}>
-          {Object.keys(sportFieldViews).map((key) => (
-            <option key={key} value={key}>{t(`tactics.fieldTypes.${key}`, key)}</option>
-          ))}
-        </select>
-
-        <div className="tactic-tool-divider" />
-
-        {/* Formations */}
-        <div className="tactic-formation-group">
-          <span className="tactic-color-dot" style={{ background: homeColor }} />
-          <select className="form-control form-control-sm" value={homeFormation} onChange={(e) => applyFormation("home", e.target.value)} style={{ width: "auto" }}>
-            {Object.keys(sportFormations).map((f) => <option key={f} value={f}>{f}</option>)}
-          </select>
-        </div>
-        <div className="tactic-formation-group">
-          <span className="tactic-color-dot" style={{ background: awayColor }} />
-          <select className="form-control form-control-sm" value={awayFormation} onChange={(e) => applyFormation("away", e.target.value)} style={{ width: "auto" }}>
-            {Object.keys(sportFormations).map((f) => <option key={f} value={f}>{f}</option>)}
-          </select>
-        </div>
-
-        <div className="tactic-tool-divider" />
-
-        {/* Colors */}
-        <input type="color" value={homeColor} onChange={(e) => setHomeColor(e.target.value)} className="tactic-color-picker" title={t("tactics.homeColor")} />
-        <input type="color" value={awayColor} onChange={(e) => setAwayColor(e.target.value)} className="tactic-color-picker" title={t("tactics.awayColor")} />
-
-        <div className="tactic-tool-divider" />
-
-        {/* Zoom */}
         <div className="tactic-zoom-group">
           <button className="tactic-count-btn" onClick={() => setZoom((z) => Math.max(0.5, +(z - 0.25).toFixed(2)))} disabled={zoom <= 0.5}><FiZoomOut /></button>
           <span className="tactic-count-num">{Math.round(zoom * 100)}%</span>
           <button className="tactic-count-btn" onClick={() => setZoom((z) => Math.min(3, +(z + 0.25).toFixed(2)))} disabled={zoom >= 3}><FiZoomIn /></button>
         </div>
 
-        <div className="tactic-tool-divider" />
-
-        {/* AI Generate */}
         <button className="tactic-tool-btn tactic-ai-btn" onClick={() => setShowAiModal(true)} title={t("tactics.ai.generate")}>
-          <FiCpu /> {t("tactics.ai.generate")}
+          <FiCpu /> <span className="tactic-hide-xs">{t("tactics.ai.generate")}</span>
         </button>
-      </div>
+      </div>}
+
+      {/* Toolbar — row 2: sport, field type, formations, colors */}
+      {!isFullscreen && <div className="tactic-toolbar tactic-toolbar-row2">
+        <select className="form-control form-control-sm" value={sport} onChange={(e) => handleSportChange(e.target.value)} style={{ width: "auto", minWidth: 0 }}>
+          {Object.entries(SPORT_CONFIGS).map(([key, cfg]) => (
+            <option key={key} value={key}>{t(`tactics.sports.${key}`, cfg.label)}</option>
+          ))}
+        </select>
+
+        <select className="form-control form-control-sm" value={fieldType} onChange={(e) => handleFieldTypeChange(e.target.value)} style={{ width: "auto", minWidth: 0 }}>
+          {Object.keys(sportFieldViews).map((key) => (
+            <option key={key} value={key}>{t(`tactics.fieldTypes.${key}`, key)}</option>
+          ))}
+        </select>
+
+        <div className="tactic-formation-group">
+          <span className="tactic-color-dot" style={{ background: homeColor }} />
+          <select className="form-control form-control-sm" value={homeFormation} onChange={(e) => applyFormation("home", e.target.value)} style={{ width: "auto", minWidth: 0 }}>
+            {Object.keys(sportFormations).map((f) => <option key={f} value={f}>{f}</option>)}
+          </select>
+          <input type="color" value={homeColor} onChange={(e) => setHomeColor(e.target.value)} className="tactic-color-picker" title={t("tactics.homeColor")} />
+        </div>
+        <div className="tactic-formation-group">
+          <span className="tactic-color-dot" style={{ background: awayColor }} />
+          <select className="form-control form-control-sm" value={awayFormation} onChange={(e) => applyFormation("away", e.target.value)} style={{ width: "auto", minWidth: 0 }}>
+            {Object.keys(sportFormations).map((f) => <option key={f} value={f}>{f}</option>)}
+          </select>
+          <input type="color" value={awayColor} onChange={(e) => setAwayColor(e.target.value)} className="tactic-color-picker" title={t("tactics.awayColor")} />
+        </div>
+      </div>}
 
       {/* Selected piece bar */}
-      {selectedPiece && !isPlaying && (
+      {selectedPiece && !isPlaying && !isFullscreen && (
         <div className="tactic-selection-bar">
           <span>
             {selectedPiece.type === "ball" ? t("tactics.ball") : selectedPiece.type === "cone" ? t("tactics.cone") : `${t("tactics.player")} ${selectedPiece.label}`}
@@ -652,8 +697,8 @@ export default function TacticBoardPage() {
         zoom={zoom}
       />
 
-      {/* Timeline */}
-      <div className="tactic-timeline">
+      {/* Timeline — hidden in fullscreen */}
+      {!isFullscreen && <div className="tactic-timeline">
         <div className="tactic-playback-controls">
           <button className="tactic-play-btn" disabled={steps.length < 2}
             title={isPlaying ? t("tactics.timeline.pause") : t("tactics.timeline.play")}
@@ -684,17 +729,20 @@ export default function TacticBoardPage() {
           ))}
           <button className="tactic-step-add" onClick={addStep} disabled={isPlaying} title={t("tactics.timeline.addStep")}><FiPlus /></button>
         </div>
-      </div>
+      </div>}
 
       {/* Hints */}
+      {!isFullscreen && (
       <div className="tactic-hints text-sm text-muted">
         <span><kbd>Space</kbd> {t("tactics.timeline.play")}/{t("tactics.timeline.pause")}</span>
         <span><kbd>1-6</kbd> {t("tactics.tools.select")}</span>
         <span><kbd>Del</kbd> {t("tactics.removePiece")}</span>
+        <span><kbd>F</kbd> {t("tactics.present")}</span>
       </div>
+      )}
 
       {/* AI Debug Panel */}
-      {debugOpen && <DebugPanel entries={debugEntries} />}
+      {!isFullscreen && debugOpen && <DebugPanel entries={debugEntries} />}
 
       {/* AI Generation / Chat Modal */}
       {showAiModal && (

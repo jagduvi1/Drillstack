@@ -56,8 +56,9 @@ router.post(
   validate,
   async (req, res, next) => {
     try {
+      const { title, description, sport, fieldType, homeTeam, awayTeam, steps, isPublic, group, tags, drill } = req.body;
       const board = await TacticBoard.create({
-        ...req.body,
+        title, description, sport, fieldType, homeTeam, awayTeam, steps, isPublic, group, tags, drill,
         createdBy: req.user._id,
       });
       res.status(201).json(board);

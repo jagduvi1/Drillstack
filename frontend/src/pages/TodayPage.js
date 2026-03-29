@@ -27,8 +27,10 @@ export default function TodayPage() {
   const [feasibility, setFeasibility] = useState({});// { [id]: { loading, result } }
 
   useEffect(() => {
+    let mounted = true;
     getTodaySessions()
       .then((res) => {
+        if (!mounted) return;
         setEntries(res.data);
         // Auto-expand if only one session
         if (res.data.length === 1) {
@@ -45,7 +47,8 @@ export default function TodayPage() {
         setAttendance(att);
       })
       .catch(() => {})
-      .finally(() => setLoading(false));
+      .finally(() => { if (mounted) setLoading(false); });
+    return () => { mounted = false; };
   }, []);
 
   const toggleExpand = (id) => {

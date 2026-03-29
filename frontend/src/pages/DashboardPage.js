@@ -21,7 +21,9 @@ export default function DashboardPage() {
   const [trialMsg, setTrialMsg] = useState("");
 
   useEffect(() => {
-    getUsage().then((res) => setBilling(res.data)).catch(() => {});
+    let mounted = true;
+    getUsage().then((res) => { if (mounted) setBilling(res.data); }).catch(() => {});
+    return () => { mounted = false; };
   }, []);
 
   const handleStartTrial = async () => {

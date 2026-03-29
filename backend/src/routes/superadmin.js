@@ -204,6 +204,9 @@ router.put("/ai/:key", async (req, res, next) => {
     if (value === undefined) {
       return res.status(400).json({ error: "Value is required" });
     }
+    if (!Object.keys(DEFAULTS).includes(key)) {
+      return res.status(400).json({ error: `Unknown AI setting: ${key}` });
+    }
 
     await updateAISetting(key, value, req.user._id);
     logAudit("superadmin.ai.update", {
@@ -249,9 +252,10 @@ router.get("/users", async (req, res, next) => {
 
     const filter = {};
     if (req.query.search) {
+      const escaped = String(req.query.search).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
       filter.$or = [
-        { name: { $regex: req.query.search, $options: "i" } },
-        { email: { $regex: req.query.search, $options: "i" } },
+        { name: { $regex: escaped, $options: "i" } },
+        { email: { $regex: escaped, $options: "i" } },
       ];
     }
 
