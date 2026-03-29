@@ -593,6 +593,17 @@
   align-items: center;
   flex-shrink: 0;
 }
+.tactic-title-readonly {
+  flex: 1;
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: var(--color-text);
+  padding: 0.25rem 0.5rem;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
 .tactic-drill-link {
   display: inline-flex;
   align-items: center;

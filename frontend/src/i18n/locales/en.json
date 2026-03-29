@@ -571,6 +571,8 @@
     "boardSaved": "Saved!",
     "present": "Present",
     "linkedDrill": "Linked drill",
+    "coachMode": "Coach",
+    "editMode": "Edit",
     "boardDeleted": "Board deleted",
     "noBoards": "No tactic boards yet. Create your first one!",
     "fieldFull": "Full pitch",
