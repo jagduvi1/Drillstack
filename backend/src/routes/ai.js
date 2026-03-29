@@ -28,6 +28,20 @@ function sanitizeDebug(debug) {
   };
 }
 
+/** Sanitize user message before injecting into AI prompt context */
+function sanitizeAiInput(text) {
+  if (typeof text !== "string") return "";
+  return text
+    .replace(/\r\n/g, "\n")
+    .replace(/\r/g, "\n")
+    .slice(0, 5000);
+}
+
+/** Escape regex special characters in a string for safe use in $regex */
+function escapeRegex(str) {
+  return String(str).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
 // POST /api/ai/generate — generate a complete drill from a description
 router.post(
   "/generate",
@@ -90,10 +104,10 @@ router.post(
       });
       if (!drill) return res.status(404).json({ error: "Drill not found" });
 
-      // Add user message to conversation
+      // Add user message to conversation (sanitized)
       drill.aiConversation.push({
         role: "user",
-        content: req.body.message,
+        content: sanitizeAiInput(req.body.message),
       });
 
       // Build current drill state for AI
@@ -226,6 +240,7 @@ router.post(
 
       // Post-process: strip out any drill references that don't match existing drills
       const drillTitleSet = new Set(drills.map((d) => d.title.toLowerCase()));
+      const unmatchedDrills = [];
       if (result.plan?.blocks) {
         for (const block of result.plan.blocks) {
           if (block.type === "drills" && block.drillTitles) {
@@ -233,6 +248,7 @@ router.post(
             block.drillTitles = block.drillTitles.filter((title, idx) => {
               const valid = drillTitleSet.has(title.toLowerCase());
               if (valid) validIndices.push(idx);
+              else unmatchedDrills.push(title);
               return valid;
             });
             if (block.durations) {
@@ -259,6 +275,7 @@ router.post(
         availableDrills: drills,
         starredCount,
         semanticCount: drills.length,
+        ...(unmatchedDrills.length > 0 && { unmatchedDrills }),
         debug: sanitizeDebug(result.debug),
       });
     } catch (err) {
@@ -387,7 +404,7 @@ router.post(
 
       plan.aiConversation.push({
         role: "user",
-        content: req.body.message,
+        content: sanitizeAiInput(req.body.message),
       });
 
       const currentProgram = {
@@ -469,7 +486,7 @@ router.post(
 
       session.aiConversation.push({
         role: "user",
-        content: req.body.message,
+        content: sanitizeAiInput(req.body.message),
       });
 
       // Build current session state for AI
@@ -576,7 +593,7 @@ router.post(
               block.drills = [];
               for (const d of ab.drills) {
                 const match = await Drill.findOne({
-                  title: { $regex: new RegExp(`^${d.drillTitle}$`, "i") },
+                  title: { $regex: new RegExp(`^${escapeRegex(d.drillTitle)}$`, "i") },
                 }).select("_id");
                 block.drills.push({
                   drill: match?._id || null,
@@ -594,7 +611,7 @@ router.post(
               block.stations = [];
               for (const sd of ab.stationDrills || []) {
                 const match = await Drill.findOne({
-                  title: { $regex: new RegExp(`^${sd.drillTitle}$`, "i") },
+                  title: { $regex: new RegExp(`^${escapeRegex(sd.drillTitle)}$`, "i") },
                 }).select("_id");
                 block.stations.push({
                   stationNumber: sd.stationNumber,
@@ -651,7 +668,8 @@ router.post(
 router.post(
   "/adapt-session",
   authenticate,
-  [body("session").notEmpty(), body("constraints").trim().notEmpty()],
+  checkAiLimit,
+  [body("session").notEmpty(), body("constraints").trim().notEmpty().isLength({ max: 2000 })],
   validate,
   async (req, res, next) => {
     try {

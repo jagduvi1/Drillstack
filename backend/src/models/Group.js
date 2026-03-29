@@ -36,7 +36,7 @@ groupSchema.index({ "members.user": 1 });
 
 groupSchema.pre("save", function (next) {
   if (!this.inviteCode) {
-    this.inviteCode = crypto.randomBytes(6).toString("hex");
+    this.inviteCode = crypto.randomBytes(16).toString("hex");
   }
   next();
 });
