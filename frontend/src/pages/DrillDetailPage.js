@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect, useCallback } from "react";
-import { useParams, Link, useNavigate, useBlocker } from "react-router-dom";
+import { useParams, Link, useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import useFetch from "../hooks/useFetch";
 import { useAuth } from "../context/AuthContext";
@@ -100,9 +100,6 @@ export default function DrillDetailPage() {
     window.addEventListener("beforeunload", handler);
     return () => window.removeEventListener("beforeunload", handler);
   }, [unsavedChanges]);
-
-  // Warn on route navigation with unsaved changes (must be before early returns)
-  const blocker = useBlocker(!!unsavedChanges);
 
   if (loading) return <div className="loading">{t("common.loading")}</div>;
   if (!drill) return <div className="alert alert-danger">{t("drills.notFound")}</div>;
@@ -373,27 +370,6 @@ export default function DrillDetailPage() {
               <button className="btn btn-secondary btn-sm" onClick={handleDiscardRefinement}>
                 {t("common.discard")}
               </button>
-            </div>
-          </div>
-        )}
-
-        {/* Navigation blocker modal */}
-        {blocker.state === "blocked" && (
-          <div className="modal-overlay">
-            <div className="modal-content" style={{ maxWidth: 400, textAlign: "center" }}>
-              <h3 style={{ marginBottom: "1rem" }}>{t("drills.unsavedChangesTitle")}</h3>
-              <p className="text-muted" style={{ marginBottom: "1.5rem" }}>{t("drills.unsavedChangesMessage")}</p>
-              <div className="flex gap-sm" style={{ justifyContent: "center" }}>
-                <button className="btn btn-primary" onClick={() => { handleSaveRefinement().then(() => blocker.proceed()); }}>
-                  <FiSave /> {t("common.save")}
-                </button>
-                <button className="btn btn-danger" onClick={() => blocker.proceed()}>
-                  {t("drills.leaveWithoutSaving")}
-                </button>
-                <button className="btn btn-secondary" onClick={() => blocker.reset()}>
-                  {t("common.cancel")}
-                </button>
-              </div>
             </div>
           </div>
         )}
