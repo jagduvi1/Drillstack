@@ -72,11 +72,12 @@ export default function DrillDetailPage() {
     return () => { mounted = false; clearInterval(iv); };
   }, [drill?.embeddingStatus, refetch]);
 
-  // Check for similar drills once embedding is indexed (only for new drills without a parent)
+  // Check for similar drills once embedding is indexed (only for standalone drills with no versions)
   useEffect(() => {
     if (
       drill?.embeddingStatus === "indexed" &&
       !drill?.parentDrill &&
+      drill?.versionCount <= 1 &&
       !similarChecked.current &&
       !similarDismissed
     ) {
@@ -89,7 +90,7 @@ export default function DrillDetailPage() {
         })
         .catch(() => {}); // silently ignore
     }
-  }, [drill?.embeddingStatus, drill?.parentDrill, id, similarDismissed]);
+  }, [drill?.embeddingStatus, drill?.parentDrill, drill?.versionCount, id, similarDismissed]);
 
   // Warn on browser close/refresh with unsaved changes
   useEffect(() => {
