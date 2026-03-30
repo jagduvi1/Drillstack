@@ -100,6 +100,79 @@ export const SPORT_CONFIGS = {
       blank: { x: 0, y: 0, w: 15, h: 15 },
     },
   },
+  // ── Gymnastics ───────────────────────────────────────────────────────────
+  gymnastics: {
+    label: "Gymnastics — Floor",
+    width: 14, height: 14,
+    renderer: "gymnastics-floor",
+    defaultHomePlayers: 1, defaultAwayPlayers: 0,
+    bgColor: "#2a1a3a", fieldColor1: "#6a5a8a", fieldColor2: "#7a6a9a",
+    lineColor: "rgba(255,255,255,0.6)",
+    fieldViews: {
+      full:  { x: 0, y: 0, w: 14, h: 14 },
+      blank: { x: 0, y: 0, w: 14, h: 14 },
+    },
+  },
+  "gymnastics-beam": {
+    label: "Gymnastics — Beam",
+    width: 7, height: 3,
+    renderer: "gymnastics-beam",
+    defaultHomePlayers: 1, defaultAwayPlayers: 0,
+    bgColor: "#2a1a3a", fieldColor1: "#6a5a8a", fieldColor2: "#7a6a9a",
+    lineColor: "rgba(255,255,255,0.6)",
+    fieldViews: {
+      full:  { x: 0, y: 0, w: 7, h: 3 },
+      blank: { x: 0, y: 0, w: 7, h: 3 },
+    },
+  },
+  "gymnastics-vault": {
+    label: "Gymnastics — Vault",
+    width: 30, height: 6,
+    renderer: "gymnastics-vault",
+    defaultHomePlayers: 1, defaultAwayPlayers: 0,
+    bgColor: "#2a1a3a", fieldColor1: "#6a5a8a", fieldColor2: "#7a6a9a",
+    lineColor: "rgba(255,255,255,0.6)",
+    fieldViews: {
+      full:  { x: 0, y: 0, w: 30, h: 6 },
+      blank: { x: 0, y: 0, w: 30, h: 6 },
+    },
+  },
+  "gymnastics-bars": {
+    label: "Gymnastics — Bars",
+    width: 8, height: 6,
+    renderer: "gymnastics-bars",
+    defaultHomePlayers: 1, defaultAwayPlayers: 0,
+    bgColor: "#2a1a3a", fieldColor1: "#6a5a8a", fieldColor2: "#7a6a9a",
+    lineColor: "rgba(255,255,255,0.6)",
+    fieldViews: {
+      full:  { x: 0, y: 0, w: 8, h: 6 },
+      blank: { x: 0, y: 0, w: 8, h: 6 },
+    },
+  },
+  "gymnastics-trampoline": {
+    label: "Gymnastics — Trampoline",
+    width: 8, height: 5,
+    renderer: "gymnastics-trampoline",
+    defaultHomePlayers: 1, defaultAwayPlayers: 0,
+    bgColor: "#2a1a3a", fieldColor1: "#6a5a8a", fieldColor2: "#7a6a9a",
+    lineColor: "rgba(255,255,255,0.6)",
+    fieldViews: {
+      full:  { x: 0, y: 0, w: 8, h: 5 },
+      blank: { x: 0, y: 0, w: 8, h: 5 },
+    },
+  },
+  "gymnastics-stations": {
+    label: "Gymnastics — Station Overview",
+    width: 30, height: 20,
+    renderer: "gymnastics-stations",
+    defaultHomePlayers: 0, defaultAwayPlayers: 0,
+    bgColor: "#2a1a3a", fieldColor1: "#4a3a5a", fieldColor2: "#4a3a5a",
+    lineColor: "rgba(255,255,255,0.5)",
+    fieldViews: {
+      full:  { x: 0, y: 0, w: 30, h: 20 },
+      blank: { x: 0, y: 0, w: 30, h: 20 },
+    },
+  },
 };
 
 // Helper to get pitch dimensions for a sport
@@ -294,6 +367,30 @@ export const SPORT_FORMATIONS = {
       { role: "M", x: 13, y: 5 }, { role: "M", x: 13, y: 15 }, { role: "F", x: 18, y: 10 },
     ],
   },
+  gymnastics: {
+    "solo": [{ role: "G", x: 7, y: 7 }],
+    "with-coach": [{ role: "G", x: 7, y: 7 }, { role: "C", x: 2, y: 12 }],
+    "with-spotters": [{ role: "G", x: 7, y: 7 }, { role: "S", x: 5, y: 7 }, { role: "S", x: 9, y: 7 }],
+  },
+  "gymnastics-beam": {
+    "solo": [{ role: "G", x: 3.5, y: 1.5 }],
+    "with-spotter": [{ role: "G", x: 3.5, y: 1.5 }, { role: "S", x: 3.5, y: 2.8 }],
+  },
+  "gymnastics-vault": {
+    "solo": [{ role: "G", x: 2, y: 3 }],
+    "with-spotter": [{ role: "G", x: 2, y: 3 }, { role: "S", x: 19, y: 3 }],
+  },
+  "gymnastics-bars": {
+    "solo": [{ role: "G", x: 4, y: 3 }],
+    "with-spotter": [{ role: "G", x: 4, y: 3 }, { role: "S", x: 6, y: 4.5 }],
+  },
+  "gymnastics-trampoline": {
+    "solo": [{ role: "G", x: 4, y: 2.5 }],
+    "with-spotters": [{ role: "G", x: 4, y: 2.5 }, { role: "S", x: 1, y: 2.5 }, { role: "S", x: 7, y: 2.5 }],
+  },
+  "gymnastics-stations": {
+    "overview": [],
+  },
   volleyball: {
     // 6v6 — 18×9
     "rotation-1": [
@@ -326,13 +423,14 @@ export function buildFormationPieces(team, formation, sport = "football") {
   const formations = getFormations(sport);
   const positions = formations[formation] || Object.values(formations)[0];
   const pitch = getPitch(sport);
-  const hasGoalkeeper = ["football", "handball", "futsal", "hockey", "floorball"].includes(sport);
+  const isGymnastics = sport.startsWith("gymnastics");
+  const hasGoalkeeper = !isGymnastics && ["football", "handball", "futsal", "hockey", "floorball"].includes(sport);
   return positions.map((pos, i) => ({
     id: `${team}-${i}`,
     type: "player",
     team,
     isGK: hasGoalkeeper && i === 0,
-    label: (hasGoalkeeper && i === 0) ? "GK" : String(i),
+    label: isGymnastics ? pos.role : (hasGoalkeeper && i === 0) ? "GK" : String(i),
     x: team === "away" ? pitch.width - pos.x : pos.x,
     y: pos.y,
   }));

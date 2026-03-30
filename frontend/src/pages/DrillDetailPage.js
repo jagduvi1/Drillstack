@@ -531,6 +531,31 @@ export default function DrillDetailPage() {
           </div>
         )}
 
+        {/* Sport-specific info */}
+        {(displayDrill.apparatus || displayDrill.skillLevel || displayDrill.safetyNotes || displayDrill.prerequisites?.length > 0) && (
+          <div className="card mb-1">
+            <h3>{t("drills.sportSpecific")}</h3>
+            <div className="flex gap-sm mt-1" style={{ flexWrap: "wrap" }}>
+              {displayDrill.apparatus && <span className="tag">{displayDrill.apparatus}</span>}
+              {displayDrill.skillLevel && <span className="tag">{t(`drills.${displayDrill.skillLevel}`)}</span>}
+            </div>
+            {displayDrill.prerequisites?.length > 0 && (
+              <div style={{ marginTop: "0.75rem" }}>
+                <strong>{t("drills.prerequisites")}</strong>
+                <ul style={{ paddingLeft: "1.25rem", margin: "0.25rem 0 0" }}>
+                  {displayDrill.prerequisites.map((p, i) => <li key={i}>{p}</li>)}
+                </ul>
+              </div>
+            )}
+            {displayDrill.safetyNotes && (
+              <div style={{ marginTop: "0.75rem" }}>
+                <strong>{t("drills.safetyNotes")}</strong>
+                <p style={{ marginTop: "0.25rem", whiteSpace: "pre-wrap" }}>{displayDrill.safetyNotes}</p>
+              </div>
+            )}
+          </div>
+        )}
+
         {/* How It Works */}
         {displayDrill.howItWorks && (
           <div className="card mb-1">
