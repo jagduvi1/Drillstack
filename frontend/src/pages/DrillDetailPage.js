@@ -3,7 +3,9 @@ import { useParams, Link, useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import useFetch from "../hooks/useFetch";
 import { useAuth } from "../context/AuthContext";
+import { useGroups } from "../context/GroupContext";
 import { getDrill, deleteDrill, updateDrill, uploadDiagram, addReflection, retryEmbedding, toggleStar, forkDrill, getVersions, setDefaultVersion, findSimilar, convertToVersion } from "../api/drills";
+import { toggleGroupStar } from "../api/groups";
 import { refineDrill } from "../api/ai";
 import { getTactics } from "../api/tactics";
 import DebugPanel from "../components/common/DebugPanel";
@@ -19,12 +21,14 @@ export default function DrillDetailPage() {
   const { id } = useParams();
   const navigate = useNavigate();
   const { user } = useAuth();
+  const { groups, getUserRole } = useGroups();
   const isAdmin = user?.role === "admin" || user?.isSuperAdmin;
   const { data: drill, loading, refetch } = useFetch(() => getDrill(id), [id]);
   const [reflectionNote, setReflectionNote] = useState("");
   const [chatMessage, setChatMessage] = useState("");
   const [chatLoading, setChatLoading] = useState(false);
   const [showChat, setShowChat] = useState(false);
+  const [showStarMenu, setShowStarMenu] = useState(false);
   const [showVersions, setShowVersions] = useState(false);
   const [versions, setVersions] = useState(null);
   const [similarDrills, setSimilarDrills] = useState(null);
@@ -92,6 +96,14 @@ export default function DrillDetailPage() {
     }
   }, [drill?.embeddingStatus, drill?.parentDrill, drill?.versionCount, id, similarDismissed]);
 
+  // Close star menu on outside click
+  useEffect(() => {
+    if (!showStarMenu) return;
+    const close = () => setShowStarMenu(false);
+    const timer = setTimeout(() => document.addEventListener("click", close), 0);
+    return () => { clearTimeout(timer); document.removeEventListener("click", close); };
+  }, [showStarMenu]);
+
   // Warn on browser close/refresh with unsaved changes
   useEffect(() => {
     if (!unsavedChanges) return;
@@ -115,7 +127,20 @@ export default function DrillDetailPage() {
   const handleStar = async () => {
     await toggleStar(id);
     refetch();
+    setShowStarMenu(false);
   };
+
+  const handleGroupStar = async (groupId) => {
+    await toggleGroupStar(groupId, id);
+    refetch();
+    setShowStarMenu(false);
+  };
+
+  // Groups where user is admin/trainer (can star for group)
+  const starableGroups = groups.filter((g) => {
+    const role = getUserRole(g._id);
+    return role === "admin" || role === "trainer";
+  });
 
   const handleFork = async () => {
     const res = await forkDrill(id);
@@ -253,13 +278,31 @@ export default function DrillDetailPage() {
             </div>
           </div>
           <div className="flex gap-sm">
-            <button
-              className={`btn btn-sm ${drill.isStarred ? "btn-star-active" : "btn-secondary"}`}
-              onClick={handleStar}
-              title={drill.isStarred ? t("drills.unstar") : t("drills.starThisDrill")}
-            >
-              <FiStar /> {drill.isStarred ? t("drills.starred") : t("drills.star")}
-            </button>
+            <div style={{ position: "relative" }}>
+              <button
+                className={`btn btn-sm ${drill.isStarred ? "btn-star-active" : "btn-secondary"}`}
+                onClick={starableGroups.length > 0 ? () => setShowStarMenu(!showStarMenu) : handleStar}
+                title={drill.isStarred ? t("drills.unstar") : t("drills.starThisDrill")}
+              >
+                <FiStar /> {drill.isStarred ? t("drills.starred") : t("drills.star")}
+              </button>
+              {showStarMenu && starableGroups.length > 0 && (
+                <div style={{
+                  position: "absolute", top: "100%", right: 0, zIndex: 20, marginTop: "0.25rem",
+                  background: "var(--color-card)", border: "1px solid var(--color-border)",
+                  borderRadius: "var(--radius)", minWidth: 200, boxShadow: "0 4px 12px rgba(0,0,0,0.15)",
+                }}>
+                  <button className="star-menu-item" onClick={handleStar}>
+                    <FiUser style={{ marginRight: "0.4rem" }} /> {t("drills.starForMe")}
+                  </button>
+                  {starableGroups.map((g) => (
+                    <button key={g._id} className="star-menu-item" onClick={() => handleGroupStar(g._id)}>
+                      {g.type === "club" ? "🏢" : "👥"} {g.name}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
             {debugEntries.length > 0 && (
               <button
                 className={`btn ${debugOpen ? "btn-primary" : "btn-secondary"}`}

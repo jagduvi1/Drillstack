@@ -18,3 +18,9 @@ export const leaveClub = (teamId) => api.post(`/groups/${teamId}/leave-club`);
 
 export const joinByInvite = (code) => api.post(`/groups/join/${code}`);
 export const regenerateInvite = (id) => api.post(`/groups/${id}/regenerate-invite`);
+
+export const toggleGroupStar = (id, drillId) => api.post(`/groups/${id}/star-drill/${drillId}`);
+export const getGroupStarredDrills = (id) => api.get(`/groups/${id}/starred-drills`);
+
+export const getPendingClubs = () => api.get("/groups/admin/pending-clubs");
+export const verifyClub = (id, verified) => api.put(`/groups/${id}/verify`, { verified });

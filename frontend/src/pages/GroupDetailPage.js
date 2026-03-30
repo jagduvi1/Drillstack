@@ -1,10 +1,11 @@
 import { useState, useEffect } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
 import { useTranslation } from "react-i18next";
-import { getGroup, deleteGroup, addMember, updateMemberRole, removeMember, createTeam, getTeams, regenerateInvite, inviteTeam, leaveClub } from "../api/groups";
+import { getGroup, deleteGroup, addMember, updateMemberRole, removeMember, createTeam, getTeams, regenerateInvite, inviteTeam, leaveClub, toggleGroupStar } from "../api/groups";
+import { getDrills } from "../api/drills";
 import { useAuth } from "../context/AuthContext";
 import { useGroups } from "../context/GroupContext";
-import { FiTrash2, FiPlus, FiUsers, FiShield, FiUser, FiCopy, FiRefreshCw, FiLink, FiXCircle } from "react-icons/fi";
+import { FiTrash2, FiPlus, FiUsers, FiShield, FiUser, FiCopy, FiRefreshCw, FiLink, FiXCircle, FiStar, FiSearch, FiAlertCircle, FiCheck } from "react-icons/fi";
 
 export default function GroupDetailPage() {
   const { t } = useTranslation();
@@ -20,7 +21,7 @@ export default function GroupDetailPage() {
 
   // Add member form
   const [newEmail, setNewEmail] = useState("");
-  const [newRole, setNewRole] = useState("member");
+  const [newRole, setNewRole] = useState("viewer");
   const [addError, setAddError] = useState("");
 
   // Create team form
@@ -31,6 +32,11 @@ export default function GroupDetailPage() {
   const [showInviteTeam, setShowInviteTeam] = useState(false);
   const [teamInviteCode, setTeamInviteCode] = useState("");
   const [inviteTeamError, setInviteTeamError] = useState("");
+
+  // Drill search for starring
+  const [drillSearch, setDrillSearch] = useState("");
+  const [drillResults, setDrillResults] = useState([]);
+  const [searchLoading, setSearchLoading] = useState(false);
 
   const fetchGroup = async () => {
     try {
@@ -54,7 +60,9 @@ export default function GroupDetailPage() {
   if (!group) return null;
 
   const myRole = group.members.find((m) => (m.user?._id || m.user) === user._id)?.role;
-  const isAdmin = myRole === "admin";
+  const isOwner = myRole === "owner";
+  const isAdmin = myRole === "owner" || myRole === "admin";
+  const isTrainer = isAdmin || myRole === "trainer";
   const isClub = group.type === "club";
   const isTeam = group.type === "team";
 
@@ -127,6 +135,32 @@ export default function GroupDetailPage() {
     fetchGroup();
   };
 
+  const handleDrillSearch = async (query) => {
+    setDrillSearch(query);
+    if (!query.trim()) { setDrillResults([]); return; }
+    setSearchLoading(true);
+    try {
+      const res = await getDrills({ sport: query });
+      // Also try general fetch and filter client-side by title
+      const all = await getDrills({});
+      const filtered = (all.data.drills || []).filter((d) =>
+        d.title.toLowerCase().includes(query.toLowerCase())
+      );
+      setDrillResults(filtered.slice(0, 8));
+    } catch {
+      setDrillResults([]);
+    } finally {
+      setSearchLoading(false);
+    }
+  };
+
+  const handleToggleGroupStar = async (drillId) => {
+    try {
+      await toggleGroupStar(id, drillId);
+      fetchGroup();
+    } catch { /* ignore */ }
+  };
+
   const handleCopyInvite = () => {
     navigator.clipboard.writeText(group.inviteCode);
   };
@@ -143,7 +177,7 @@ export default function GroupDetailPage() {
           {isClub ? <FiShield /> : <FiUsers />} {group.name}
         </h1>
         <div className="flex gap-sm">
-          {isAdmin && (
+          {isOwner && (
             <button className="btn btn-danger" onClick={handleDelete}><FiTrash2 /> {t("common.delete")}</button>
           )}
         </div>
@@ -156,6 +190,12 @@ export default function GroupDetailPage() {
         <span className="tag">{isClub ? t("groups.club") : t("groups.team")}</span>
         {group.parentClub && <span className="tag">{t("groups.club")}: {group.parentClub.name}</span>}
         <span className="tag">{t("groups.yourRole", { role: myRole })}</span>
+        {isClub && group.verified === false && (
+          <span className="tag tag-warning"><FiAlertCircle /> {t("groups.pendingVerification")}</span>
+        )}
+        {isClub && group.verified === true && (
+          <span className="tag tag-success"><FiCheck /> {t("groups.verified")}</span>
+        )}
       </div>
 
       {/* Leave club (for teams that belong to a club) */}
@@ -210,18 +250,18 @@ export default function GroupDetailPage() {
                   <span className="text-sm text-muted" style={{ marginLeft: "0.5rem" }}>{mu?.email}</span>
                 </div>
                 <div className="flex gap-sm" style={{ alignItems: "center" }}>
-                  {isAdmin ? (
+                  {isAdmin && m.role !== "owner" ? (
                     <select className="form-control form-control-sm" value={m.role}
                       onChange={(e) => handleRoleChange(memberId, e.target.value)}
                       style={{ width: "auto" }}>
                       <option value="admin">{t("groups.admin")}</option>
                       <option value="trainer">{t("groups.trainer")}</option>
-                      <option value="member">{t("groups.member")}</option>
+                      <option value="viewer">{t("groups.viewer")}</option>
                     </select>
                   ) : (
-                    <span className="tag">{m.role}</span>
+                    <span className="tag">{t(`groups.${m.role}`) || m.role}</span>
                   )}
-                  {isAdmin && memberId !== user._id && (
+                  {isAdmin && memberId !== user._id && m.role !== "owner" && (
                     <button className="btn btn-danger btn-sm" onClick={() => handleRemoveMember(memberId)}>
                       <FiTrash2 />
                     </button>
@@ -240,7 +280,7 @@ export default function GroupDetailPage() {
                 onChange={(e) => setNewEmail(e.target.value)} required type="email" style={{ flex: 1 }} />
               <select className="form-control" value={newRole} onChange={(e) => setNewRole(e.target.value)}
                 style={{ width: "auto" }}>
-                <option value="member">{t("groups.member")}</option>
+                <option value="viewer">{t("groups.viewer")}</option>
                 <option value="trainer">{t("groups.trainer")}</option>
                 <option value="admin">{t("groups.admin")}</option>
               </select>
@@ -249,6 +289,83 @@ export default function GroupDetailPage() {
           </form>
         )}
       </div>
+
+      {/* Starred Drills */}
+      {isTrainer && (
+        <div className="card mb-1">
+          <div className="flex-between" style={{ marginBottom: "0.75rem" }}>
+            <h3><FiStar /> {t("groups.starredDrills", { count: (group.starredDrills || []).filter(Boolean).length })}</h3>
+          </div>
+          <p className="text-sm text-muted" style={{ marginBottom: "0.75rem" }}>
+            {t("groups.starredDrillsDesc")}
+          </p>
+
+          {(group.starredDrills || []).filter(Boolean).length > 0 && (
+            <div style={{ display: "grid", gap: "0.5rem", marginBottom: "0.75rem" }}>
+              {group.starredDrills.filter(Boolean).map((drill) => (
+                <div key={drill._id} style={{
+                  display: "flex", justifyContent: "space-between", alignItems: "center",
+                  background: "var(--color-bg)", borderRadius: "var(--radius)", padding: "0.75rem",
+                }}>
+                  <div>
+                    <Link to={`/drills/${drill._id}`}><strong className="text-sm">{drill.title}</strong></Link>
+                    <span className="text-sm text-muted" style={{ marginLeft: "0.5rem" }}>{drill.sport}</span>
+                  </div>
+                  <button className="btn btn-danger btn-sm" onClick={() => handleToggleGroupStar(drill._id)}>
+                    <FiTrash2 />
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* Search to add drills */}
+          <div style={{ position: "relative" }}>
+            <div className="flex gap-sm">
+              <FiSearch style={{ position: "absolute", left: "0.75rem", top: "0.6rem", color: "var(--color-muted)" }} />
+              <input
+                className="form-control"
+                placeholder={t("groups.searchDrillsPlaceholder")}
+                value={drillSearch}
+                onChange={(e) => handleDrillSearch(e.target.value)}
+                style={{ paddingLeft: "2rem", flex: 1 }}
+              />
+            </div>
+            {drillResults.length > 0 && (
+              <div style={{
+                position: "absolute", top: "100%", left: 0, right: 0, zIndex: 10,
+                background: "var(--color-card)", border: "1px solid var(--color-border)",
+                borderRadius: "var(--radius)", maxHeight: 250, overflowY: "auto",
+                boxShadow: "0 4px 12px rgba(0,0,0,0.15)",
+              }}>
+                {drillResults.map((d) => {
+                  const alreadyStarred = (group.starredDrills || []).some(
+                    (s) => (s?._id || s)?.toString() === d._id
+                  );
+                  return (
+                    <div key={d._id} style={{
+                      padding: "0.5rem 0.75rem", display: "flex", justifyContent: "space-between",
+                      alignItems: "center", borderBottom: "1px solid var(--color-border)",
+                    }}>
+                      <div>
+                        <strong className="text-sm">{d.title}</strong>
+                        {d.sport && <span className="text-sm text-muted" style={{ marginLeft: "0.5rem" }}>{d.sport}</span>}
+                      </div>
+                      {alreadyStarred ? (
+                        <span className="tag tag-success text-sm"><FiCheck /> {t("groups.added")}</span>
+                      ) : (
+                        <button className="btn btn-primary btn-sm" onClick={() => { handleToggleGroupStar(d._id); setDrillSearch(""); setDrillResults([]); }}>
+                          <FiPlus /> {t("groups.addDrill")}
+                        </button>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* Teams (only for clubs) */}
       {isClub && (

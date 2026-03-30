@@ -5,6 +5,7 @@ const validate = require("../middleware/validate");
 const { authenticate } = require("../middleware/auth");
 const Group = require("../models/Group");
 const User = require("../models/User");
+const Drill = require("../models/Drill");
 const { checkLimit } = require("../middleware/planLimits");
 const { getEffectivePlan } = require("../middleware/planLimits");
 const { createLimiter } = require("../utils/rateLimiters");
@@ -14,12 +15,36 @@ const joinLimiter = createLimiter(15 * 60 * 1000, 10);
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
+const ROLE_LEVELS = { owner: 4, admin: 3, trainer: 2, viewer: 1 };
+
 function getMemberRole(group, userId) {
   const m = group.members.find((m) => m.user.toString() === userId.toString());
   return m ? m.role : null;
 }
 
+function hasRole(group, userId, minRole) {
+  const role = getMemberRole(group, userId);
+  if (!role) return false;
+  return (ROLE_LEVELS[role] || 0) >= (ROLE_LEVELS[minRole] || 0);
+}
+
 // ── Routes ───────────────────────────────────────────────────────────────────
+
+// GET /api/groups/admin/pending-clubs — list unverified clubs (system admin only)
+router.get("/admin/pending-clubs", authenticate, async (req, res, next) => {
+  try {
+    const user = await User.findById(req.user._id);
+    if (user.role !== "admin") {
+      return res.status(403).json({ error: "System admin access required" });
+    }
+    const clubs = await Group.find({ type: "club", verified: false })
+      .populate("createdBy", "name email")
+      .sort({ createdAt: -1 });
+    res.json(clubs);
+  } catch (err) {
+    next(err);
+  }
+});
 
 // GET /api/groups — list user's groups (clubs + teams)
 router.get("/", authenticate, async (req, res, next) => {
@@ -61,7 +86,7 @@ router.post(
         type: isClub ? "club" : "team",
         parentClub: null,
         createdBy: req.user._id,
-        members: [{ user: req.user._id, role: "admin" }],
+        members: [{ user: req.user._id, role: "owner" }],
       });
       await group.save();
       await group.populate("members.user", "name email");
@@ -77,7 +102,8 @@ router.get("/:id", authenticate, async (req, res, next) => {
   try {
     const group = await Group.findById(req.params.id)
       .populate("members.user", "name email")
-      .populate("parentClub", "name");
+      .populate("parentClub", "name")
+      .populate("starredDrills", "title sport intensity");
     if (!group) return res.status(404).json({ error: "Group not found" });
     if (!getMemberRole(group, req.user._id)) {
       return res.status(403).json({ error: "Not a member of this group" });
@@ -97,7 +123,7 @@ router.put("/:id", authenticate, [
   try {
     const group = await Group.findById(req.params.id);
     if (!group) return res.status(404).json({ error: "Group not found" });
-    if (getMemberRole(group, req.user._id) !== "admin") {
+    if (!hasRole(group, req.user._id, "admin")) {
       return res.status(403).json({ error: "Admin access required" });
     }
     group.name = req.body.name || group.name;
@@ -116,8 +142,8 @@ router.delete("/:id", authenticate, async (req, res, next) => {
   try {
     const group = await Group.findById(req.params.id);
     if (!group) return res.status(404).json({ error: "Group not found" });
-    if (getMemberRole(group, req.user._id) !== "admin") {
-      return res.status(403).json({ error: "Admin access required" });
+    if (!hasRole(group, req.user._id, "owner")) {
+      return res.status(403).json({ error: "Owner access required" });
     }
     // If this is a club, unlink its teams (they become standalone again)
     if (group.type === "club") {
@@ -143,7 +169,7 @@ router.post(
       const club = await Group.findById(req.params.id);
       if (!club) return res.status(404).json({ error: "Club not found" });
       if (club.type !== "club") return res.status(400).json({ error: "Can only add teams to a club" });
-      if (getMemberRole(club, req.user._id) !== "admin") {
+      if (!hasRole(club, req.user._id, "admin")) {
         return res.status(403).json({ error: "Admin access required" });
       }
       const team = new Group({
@@ -153,7 +179,7 @@ router.post(
         type: "team",
         parentClub: club._id,
         createdBy: req.user._id,
-        members: [{ user: req.user._id, role: "admin" }],
+        members: [{ user: req.user._id, role: "owner" }],
       });
       await team.save();
       await team.populate("members.user", "name email");
@@ -192,7 +218,7 @@ router.post(
       const club = await Group.findById(req.params.id);
       if (!club) return res.status(404).json({ error: "Club not found" });
       if (club.type !== "club") return res.status(400).json({ error: "Only clubs can invite teams" });
-      if (getMemberRole(club, req.user._id) !== "admin") {
+      if (!hasRole(club, req.user._id, "admin")) {
         return res.status(403).json({ error: "Admin access required" });
       }
 
@@ -217,7 +243,7 @@ router.post("/:id/leave-club", authenticate, async (req, res, next) => {
     const team = await Group.findById(req.params.id);
     if (!team) return res.status(404).json({ error: "Team not found" });
     if (!team.parentClub) return res.status(400).json({ error: "Team is not part of a club" });
-    if (getMemberRole(team, req.user._id) !== "admin") {
+    if (!hasRole(team, req.user._id, "admin")) {
       return res.status(403).json({ error: "Team admin access required" });
     }
     team.parentClub = null;
@@ -241,7 +267,7 @@ router.post(
     try {
       const group = await Group.findById(req.params.id);
       if (!group) return res.status(404).json({ error: "Group not found" });
-      if (getMemberRole(group, req.user._id) !== "admin") {
+      if (!hasRole(group, req.user._id, "admin")) {
         return res.status(403).json({ error: "Admin access required" });
       }
       const user = await User.findOne({ email: req.body.email.toLowerCase() });
@@ -249,8 +275,8 @@ router.post(
       if (group.members.some((m) => m.user.toString() === user._id.toString())) {
         return res.status(400).json({ error: "User is already a member" });
       }
-      const validRoles = ["admin", "trainer", "member"];
-      const role = req.body.role || "member";
+      const validRoles = ["admin", "trainer", "viewer"];
+      const role = req.body.role || "viewer";
       if (!validRoles.includes(role)) {
         return res.status(400).json({ error: "Invalid role. Must be admin, trainer, or member" });
       }
@@ -269,14 +295,17 @@ router.put("/:id/members/:userId", authenticate, async (req, res, next) => {
   try {
     const group = await Group.findById(req.params.id);
     if (!group) return res.status(404).json({ error: "Group not found" });
-    if (getMemberRole(group, req.user._id) !== "admin") {
+    if (!hasRole(group, req.user._id, "admin")) {
       return res.status(403).json({ error: "Admin access required" });
     }
     const member = group.members.find((m) => m.user.toString() === req.params.userId);
     if (!member) return res.status(404).json({ error: "Member not found" });
-    const validRoles = ["admin", "trainer", "member"];
+    if (member.role === "owner") {
+      return res.status(403).json({ error: "Cannot change the owner's role" });
+    }
+    const validRoles = ["admin", "trainer", "viewer"];
     if (req.body.role && !validRoles.includes(req.body.role)) {
-      return res.status(400).json({ error: "Invalid role. Must be admin, trainer, or member" });
+      return res.status(400).json({ error: "Invalid role. Must be admin, trainer, or viewer" });
     }
     member.role = req.body.role || member.role;
     await group.save();
@@ -292,10 +321,15 @@ router.delete("/:id/members/:userId", authenticate, async (req, res, next) => {
   try {
     const group = await Group.findById(req.params.id);
     if (!group) return res.status(404).json({ error: "Group not found" });
-    const isAdmin = getMemberRole(group, req.user._id) === "admin";
+    const callerIsAdmin = hasRole(group, req.user._id, "admin");
     const isSelf = req.params.userId === req.user._id.toString();
-    if (!isAdmin && !isSelf) {
+    if (!callerIsAdmin && !isSelf) {
       return res.status(403).json({ error: "Admin access required" });
+    }
+    // Owner cannot be removed
+    const targetRole = getMemberRole(group, req.params.userId);
+    if (targetRole === "owner") {
+      return res.status(403).json({ error: "Cannot remove the owner" });
     }
     group.members = group.members.filter((m) => m.user.toString() !== req.params.userId);
     await group.save();
@@ -316,7 +350,7 @@ router.post("/join/:code", authenticate, joinLimiter, async (req, res, next) => 
     if (group.members.some((m) => m.user.toString() === req.user._id.toString())) {
       return res.status(400).json({ error: "Already a member" });
     }
-    group.members.push({ user: req.user._id, role: "member" });
+    group.members.push({ user: req.user._id, role: "viewer" });
     await group.save();
     await group.populate("members.user", "name email");
     res.json(group);
@@ -330,12 +364,78 @@ router.post("/:id/regenerate-invite", authenticate, async (req, res, next) => {
   try {
     const group = await Group.findById(req.params.id);
     if (!group) return res.status(404).json({ error: "Group not found" });
-    if (getMemberRole(group, req.user._id) !== "admin") {
+    if (!hasRole(group, req.user._id, "admin")) {
       return res.status(403).json({ error: "Admin access required" });
     }
     group.inviteCode = crypto.randomBytes(16).toString("hex");
     await group.save();
     res.json({ inviteCode: group.inviteCode });
+  } catch (err) {
+    next(err);
+  }
+});
+
+// ── Group starred drills ────────────────────────────────────────────────────
+
+// POST /api/groups/:id/star-drill/:drillId — toggle star for group
+router.post("/:id/star-drill/:drillId", authenticate, async (req, res, next) => {
+  try {
+    const group = await Group.findById(req.params.id);
+    if (!group) return res.status(404).json({ error: "Group not found" });
+    if (!hasRole(group, req.user._id, "trainer")) {
+      return res.status(403).json({ error: "Trainer access or higher required" });
+    }
+    const drillExists = await Drill.exists({ _id: req.params.drillId });
+    if (!drillExists) return res.status(404).json({ error: "Drill not found" });
+
+    const idx = group.starredDrills.findIndex(
+      (id) => id.toString() === req.params.drillId
+    );
+    if (idx === -1) {
+      group.starredDrills.push(req.params.drillId);
+    } else {
+      group.starredDrills.splice(idx, 1);
+    }
+    await group.save();
+    res.json({ starred: idx === -1, starredDrills: group.starredDrills });
+  } catch (err) {
+    next(err);
+  }
+});
+
+// GET /api/groups/:id/starred-drills — list starred drills with details
+router.get("/:id/starred-drills", authenticate, async (req, res, next) => {
+  try {
+    const group = await Group.findById(req.params.id)
+      .populate("starredDrills", "title description sport intensity");
+    if (!group) return res.status(404).json({ error: "Group not found" });
+    if (!getMemberRole(group, req.user._id)) {
+      return res.status(403).json({ error: "Not a member of this group" });
+    }
+    // Filter out null refs (deleted drills)
+    const drills = (group.starredDrills || []).filter(Boolean);
+    res.json(drills);
+  } catch (err) {
+    next(err);
+  }
+});
+
+// ── Club verification (system admin only) ───────────────────────────────────
+
+// PUT /api/groups/:id/verify — verify or reject a club
+router.put("/:id/verify", authenticate, async (req, res, next) => {
+  try {
+    const user = await User.findById(req.user._id);
+    if (user.role !== "admin") {
+      return res.status(403).json({ error: "System admin access required" });
+    }
+    const group = await Group.findById(req.params.id);
+    if (!group) return res.status(404).json({ error: "Group not found" });
+    if (group.type !== "club") return res.status(400).json({ error: "Only clubs can be verified" });
+
+    group.verified = req.body.verified === true;
+    await group.save();
+    res.json({ verified: group.verified });
   } catch (err) {
     next(err);
   }
