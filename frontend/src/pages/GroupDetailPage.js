@@ -6,6 +6,7 @@ import { getDrills } from "../api/drills";
 import { useAuth } from "../context/AuthContext";
 import { useGroups } from "../context/GroupContext";
 import { FiTrash2, FiPlus, FiUsers, FiShield, FiUser, FiCopy, FiRefreshCw, FiLink, FiXCircle, FiStar, FiSearch, FiAlertCircle, FiCheck } from "react-icons/fi";
+import PlayerRoster from "../components/groups/PlayerRoster";
 
 export default function GroupDetailPage() {
   const { t } = useTranslation();
@@ -289,6 +290,9 @@ export default function GroupDetailPage() {
           </form>
         )}
       </div>
+
+      {/* Player Roster */}
+      <PlayerRoster groupId={id} canEdit={isTrainer} />
 
       {/* Starred Drills */}
       {isTrainer && (

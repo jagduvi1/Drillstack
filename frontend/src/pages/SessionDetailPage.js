@@ -144,6 +144,9 @@ export default function SessionDetailPage() {
           >
             <FiCode /> {t("common.debug")}
           </button>
+          <Link to={`/sessions/${id}/print`} className="btn btn-secondary" title={t("sessions.print")}>
+            {t("sessions.print")}
+          </Link>
           <Link to={`/sessions/${id}/edit`} className="btn btn-secondary">
             {t("common.edit")}
           </Link>

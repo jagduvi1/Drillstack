@@ -1,0 +1,63 @@
+/* ── Attendance Tracker ───────────────────────────── */
+.attendance-tracker {
+  background: var(--color-card);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  padding: 0.75rem;
+  margin-bottom: 0.75rem;
+}
+.attendance-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+  gap: 0.35rem;
+}
+.attendance-player {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0.4rem 0.6rem;
+  border: 2px solid var(--color-border);
+  border-radius: var(--radius);
+  background: var(--color-surface);
+  cursor: pointer;
+  transition: all 0.15s;
+  position: relative;
+  text-align: left;
+  color: var(--color-text);
+}
+.attendance-player:hover {
+  border-color: var(--color-primary);
+}
+.attendance-player.present {
+  background: rgba(34, 197, 94, 0.1);
+  border-color: var(--color-success, #22c55e);
+}
+.attendance-name {
+  font-weight: 600;
+  font-size: 0.85rem;
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.attendance-pos {
+  font-size: 0.7rem;
+  color: var(--color-muted);
+}
+.attendance-check {
+  color: var(--color-success, #22c55e);
+  flex-shrink: 0;
+}
+
+@media (max-width: 767px) {
+  .attendance-grid {
+    grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+    gap: 0.25rem;
+  }
+  .attendance-player {
+    padding: 0.35rem 0.5rem;
+  }
+  .attendance-name {
+    font-size: 0.8rem;
+  }
+}

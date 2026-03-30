@@ -140,6 +140,10 @@
     "reportReason": "Why are you reporting this?",
     "reportSubmitted": "Report submitted. An admin will review it.",
     "filterBySport": "Filter by sport...",
+    "searchPlaceholder": "Search drills...",
+    "skillProgression": "Skill Progression",
+    "prerequisiteDrill": "Builds on",
+    "viewDrill": "View drill",
     "starred": "Starred",
     "all": "All",
     "star": "Star",
@@ -491,7 +495,25 @@
     "extra": "({{count}} extra)",
     "teamsOf": "2 teams of {{count}}",
     "oneExtra": "(1 extra)",
-    "minBreak": "{{count}} min break"
+    "minBreak": "{{count}} min break",
+    "print": "Print"
+  },
+  "players": {
+    "title": "Players ({{count}})",
+    "addPlayer": "Add Player",
+    "namePlaceholder": "Player name...",
+    "positionPlaceholder": "Position...",
+    "noPlayers": "No players yet. Add your team's players.",
+    "name": "Name",
+    "position": "Position",
+    "number": "Number",
+    "strengths": "Strengths",
+    "weaknesses": "Weaknesses",
+    "notes": "Notes",
+    "strengthsPlaceholder": "Speed, shooting, passing...",
+    "weaknessesPlaceholder": "Left foot, heading...",
+    "deleteConfirm": "Remove this player?",
+    "attendance": "Attendance"
   },
   "search": {
     "title": "Search",

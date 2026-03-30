@@ -64,11 +64,12 @@ const sessionSchema = new Schema(
 
     blocks: [blockSchema],
 
-    // ── Attendance planning ──────────────────────────────────────────────
+    // ── Attendance ────────────────────────────────────────────────────────
     expectedPlayers: { type: Number, default: 0 },
     expectedTrainers: { type: Number, default: 0 },
     actualPlayers: { type: Number, default: null },
     actualTrainers: { type: Number, default: null },
+    attendees: [{ type: Schema.Types.ObjectId, ref: "Player" }],
 
     totalDuration: { type: Number, default: 0 },
     equipmentSummary: [{ type: String }],
