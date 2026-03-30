@@ -6,11 +6,9 @@ import { useAuth } from "../context/AuthContext";
 import { useGroups } from "../context/GroupContext";
 import { getDrill, deleteDrill, updateDrill, uploadDiagram, addReflection, retryEmbedding, toggleStar, forkDrill, getVersions, setDefaultVersion, findSimilar, convertToVersion, claimDrill } from "../api/drills";
 import { toggleGroupStar } from "../api/groups";
-import { cloneTactic } from "../api/tactics";
 import { getContributions, addVideo, addDrawing, deleteContribution } from "../api/contributions";
 import { submitReport } from "../api/reports";
 import { refineDrill } from "../api/ai";
-import { getTactics } from "../api/tactics";
 import DebugPanel from "../components/common/DebugPanel";
 import useDebugPanel from "../hooks/useDebugPanel";
 import DrillVersionsPanel from "../components/drills/DrillVersionsPanel";
@@ -38,7 +36,6 @@ export default function DrillDetailPage() {
   const [similarDrills, setSimilarDrills] = useState(null);
   const [similarDismissed, setSimilarDismissed] = useState(false);
   const [embeddingElapsed, setEmbeddingElapsed] = useState(0);
-  const [linkedTactics, setLinkedTactics] = useState(null);
   const [unsavedChanges, setUnsavedChanges] = useState(null); // refined fields not yet saved
   const [isSaving, setIsSaving] = useState(false);
   const [contributions, setContributions] = useState([]);
@@ -48,13 +45,6 @@ export default function DrillDetailPage() {
   const chatEndRef = useRef(null);
 
   // Fetch tactic boards linked to this drill
-  useEffect(() => {
-    if (!id) return;
-    getTactics({ drill: id })
-      .then((res) => setLinkedTactics(res.data.boards || []))
-      .catch(() => {});
-  }, [id]);
-
   const fetchContributions = useCallback(() => {
     if (!id) return;
     getContributions(id)
@@ -188,13 +178,6 @@ export default function DrillDetailPage() {
     await toggleGroupStar(groupId, id);
     refetch();
     setShowStarMenu(false);
-  };
-
-  const handleCloneTactic = async (tacticId) => {
-    try {
-      const res = await cloneTactic(tacticId);
-      navigate(`/tactics/${res.data._id}`);
-    } catch { /* ignore */ }
   };
 
   // Groups where user is admin/trainer (can star for group)
@@ -608,47 +591,6 @@ export default function DrillDetailPage() {
           onDeleteContribution={handleDeleteContribution}
           onReport={handleReport}
         />
-
-        {/* Linked Tactic Boards */}
-        <div className="card mb-1">
-          <div className="flex-between">
-            <h3><FiTarget style={{ marginRight: "0.4rem" }} />{t("drills.tacticBoards")}</h3>
-            {drill.isOwner && (
-              <Link
-                to={`/tactics/new?${new URLSearchParams({ drillDescription: [drill.description, drill.howItWorks].filter(Boolean).join("\n\n"), drillTitle: drill.title || "", drillId: id }).toString()}`}
-                className="btn btn-primary btn-sm"
-              >
-                <FiPlus /> {t("drills.newTacticBoard")}
-              </Link>
-            )}
-          </div>
-          {linkedTactics === null ? (
-            <p className="text-sm text-muted mt-1"><FiLoader className="spin" /> {t("common.loading")}</p>
-          ) : linkedTactics.length === 0 ? (
-            <p className="text-sm text-muted mt-1">{t("drills.noTacticBoards")}</p>
-          ) : (
-            <div className="mt-1" style={{ display: "flex", flexDirection: "column", gap: "0.5rem" }}>
-              {linkedTactics.map((tb) => (
-                <div key={tb._id} className="drill-tactic-card" style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                  <Link to={`/tactics/${tb._id}`} style={{ flex: 1, textDecoration: "none", color: "inherit" }}>
-                    <div>
-                      <strong>{tb.title || t("tactics.untitled")}</strong>
-                      <span className="text-sm text-muted" style={{ marginLeft: "0.5rem" }}>
-                        {tb.fieldType} · {tb.homeTeam?.formation || "4-4-2"} vs {tb.awayTeam?.formation || "4-4-2"}
-                      </span>
-                    </div>
-                  </Link>
-                  <div className="flex gap-sm" style={{ alignItems: "center" }}>
-                    <span className="text-sm text-muted">{new Date(tb.updatedAt).toLocaleDateString()}</span>
-                    <button className="btn btn-secondary btn-sm" onClick={() => handleCloneTactic(tb._id)} title={t("drills.cloneTactic")}>
-                      <FiCopy />
-                    </button>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
 
         {/* Reflection Notes */}
         <div className="card mb-1">

@@ -54,7 +54,7 @@ export default function DrillContributions({
   return (
     <div className="card mb-1">
       <div className="flex-between" style={{ marginBottom: "0.5rem" }}>
-        <h3><FiVideo style={{ marginRight: "0.4rem" }} />{t("drills.contributions")}</h3>
+        <h3><FiVideo style={{ marginRight: "0.4rem" }} />{t("drills.mediaAndTactics")}</h3>
         <div className="flex gap-sm" style={{ flexWrap: "wrap" }}>
           <button className="btn btn-secondary btn-sm" onClick={() => setShowAddVideo(!showAddVideo)}>
             <FiVideo /> {t("drills.addVideo")}
@@ -69,9 +69,10 @@ export default function DrillContributions({
             </button>
             {showLinkTactic && (
               <div style={{
-                position: "absolute", top: "100%", right: 0, zIndex: 10, marginTop: "0.25rem",
+                position: "absolute", top: "100%", left: 0, zIndex: 10, marginTop: "0.25rem",
                 background: "var(--color-card)", border: "1px solid var(--color-border)",
-                borderRadius: "var(--radius)", minWidth: 220, boxShadow: "0 4px 12px rgba(0,0,0,0.15)",
+                borderRadius: "var(--radius)", minWidth: 220, maxWidth: "calc(100vw - 2rem)",
+                boxShadow: "0 4px 12px rgba(0,0,0,0.15)",
               }}>
                 <Link to={newTacticUrl} className="star-menu-item" style={{ display: "block", textDecoration: "none", color: "inherit" }}>
                   <FiPlus style={{ marginRight: "0.4rem" }} /> {t("drills.createNewTactic")}
