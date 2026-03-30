@@ -502,7 +502,9 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 0.75rem 1rem;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  padding: 0.5rem 0.75rem;
   background: linear-gradient(transparent, rgba(0, 0, 0, 0.7));
   z-index: 10;
   opacity: 0;
@@ -576,6 +578,28 @@
   font-variant-numeric: tabular-nums;
   min-width: 3rem;
   text-align: center;
+}
+
+/* Mobile: compact fullscreen controls */
+@media (max-width: 600px) {
+  .tactic-fs-controls {
+    justify-content: center;
+  }
+  .tactic-fs-playback {
+    gap: 0.25rem;
+  }
+  .tactic-fs-btn {
+    width: 36px;
+    height: 36px;
+    font-size: 1rem;
+  }
+  .tactic-fs-exit {
+    padding: 0 0.5rem;
+  }
+  .tactic-fs-step-indicator {
+    font-size: 0.75rem;
+    min-width: 2rem;
+  }
 }
 
 /* ── Tactic Board List ────────────────────────────── */
