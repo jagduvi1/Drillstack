@@ -6,7 +6,7 @@ const validate = require("../../middleware/validate");
 const { signToken, signRefreshToken, hashToken, authenticate, REFRESH_SECRET } = require("../../middleware/auth");
 const { checkIsSuperAdmin } = require("../../middleware/superAdmin");
 const { isEmailEnabled, sendVerificationEmail } = require("../../services/email");
-const { loginLimiter, registerLimiter, refreshLimiter } = require("../../utils/rateLimiters");
+const { loginLimiter, registerLimiter, refreshLimiter, standardLimiter } = require("../../utils/rateLimiters");
 const User = require("../../models/User");
 
 const MAX_REFRESH_TOKENS = 5; // Max sessions per user
@@ -165,6 +165,7 @@ router.post(
 // POST /api/auth/logout — revoke refresh token
 router.post(
   "/logout",
+  standardLimiter,
   authenticate,
   [body("refreshToken").optional().notEmpty()],
   validate,
@@ -198,7 +199,7 @@ router.post(
 );
 
 // GET /api/auth/me
-router.get("/me", authenticate, (req, res) => {
+router.get("/me", standardLimiter, authenticate, (req, res) => {
   const user = req.user.toJSON();
   user.isSuperAdmin = checkIsSuperAdmin(req.user);
   res.json({ user });

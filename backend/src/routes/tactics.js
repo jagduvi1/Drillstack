@@ -64,15 +64,17 @@ router.post(
     try {
       const { title, description, sport, fieldType, homeTeam, awayTeam, steps, isPublic, group, tags, drill } = req.body;
       if (drill) {
+        const drillId = String(drill);
         const Drill = require("../models/Drill");
-        const drillDoc = await Drill.findById(drill).select("createdBy");
+        const drillDoc = await Drill.findById(drillId).select("createdBy");
         if (!drillDoc) return res.status(400).json({ error: "Referenced drill not found" });
         if (drillDoc.createdBy.toString() !== req.user._id.toString()) {
           return res.status(403).json({ error: "You can only link tactic boards to your own drills. Fork the drill first." });
         }
       }
       const board = await TacticBoard.create({
-        title, description, sport, fieldType, homeTeam, awayTeam, steps, isPublic, group, tags, drill,
+        title, description, sport, fieldType, homeTeam, awayTeam, steps, isPublic, group, tags,
+        drill: drill ? String(drill) : undefined,
         createdBy: req.user._id,
       });
       res.status(201).json(board);

@@ -8,7 +8,7 @@ const User = require("../models/User");
 const Drill = require("../models/Drill");
 const { checkLimit } = require("../middleware/planLimits");
 const { getEffectivePlan } = require("../middleware/planLimits");
-const { createLimiter } = require("../utils/rateLimiters");
+const { createLimiter, standardLimiter } = require("../utils/rateLimiters");
 
 const memberLimiter = createLimiter(60 * 60 * 1000, 50);
 const joinLimiter = createLimiter(15 * 60 * 1000, 10);
@@ -98,7 +98,7 @@ router.post(
 );
 
 // GET /api/groups/:id — get group details
-router.get("/:id", authenticate, async (req, res, next) => {
+router.get("/:id", standardLimiter, authenticate, async (req, res, next) => {
   try {
     const group = await Group.findById(req.params.id)
       .populate("members.user", "name email")
@@ -115,7 +115,7 @@ router.get("/:id", authenticate, async (req, res, next) => {
 });
 
 // PUT /api/groups/:id — update group
-router.put("/:id", authenticate, [
+router.put("/:id", standardLimiter, authenticate, [
   body("name").optional().trim().notEmpty().isLength({ max: 100 }),
   body("description").optional().isLength({ max: 1000 }),
   body("sport").optional().trim().isLength({ max: 100 }),
@@ -138,7 +138,7 @@ router.put("/:id", authenticate, [
 });
 
 // DELETE /api/groups/:id — delete group
-router.delete("/:id", authenticate, async (req, res, next) => {
+router.delete("/:id", standardLimiter, authenticate, async (req, res, next) => {
   try {
     const group = await Group.findById(req.params.id);
     if (!group) return res.status(404).json({ error: "Group not found" });
@@ -161,6 +161,7 @@ router.delete("/:id", authenticate, async (req, res, next) => {
 // POST /api/groups/:id/teams — create a new team under a club
 router.post(
   "/:id/teams",
+  standardLimiter,
   authenticate,
   [body("name").trim().notEmpty()],
   validate,
@@ -191,7 +192,7 @@ router.post(
 );
 
 // GET /api/groups/:id/teams — list teams under a club
-router.get("/:id/teams", authenticate, async (req, res, next) => {
+router.get("/:id/teams", standardLimiter, authenticate, async (req, res, next) => {
   try {
     const club = await Group.findById(req.params.id);
     if (!club) return res.status(404).json({ error: "Club not found" });
@@ -210,6 +211,7 @@ router.get("/:id/teams", authenticate, async (req, res, next) => {
 // POST /api/groups/:id/invite-team — invite an existing team to join this club (by team invite code)
 router.post(
   "/:id/invite-team",
+  standardLimiter,
   authenticate,
   [body("inviteCode").trim().notEmpty()],
   validate,
@@ -238,7 +240,7 @@ router.post(
 );
 
 // POST /api/groups/:id/leave-club — team leaves its parent club (team admin only)
-router.post("/:id/leave-club", authenticate, async (req, res, next) => {
+router.post("/:id/leave-club", standardLimiter, authenticate, async (req, res, next) => {
   try {
     const team = await Group.findById(req.params.id);
     if (!team) return res.status(404).json({ error: "Team not found" });
@@ -291,7 +293,7 @@ router.post(
 );
 
 // PUT /api/groups/:id/members/:userId — change role
-router.put("/:id/members/:userId", authenticate, async (req, res, next) => {
+router.put("/:id/members/:userId", standardLimiter, authenticate, async (req, res, next) => {
   try {
     const group = await Group.findById(req.params.id);
     if (!group) return res.status(404).json({ error: "Group not found" });
@@ -317,7 +319,7 @@ router.put("/:id/members/:userId", authenticate, async (req, res, next) => {
 });
 
 // DELETE /api/groups/:id/members/:userId — remove member (or leave)
-router.delete("/:id/members/:userId", authenticate, async (req, res, next) => {
+router.delete("/:id/members/:userId", standardLimiter, authenticate, async (req, res, next) => {
   try {
     const group = await Group.findById(req.params.id);
     if (!group) return res.status(404).json({ error: "Group not found" });
@@ -360,7 +362,7 @@ router.post("/join/:code", authenticate, joinLimiter, async (req, res, next) => 
 });
 
 // POST /api/groups/:id/regenerate-invite — new invite code
-router.post("/:id/regenerate-invite", authenticate, async (req, res, next) => {
+router.post("/:id/regenerate-invite", standardLimiter, authenticate, async (req, res, next) => {
   try {
     const group = await Group.findById(req.params.id);
     if (!group) return res.status(404).json({ error: "Group not found" });
@@ -378,7 +380,7 @@ router.post("/:id/regenerate-invite", authenticate, async (req, res, next) => {
 // ── Group starred drills ────────────────────────────────────────────────────
 
 // POST /api/groups/:id/star-drill/:drillId — toggle star for group
-router.post("/:id/star-drill/:drillId", authenticate, async (req, res, next) => {
+router.post("/:id/star-drill/:drillId", standardLimiter, authenticate, async (req, res, next) => {
   try {
     const group = await Group.findById(req.params.id);
     if (!group) return res.status(404).json({ error: "Group not found" });
@@ -404,7 +406,7 @@ router.post("/:id/star-drill/:drillId", authenticate, async (req, res, next) => 
 });
 
 // GET /api/groups/:id/starred-drills — list starred drills with details
-router.get("/:id/starred-drills", authenticate, async (req, res, next) => {
+router.get("/:id/starred-drills", standardLimiter, authenticate, async (req, res, next) => {
   try {
     const group = await Group.findById(req.params.id)
       .populate("starredDrills", "title description sport intensity");
@@ -423,7 +425,7 @@ router.get("/:id/starred-drills", authenticate, async (req, res, next) => {
 // ── Club verification (system admin only) ───────────────────────────────────
 
 // PUT /api/groups/:id/verify — verify or reject a club
-router.put("/:id/verify", authenticate, async (req, res, next) => {
+router.put("/:id/verify", standardLimiter, authenticate, async (req, res, next) => {
   try {
     const user = await User.findById(req.user._id);
     if (user.role !== "admin") {

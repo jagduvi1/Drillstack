@@ -18,7 +18,12 @@ app.use(helmet({
 // ── Middleware ───────────────────────────────────────────────────────────────
 const allowedOrigins = (process.env.CORS_ORIGIN || "").split(",").map((s) => s.trim()).filter(Boolean);
 app.use(cors({
-  origin: allowedOrigins.length > 0 ? allowedOrigins : (process.env.NODE_ENV === "production" ? false : true),
+  origin: allowedOrigins.length > 0
+    ? (origin, cb) => {
+        if (!origin || allowedOrigins.includes(origin)) cb(null, true);
+        else cb(new Error("Not allowed by CORS"));
+      }
+    : process.env.NODE_ENV === "production" ? false : "http://localhost:5173",
   credentials: true,
 }));
 app.use(express.json({ limit: "1mb" }));
