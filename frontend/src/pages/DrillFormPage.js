@@ -39,12 +39,14 @@ export default function DrillFormPage() {
   const { debugOpen, debugEntries, toggleDebug, addDebugEntry } = useDebugPanel();
   const originalDrill = useRef(null);
 
-  // AI refinement chat (for new drills, before saving)
+  // AI refinement chat
   const [showChat, setShowChat] = useState(false);
   const [chatMessage, setChatMessage] = useState("");
   const [chatLoading, setChatLoading] = useState(false);
   const [chatHistory, setChatHistory] = useState([]);
   const chatEndRef = useRef(null);
+  const [aiChangedFields, setAiChangedFields] = useState(new Set());
+  const aiChangeTimer = useRef(null);
 
   useEffect(() => {
     if (isEdit) {
@@ -114,6 +116,10 @@ export default function DrillFormPage() {
       }
       setChatHistory(res.data.conversationHistory || []);
       if (res.data.refinedFields) {
+        const changed = new Set(Object.keys(res.data.refinedFields));
+        setAiChangedFields(changed);
+        clearTimeout(aiChangeTimer.current);
+        aiChangeTimer.current = setTimeout(() => setAiChangedFields(new Set()), 8000);
         setForm((prev) => ({ ...prev, ...res.data.refinedFields }));
       }
     } catch {
@@ -292,7 +298,7 @@ export default function DrillFormPage() {
       {generated && (
         <div className="drill-detail-layout">
         <form onSubmit={handleSubmit} className="drill-detail-main">
-          <div className="card mb-1">
+          <div className={`card mb-1${["title", "description", "sport", "intensity"].some((f) => aiChangedFields.has(f)) ? " ai-changed" : ""}`}>
             <h3 style={{ marginBottom: "1rem" }}>{t("drills.basicInfo")}</h3>
             <div className="form-group">
               <label>{t("drills.titleRequired")}</label>
@@ -318,7 +324,7 @@ export default function DrillFormPage() {
             </div>
           </div>
 
-          <div className="card mb-1">
+          <div className={`card mb-1${aiChangedFields.has("setup") ? " ai-changed" : ""}`}>
             <h3 style={{ marginBottom: "1rem" }}>{t("drills.setup")}</h3>
             <div className="form-group">
               <label>{t("drills.players").replace(":", "")}</label>
@@ -340,12 +346,12 @@ export default function DrillFormPage() {
             </div>
           </div>
 
-          <div className="card mb-1">
+          <div className={`card mb-1${aiChangedFields.has("howItWorks") ? " ai-changed" : ""}`}>
             <h3 style={{ marginBottom: "1rem" }}>{t("drills.howItWorks")}</h3>
             <textarea className="form-control" placeholder={t("drills.howItWorksPlaceholder")} value={form.howItWorks} onChange={(e) => set("howItWorks", e.target.value)} style={{ minHeight: 120 }} />
           </div>
 
-          <div className="card mb-1">
+          <div className={`card mb-1${aiChangedFields.has("coachingPoints") ? " ai-changed" : ""}`}>
             <h3 style={{ marginBottom: "1rem" }}>{t("drills.coachingPoints")}</h3>
             {form.coachingPoints.map((point, i) => (
               <div key={i} className="flex gap-sm mb-1">
@@ -356,7 +362,7 @@ export default function DrillFormPage() {
             <button type="button" className="btn btn-secondary btn-sm" onClick={() => addListItem("coachingPoints")}><FiPlus /> {t("drills.addPoint")}</button>
           </div>
 
-          <div className="card mb-1">
+          <div className={`card mb-1${aiChangedFields.has("variations") ? " ai-changed" : ""}`}>
             <h3 style={{ marginBottom: "1rem" }}>{t("drills.variations")}</h3>
             {form.variations.map((v, i) => (
               <div key={i} className="flex gap-sm mb-1">
@@ -367,7 +373,7 @@ export default function DrillFormPage() {
             <button type="button" className="btn btn-secondary btn-sm" onClick={() => addListItem("variations")}><FiPlus /> {t("drills.addVariation")}</button>
           </div>
 
-          <div className="card mb-1">
+          <div className={`card mb-1${aiChangedFields.has("commonMistakes") ? " ai-changed" : ""}`}>
             <h3 style={{ marginBottom: "1rem" }}>{t("drills.commonMistakes")}</h3>
             {form.commonMistakes.map((m, i) => (
               <div key={i} className="flex gap-sm mb-1">
@@ -382,17 +388,15 @@ export default function DrillFormPage() {
             <button type="submit" className="btn btn-primary" disabled={loading || checking}>
               <FiSave /> {checking ? t("common.checking") : loading ? t("common.saving") : isEdit ? t("drills.updateDrill") : t("drills.saveDrill")}
             </button>
-            {!isEdit && (
-              <button type="button" className="btn btn-secondary" onClick={() => setShowChat(!showChat)}>
-                <FiMessageCircle /> {showChat ? t("drills.hideChat") : t("drills.refineWithAi")}
-              </button>
-            )}
+            <button type="button" className="btn btn-secondary" onClick={() => setShowChat(!showChat)}>
+              <FiMessageCircle /> {showChat ? t("drills.hideChat") : t("drills.refineWithAi")}
+            </button>
             <button type="button" className="btn btn-secondary" onClick={() => navigate("/drills")}><FiX /> {t("common.cancel")}</button>
           </div>
         </form>
 
         {/* AI Chat Panel (for refining during creation) */}
-        {showChat && !isEdit && (
+        {showChat && (
           <DrillFormAiChat
             chatHistory={chatHistory}
             chatMessage={chatMessage}

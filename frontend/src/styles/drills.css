@@ -315,6 +315,13 @@
   letter-spacing: 0.03em;
 }
 
+/* AI-changed field highlight (form edit mode) */
+.ai-changed {
+  border-left: 3px solid var(--color-primary) !important;
+  transition: border-color 0.3s, background-color 0.3s;
+  background: rgba(99, 102, 241, 0.04);
+}
+
 /* Inline diff highlights */
 .diff-add {
   background: #d1fae5;
