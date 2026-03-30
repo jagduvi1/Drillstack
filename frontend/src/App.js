@@ -16,6 +16,7 @@ import DrillRefinePage from "./pages/DrillRefinePage";
 import SessionsPage from "./pages/SessionsPage";
 import SessionFormPage from "./pages/SessionFormPage";
 import SessionDetailPage from "./pages/SessionDetailPage";
+import SessionPrintPage from "./pages/SessionPrintPage";
 import PlansPage from "./pages/PlansPage";
 import PlanFormPage from "./pages/PlanFormPage";
 import PlanDetailPage from "./pages/PlanDetailPage";
@@ -92,6 +93,7 @@ export default function App() {
           <Route path="/sessions" element={<ProtectedRoute><SessionsPage /></ProtectedRoute>} />
           <Route path="/sessions/new" element={<ProtectedRoute><SessionFormPage /></ProtectedRoute>} />
           <Route path="/sessions/:id" element={<ProtectedRoute><SessionDetailPage /></ProtectedRoute>} />
+          <Route path="/sessions/:id/print" element={<ProtectedRoute><SessionPrintPage /></ProtectedRoute>} />
           <Route path="/sessions/:id/edit" element={<ProtectedRoute><SessionFormPage /></ProtectedRoute>} />
           <Route path="/plans" element={<ProtectedRoute><PlansPage /></ProtectedRoute>} />
           <Route path="/plans/new" element={<ProtectedRoute><PlanFormPage /></ProtectedRoute>} />

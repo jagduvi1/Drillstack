@@ -592,6 +592,28 @@ export default function DrillDetailPage() {
           onReport={handleReport}
         />
 
+        {/* Skill Progression */}
+        {(displayDrill.progressionParent || displayDrill.prerequisites?.length > 0) && (
+          <div className="card mb-1">
+            <h3>{t("drills.skillProgression")}</h3>
+            {displayDrill.progressionParent && (
+              <p className="text-sm mt-1">
+                {t("drills.prerequisiteDrill")}: <Link to={`/drills/${displayDrill.progressionParent._id || displayDrill.progressionParent}`}>
+                  {displayDrill.progressionParent.title || t("drills.viewDrill")}
+                </Link>
+              </p>
+            )}
+            {displayDrill.prerequisites?.length > 0 && (
+              <div style={{ marginTop: "0.5rem" }}>
+                <strong className="text-sm">{t("drills.prerequisites")}:</strong>
+                <ul style={{ paddingLeft: "1.25rem", margin: "0.25rem 0 0" }}>
+                  {displayDrill.prerequisites.map((p, i) => <li key={i} className="text-sm">{p}</li>)}
+                </ul>
+              </div>
+            )}
+          </div>
+        )}
+
         {/* Reflection Notes */}
         <div className="card mb-1">
           <h3>{t("drills.reflectionNotes")}</h3>

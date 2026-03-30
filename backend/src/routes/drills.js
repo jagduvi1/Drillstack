@@ -53,6 +53,15 @@ router.get("/", authenticate, async (req, res, next) => {
     const filter = {};
     if (req.query.sport) filter.sport = String(req.query.sport);
     if (req.query.intensity) filter.intensity = String(req.query.intensity);
+    if (req.query.apparatus) filter.apparatus = String(req.query.apparatus);
+    if (req.query.skillLevel) filter.skillLevel = String(req.query.skillLevel);
+    if (req.query.search) {
+      const search = String(req.query.search).slice(0, 200);
+      filter.$or = [
+        { title: { $regex: search, $options: "i" } },
+        { description: { $regex: search, $options: "i" } },
+      ];
+    }
     // Only show "root" drills by default (not forks), unless ?versions=all
     if (req.query.versions !== "all") filter.parentDrill = null;
     // Build effective starred set (personal + team + club, minus unstarred)
@@ -479,6 +488,21 @@ router.put("/:id/default-version", authenticate, async (req, res, next) => {
     await user.save();
 
     res.json({ rootId, defaultVersionId: req.params.id });
+  } catch (err) {
+    next(err);
+  }
+});
+
+// GET /api/drills/:id/progressions — get drills in a skill progression chain
+router.get("/:id/progressions", authenticate, async (req, res, next) => {
+  try {
+    const drill = await Drill.findById(req.params.id).select("title");
+    if (!drill) return res.status(404).json({ error: "Drill not found" });
+    // Find drills that have this drill as their progressionParent
+    const next = await Drill.find({ progressionParent: drill._id })
+      .select("title sport apparatus skillLevel")
+      .sort({ skillLevel: 1 });
+    res.json(next);
   } catch (err) {
     next(err);
   }

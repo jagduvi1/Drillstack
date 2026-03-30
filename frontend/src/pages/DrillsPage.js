@@ -27,10 +27,18 @@ export default function DrillsPage() {
   const { t } = useTranslation();
   const [page, setPage] = useState(1);
   const [sport, setSport] = useState("");
+  const [search, setSearch] = useState("");
+  const [skillLevel, setSkillLevel] = useState("");
   const [starredOnly, setStarredOnly] = useState(false);
   const { data, loading, refetch } = useFetch(
-    () => getDrills({ page, sport: sport || undefined, starred: starredOnly || undefined }),
-    [page, sport, starredOnly]
+    () => getDrills({
+      page,
+      sport: sport || undefined,
+      search: search || undefined,
+      skillLevel: skillLevel || undefined,
+      starred: starredOnly || undefined,
+    }),
+    [page, sport, search, skillLevel, starredOnly]
   );
 
   // Poll embedding queue status while any drill is pending/processing
@@ -90,14 +98,33 @@ export default function DrillsPage() {
         </div>
       )}
 
-      <div className="flex gap-sm mb-1" style={{ alignItems: "center" }}>
+      <div className="flex gap-sm mb-1" style={{ alignItems: "center", flexWrap: "wrap" }}>
+        <input
+          className="form-control"
+          placeholder={t("drills.searchPlaceholder")}
+          style={{ maxWidth: 250, flex: 1, minWidth: 150 }}
+          value={search}
+          onChange={(e) => { setSearch(e.target.value); setPage(1); }}
+        />
         <input
           className="form-control"
           placeholder={t("drills.filterBySport")}
-          style={{ maxWidth: 200 }}
+          style={{ maxWidth: 150 }}
           value={sport}
           onChange={(e) => { setSport(e.target.value); setPage(1); }}
         />
+        <select
+          className="form-control"
+          value={skillLevel}
+          onChange={(e) => { setSkillLevel(e.target.value); setPage(1); }}
+          style={{ width: "auto" }}
+        >
+          <option value="">{t("drills.anyLevel")}</option>
+          <option value="beginner">{t("drills.beginner")}</option>
+          <option value="intermediate">{t("drills.intermediate")}</option>
+          <option value="advanced">{t("drills.advanced")}</option>
+          <option value="competitive">{t("drills.competitive")}</option>
+        </select>
         <button
           className={`btn btn-sm ${starredOnly ? "btn-primary" : "btn-secondary"}`}
           onClick={() => { setStarredOnly(!starredOnly); setPage(1); }}

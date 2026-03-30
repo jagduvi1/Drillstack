@@ -15,7 +15,9 @@ import {
 } from "react-icons/fi";
 import { BLOCK_ICONS, BLOCK_COLORS, blockDuration } from "../constants/blockTypes";
 import SessionTimer from "../components/sessions/SessionTimer";
+import AttendanceTracker from "../components/sessions/AttendanceTracker";
 import "../styles/timer.css";
+import "../styles/attendance.css";
 
 export default function TodayPage() {
   const { t } = useTranslation();
@@ -192,6 +194,11 @@ export default function TodayPage() {
                       </div>
                     )}
                   </div>
+
+                  {/* Attendance */}
+                  {sess.group && (
+                    <AttendanceTracker sessionId={sess._id} groupId={sess.group._id || sess.group} initialAttendees={sess.attendees} />
+                  )}
 
                   {/* Session Timer */}
                   {sess.blocks?.length > 0 && (

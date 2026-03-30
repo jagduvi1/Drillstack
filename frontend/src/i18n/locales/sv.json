@@ -140,6 +140,10 @@
     "reportReason": "Varför rapporterar du detta?",
     "reportSubmitted": "Rapport inskickad. En admin kommer att granska den.",
     "filterBySport": "Filtrera efter sport...",
+    "searchPlaceholder": "Sök övningar...",
+    "skillProgression": "Färdighetsprogression",
+    "prerequisiteDrill": "Bygger på",
+    "viewDrill": "Visa övning",
     "starred": "Favoriter",
     "all": "Alla",
     "star": "Favorit",
@@ -491,7 +495,25 @@
     "extra": "({{count}} extra)",
     "teamsOf": "2 lag om {{count}}",
     "oneExtra": "(1 extra)",
-    "minBreak": "{{count}} min paus"
+    "minBreak": "{{count}} min paus",
+    "print": "Skriv ut"
+  },
+  "players": {
+    "title": "Spelare ({{count}})",
+    "addPlayer": "Lägg till spelare",
+    "namePlaceholder": "Spelarnamn...",
+    "positionPlaceholder": "Position...",
+    "noPlayers": "Inga spelare ännu. Lägg till ditt lags spelare.",
+    "name": "Namn",
+    "position": "Position",
+    "number": "Nummer",
+    "strengths": "Styrkor",
+    "weaknesses": "Svagheter",
+    "notes": "Anteckningar",
+    "strengthsPlaceholder": "Snabbhet, skott, passning...",
+    "weaknessesPlaceholder": "Vänsterfot, nick...",
+    "deleteConfirm": "Ta bort denna spelare?",
+    "attendance": "Närvaro"
   },
   "search": {
     "title": "Sök",

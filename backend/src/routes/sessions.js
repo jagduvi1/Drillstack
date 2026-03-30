@@ -277,4 +277,24 @@ router.delete(
   }
 );
 
+// PUT /api/sessions/:id/attendance — update attendance list
+router.put("/:id/attendance", authenticate, resolveUserGroups, async (req, res, next) => {
+  try {
+    const session = await TrainingSession.findById(req.params.id);
+    if (!session) return res.status(404).json({ error: "Session not found" });
+    const isOwner = session.createdBy.toString() === req.user._id.toString();
+    const isGroupMember = session.group && req.userTrainerGroupIds?.some(
+      (gid) => gid.toString() === session.group.toString()
+    );
+    if (!isOwner && !isGroupMember) return res.status(403).json({ error: "Not authorized" });
+
+    session.attendees = req.body.attendees || [];
+    session.actualPlayers = session.attendees.length;
+    await session.save();
+    res.json(session);
+  } catch (err) {
+    next(err);
+  }
+});
+
 module.exports = router;
