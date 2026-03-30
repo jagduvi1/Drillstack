@@ -1,13 +1,17 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { Link } from "react-router-dom";
 import { useTranslation } from "react-i18next";
-import { FiVideo, FiImage, FiFlag, FiPlus, FiTrash2 } from "react-icons/fi";
+import { getTactics } from "../../api/tactics";
+import { FiVideo, FiImage, FiFlag, FiPlus, FiTrash2, FiTarget } from "react-icons/fi";
 
 export default function DrillContributions({
-  drillId, contributions, groups, userId,
-  onAddVideo, onAddDrawing, onDeleteContribution, onReport,
+  drillId, drillTitle, drillDescription, contributions, groups, userId,
+  onAddVideo, onAddDrawing, onAddTactic, onDeleteContribution, onReport,
 }) {
   const { t } = useTranslation();
   const [showAddVideo, setShowAddVideo] = useState(false);
+  const [showLinkTactic, setShowLinkTactic] = useState(false);
+  const [userTactics, setUserTactics] = useState([]);
   const [videoUrl, setVideoUrl] = useState("");
   const [videoTitle, setVideoTitle] = useState("");
   const [videoVisibility, setVideoVisibility] = useState("public");
@@ -28,11 +32,30 @@ export default function DrillContributions({
     setShowAddVideo(false);
   };
 
+  // Fetch user's standalone tactics for linking
+  useEffect(() => {
+    if (!showLinkTactic) return;
+    getTactics({}).then((res) => setUserTactics(res.data.boards || [])).catch(() => {});
+  }, [showLinkTactic]);
+
+  const handleLinkTactic = async (tacticId) => {
+    await onAddTactic({ tacticId });
+    setShowLinkTactic(false);
+  };
+
+  // Build new tactic URL with drill context
+  const newTacticUrl = `/tactics/new?${new URLSearchParams({
+    drillDescription: drillDescription || "",
+    drillTitle: drillTitle || "",
+    drillId,
+    contribution: "true",
+  }).toString()}`;
+
   return (
     <div className="card mb-1">
       <div className="flex-between" style={{ marginBottom: "0.5rem" }}>
         <h3><FiVideo style={{ marginRight: "0.4rem" }} />{t("drills.contributions")}</h3>
-        <div className="flex gap-sm">
+        <div className="flex gap-sm" style={{ flexWrap: "wrap" }}>
           <button className="btn btn-secondary btn-sm" onClick={() => setShowAddVideo(!showAddVideo)}>
             <FiVideo /> {t("drills.addVideo")}
           </button>
@@ -40,6 +63,34 @@ export default function DrillContributions({
             <FiImage /> {t("drills.addDrawing")}
             <input type="file" accept="image/*,.pdf" onChange={onAddDrawing} style={{ display: "none" }} />
           </label>
+          <div style={{ position: "relative" }}>
+            <button className="btn btn-secondary btn-sm" onClick={() => setShowLinkTactic(!showLinkTactic)}>
+              <FiTarget /> {t("drills.addTactic")}
+            </button>
+            {showLinkTactic && (
+              <div style={{
+                position: "absolute", top: "100%", right: 0, zIndex: 10, marginTop: "0.25rem",
+                background: "var(--color-card)", border: "1px solid var(--color-border)",
+                borderRadius: "var(--radius)", minWidth: 220, boxShadow: "0 4px 12px rgba(0,0,0,0.15)",
+              }}>
+                <Link to={newTacticUrl} className="star-menu-item" style={{ display: "block", textDecoration: "none", color: "inherit" }}>
+                  <FiPlus style={{ marginRight: "0.4rem" }} /> {t("drills.createNewTactic")}
+                </Link>
+                {userTactics.length > 0 && (
+                  <div style={{ borderTop: "1px solid var(--color-border)", maxHeight: 200, overflowY: "auto" }}>
+                    {userTactics.map((tb) => (
+                      <button key={tb._id} className="star-menu-item" onClick={() => handleLinkTactic(tb._id)}>
+                        <FiTarget style={{ marginRight: "0.4rem" }} /> {tb.title || t("tactics.untitled")}
+                      </button>
+                    ))}
+                  </div>
+                )}
+                {userTactics.length === 0 && (
+                  <div className="star-menu-item text-sm text-muted">{t("drills.noPersonalTactics")}</div>
+                )}
+              </div>
+            )}
+          </div>
           <button className="btn btn-secondary btn-sm" onClick={() => onReport("drill", drillId)} title={t("drills.reportDrill")}>
             <FiFlag />
           </button>
@@ -84,6 +135,16 @@ export default function DrillContributions({
                     <FiVideo style={{ marginRight: "0.3rem" }} />
                     {c.title || c.url}
                   </a>
+                ) : c.type === "tactic" ? (
+                  <Link to={`/tactics/${c.tactic?._id || c.tactic}`} className="text-sm">
+                    <FiTarget style={{ marginRight: "0.3rem" }} />
+                    {c.title || c.tactic?.title || t("tactics.untitled")}
+                    {c.tactic?.fieldType && (
+                      <span className="text-muted" style={{ marginLeft: "0.5rem" }}>
+                        {c.tactic.fieldType} · {c.tactic.homeTeam?.formation || ""} vs {c.tactic.awayTeam?.formation || ""}
+                      </span>
+                    )}
+                  </Link>
                 ) : (
                   <a href={c.filePath} target="_blank" rel="noopener noreferrer">
                     <img src={c.filePath} alt={c.title || "Drawing"} style={{ maxWidth: 200, borderRadius: "var(--radius)" }} />

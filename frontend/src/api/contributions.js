@@ -6,4 +6,5 @@ export const addDrawing = (drillId, formData) =>
   api.post(`/contributions/${drillId}/drawing`, formData, {
     headers: { "Content-Type": "multipart/form-data" },
   });
+export const addTacticContribution = (drillId, data) => api.post(`/contributions/${drillId}/tactic`, data);
 export const deleteContribution = (id) => api.delete(`/contributions/${id}`);
