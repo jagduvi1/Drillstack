@@ -515,6 +515,18 @@
     "deleteConfirm": "Remove this player?",
     "attendance": "Attendance"
   },
+  "splits": {
+    "title": "Split into Groups",
+    "players": "players",
+    "numberOfGroups": "Number of groups",
+    "randomSplit": "Random Split",
+    "smartSplit": "Smart Split (AI)",
+    "criteriaPlaceholder": "e.g. one group with defenders, one with midfielders and attackers...",
+    "splitting": "Splitting...",
+    "splitWithAi": "Split with AI",
+    "reshuffle": "Reshuffle",
+    "reset": "Reset"
+  },
   "search": {
     "title": "Search",
     "description": "Describe what you're looking for — the AI will find matching drills using semantic search.",

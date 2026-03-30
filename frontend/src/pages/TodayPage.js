@@ -16,6 +16,7 @@ import {
 import { BLOCK_ICONS, BLOCK_COLORS, blockDuration } from "../constants/blockTypes";
 import SessionTimer from "../components/sessions/SessionTimer";
 import AttendanceTracker from "../components/sessions/AttendanceTracker";
+import TeamSplitter from "../components/sessions/TeamSplitter";
 import "../styles/timer.css";
 import "../styles/attendance.css";
 
@@ -198,6 +199,11 @@ export default function TodayPage() {
                   {/* Attendance */}
                   {sess.group && (
                     <AttendanceTracker sessionId={sess._id} groupId={sess.group._id || sess.group} initialAttendees={sess.attendees} />
+                  )}
+
+                  {/* Team Splitter */}
+                  {sess.group && (
+                    <TeamSplitter groupId={sess.group._id || sess.group} attendees={sess.attendees} />
                   )}
 
                   {/* Session Timer */}

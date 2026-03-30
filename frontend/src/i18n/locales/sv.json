@@ -515,6 +515,18 @@
     "deleteConfirm": "Ta bort denna spelare?",
     "attendance": "Närvaro"
   },
+  "splits": {
+    "title": "Dela in i grupper",
+    "players": "spelare",
+    "numberOfGroups": "Antal grupper",
+    "randomSplit": "Slumpmässig",
+    "smartSplit": "Smart (AI)",
+    "criteriaPlaceholder": "t.ex. en grupp med försvarare, en med mittfältare och anfallare...",
+    "splitting": "Delar in...",
+    "splitWithAi": "Dela med AI",
+    "reshuffle": "Blanda om",
+    "reset": "Återställ"
+  },
   "search": {
     "title": "Sök",
     "description": "Beskriv vad du letar efter — AI:n hittar matchande övningar med semantisk sökning.",
