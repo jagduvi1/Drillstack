@@ -16,6 +16,7 @@ import TacticAiModal from "../components/tactics/TacticAiModal";
 import DebugPanel from "../components/common/DebugPanel";
 import useDebugPanel from "../hooks/useDebugPanel";
 import { getTactic, createTactic, updateTactic, generateTacticAnimation, refineTacticAnimation } from "../api/tactics";
+import { useAuth } from "../context/AuthContext";
 
 function easeInOutQuad(t) {
   return t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2;
@@ -26,10 +27,14 @@ export default function TacticBoardPage() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const { t } = useTranslation();
+  const { user } = useAuth();
   const isNew = !id;
 
   // ── Board state ─────────────────────────────────────────────────────────
-  const [sport, setSport] = useState("football");
+  const [sport, setSport] = useState(() => {
+    // Default to user's preferred sport if set
+    return user?.preferredSport || "football";
+  });
   const [title, setTitle] = useState("");
   const [fieldType, setFieldType] = useState("full");
   const [steps, setSteps] = useState([createInitialStep()]);

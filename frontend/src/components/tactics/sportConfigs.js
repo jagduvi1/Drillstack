@@ -114,6 +114,30 @@ export const SPORT_CONFIGS = {
   },
 };
 
+// ── Sport groups for two-level selector ────────────────────────────────────
+// First level: sport category. Second level: variants.
+export const SPORT_GROUPS = [
+  { key: "football", label: "Football", variants: [
+    { key: "football", label: "11v11" },
+    { key: "football-9", label: "9v9" },
+    { key: "football-7", label: "7v7" },
+    { key: "football-5", label: "5v5" },
+    { key: "football-3", label: "3v3" },
+  ]},
+  { key: "futsal", label: "Futsal", variants: [] },
+  { key: "handball", label: "Handball", variants: [] },
+  { key: "basketball", label: "Basketball", variants: [] },
+  { key: "hockey", label: "Ice Hockey", variants: [] },
+  { key: "floorball", label: "Floorball", variants: [] },
+  { key: "volleyball", label: "Volleyball", variants: [] },
+  { key: "gymnastics", label: "Gymnastics", variants: [] },
+];
+
+// Get the sport group for a given sport key
+export function getSportGroup(sportKey) {
+  return SPORT_GROUPS.find((g) => g.key === sportKey || g.variants.some((v) => v.key === sportKey));
+}
+
 // Helper to get pitch dimensions for a sport
 export function getPitch(sport = "football") {
   const cfg = SPORT_CONFIGS[sport] || SPORT_CONFIGS.football;

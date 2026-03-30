@@ -106,20 +106,20 @@ export const SPORT_FORMATIONS = {
     ],
   },
   handball: {
-    // 7v7 — 40×20
+    // 7v7 — 40×20, spread players across the half
     "6-0": [
-      { role: "GK", x: 1, y: 10 }, { role: "LW", x: 16, y: 1 }, { role: "LB", x: 14, y: 5 },
-      { role: "CB", x: 12, y: 10 }, { role: "RB", x: 14, y: 15 }, { role: "RW", x: 16, y: 19 },
-      { role: "P", x: 10, y: 10 },
+      { role: "GK", x: 2, y: 10 }, { role: "LW", x: 17, y: 2 }, { role: "LB", x: 14, y: 5 },
+      { role: "CB", x: 12, y: 10 }, { role: "RB", x: 14, y: 15 }, { role: "RW", x: 17, y: 18 },
+      { role: "P", x: 8, y: 10 },
     ],
     "5-1": [
-      { role: "GK", x: 1, y: 10 }, { role: "LW", x: 16, y: 1 }, { role: "LB", x: 12, y: 5 },
-      { role: "CB", x: 10, y: 10 }, { role: "RB", x: 12, y: 15 }, { role: "RW", x: 16, y: 19 },
-      { role: "P", x: 16, y: 10 },
+      { role: "GK", x: 2, y: 10 }, { role: "LW", x: 17, y: 2 }, { role: "LB", x: 13, y: 6 },
+      { role: "CB", x: 9, y: 10 }, { role: "RB", x: 13, y: 14 }, { role: "RW", x: 17, y: 18 },
+      { role: "P", x: 17, y: 10 },
     ],
     "3-3": [
-      { role: "GK", x: 1, y: 10 }, { role: "LW", x: 16, y: 2 }, { role: "C", x: 16, y: 10 },
-      { role: "RW", x: 16, y: 18 }, { role: "LB", x: 10, y: 5 }, { role: "CB", x: 8, y: 10 },
+      { role: "GK", x: 2, y: 10 }, { role: "LW", x: 17, y: 3 }, { role: "C", x: 17, y: 10 },
+      { role: "RW", x: 17, y: 17 }, { role: "LB", x: 10, y: 5 }, { role: "CB", x: 8, y: 10 },
       { role: "RB", x: 10, y: 15 },
     ],
   },

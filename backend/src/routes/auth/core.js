@@ -205,4 +205,19 @@ router.get("/me", standardLimiter, authenticate, (req, res) => {
   res.json({ user });
 });
 
+// PUT /api/auth/preferences — update user preferences
+router.put("/preferences", standardLimiter, authenticate, async (req, res, next) => {
+  try {
+    const allowed = ["preferredSport", "name"];
+    const update = {};
+    for (const key of allowed) {
+      if (req.body[key] !== undefined) update[key] = String(req.body[key]).slice(0, 100);
+    }
+    const user = await User.findByIdAndUpdate(req.user._id, { $set: update }, { new: true });
+    res.json({ user: user.toJSON() });
+  } catch (err) {
+    next(err);
+  }
+});
+
 module.exports = router;
