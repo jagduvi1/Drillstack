@@ -107,6 +107,10 @@
     "editDrill": "Edit Drill",
     "createADrill": "Create a Drill",
     "deleteDrill": "Delete this drill?",
+    "pendingDeletionOwner": "Deletion pending. Will be removed in {{days}} days if no one claims it.",
+    "pendingDeletionOther": "The owner has requested deletion of this drill. Claim it to keep it.",
+    "claimDrill": "Claim Drill",
+    "cloneTactic": "Clone to my tactics",
     "filterBySport": "Filter by sport...",
     "starred": "Starred",
     "all": "All",
@@ -470,6 +474,8 @@
     "creating": "Creating...",
     "dismiss": "Dismiss",
     "failedToFork": "Failed to create version from snapshot.",
+    "claimDrill": "Claim Drill",
+    "claimFailed": "Failed to claim drill.",
     "drillLabel": "Drill:"
   },
   "pricing": {

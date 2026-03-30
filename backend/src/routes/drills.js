@@ -336,14 +336,89 @@ router.delete(
   checkOwnership(Drill, { resourceName: "Drill", allowAdmin: true, allowGroupTrainer: false }),
   async (req, res, next) => {
     try {
-      await Drill.findByIdAndDelete(req.params.id);
-      removeDrill(req.resource._id).catch((e) => console.error("Remove index error:", e.message));
+      const drill = req.resource;
+
+      // Check if any other users have starred this drill
+      const starredByOthers = await User.countDocuments({
+        starredDrills: drill._id,
+        _id: { $ne: req.user._id },
+      });
+      // Also check group stars
+      const groupStars = await Group.countDocuments({ starredDrills: drill._id });
+
+      if (starredByOthers > 0 || groupStars > 0) {
+        // Mark as pending deletion instead of deleting
+        drill.pendingDeletion = true;
+        drill.deletionRequestedAt = new Date();
+        drill.deletionRequestedBy = req.user._id;
+        await drill.save();
+
+        // Notify all users who starred this drill
+        const usersWithStar = await User.find(
+          { starredDrills: drill._id, _id: { $ne: req.user._id } }
+        ).select("_id");
+        const notifications = usersWithStar.map((u) => ({
+          userId: u._id,
+          type: "drill_pending_deletion",
+          drillId: drill._id,
+          message: `"${drill.title}" is being deleted by its owner. Claim it within 30 days to keep it.`,
+        }));
+        if (notifications.length > 0) {
+          await Notification.insertMany(notifications);
+        }
+
+        return res.json({ message: "Deletion pending", pendingDeletion: true });
+      }
+
+      // No one else has starred — delete immediately
+      const TacticBoard = require("../models/TacticBoard");
+      await TacticBoard.deleteMany({ drill: drill._id });
+      await Drill.findByIdAndDelete(drill._id);
+      removeDrill(drill._id).catch((e) => console.error("Remove index error:", e.message));
       res.json({ message: "Deleted" });
     } catch (err) {
       next(err);
     }
   }
 );
+
+// POST /api/drills/:id/claim — claim a drill pending deletion
+router.post("/:id/claim", authenticate, async (req, res, next) => {
+  try {
+    const drill = await Drill.findById(req.params.id);
+    if (!drill) return res.status(404).json({ error: "Drill not found" });
+    if (!drill.pendingDeletion) {
+      return res.status(400).json({ error: "Drill is not pending deletion" });
+    }
+    if (drill.createdBy.toString() === req.user._id.toString()) {
+      return res.status(400).json({ error: "You are the current owner" });
+    }
+
+    // Transfer ownership
+    drill.createdBy = req.user._id;
+    drill.pendingDeletion = false;
+    drill.deletionRequestedAt = null;
+    drill.deletionRequestedBy = null;
+    await drill.save();
+
+    // Transfer linked tactic boards
+    const TacticBoard = require("../models/TacticBoard");
+    await TacticBoard.updateMany(
+      { drill: drill._id },
+      { $set: { createdBy: req.user._id } }
+    );
+
+    // Clean up pending deletion notifications for this drill
+    await Notification.deleteMany({
+      drillId: drill._id,
+      type: "drill_pending_deletion",
+    });
+
+    res.json(drill);
+  } catch (err) {
+    next(err);
+  }
+});
 
 // POST /api/drills/:id/star — toggle star (also sets as default version)
 router.post("/:id/star", authenticate, async (req, res, next) => {

@@ -15,7 +15,14 @@ router.get("/", async (req, res, next) => {
   try {
     const filter = { createdBy: req.user._id };
     if (req.query.sport) filter.sport = String(req.query.sport);
-    if (req.query.drill) filter.drill = String(req.query.drill);
+    if (req.query.drill) {
+      filter.drill = String(req.query.drill);
+    } else {
+      // By default, exclude drill-linked tactics from the personal list
+      filter.drill = null;
+    }
+    // Exclude version snapshots
+    filter.parentTactic = null;
 
     const { page, limit, skip } = parsePagination(req.query);
 
@@ -99,6 +106,29 @@ router.put(
   try {
     const board = req.resource;
 
+    // If drill-linked, save a version snapshot before editing
+    if (board.drill && req.body.steps) {
+      const rootId = board.parentTactic || board._id;
+      const versionCount = await TacticBoard.countDocuments({
+        $or: [{ _id: rootId }, { parentTactic: rootId }],
+      });
+      await TacticBoard.create({
+        title: board.title,
+        description: board.description,
+        sport: board.sport,
+        fieldType: board.fieldType,
+        homeTeam: board.homeTeam,
+        awayTeam: board.awayTeam,
+        steps: board.steps,
+        tags: [...board.tags],
+        drill: null,
+        parentTactic: rootId,
+        version: versionCount + 1,
+        versionName: `v${versionCount} snapshot`,
+        createdBy: board.createdBy,
+      });
+    }
+
     const allowed = [
       "title",
       "description",
@@ -123,12 +153,62 @@ router.put(
   }
 });
 
+// GET /api/tactics/:id/versions — list all versions of a tactic
+router.get("/:id/versions", async (req, res, next) => {
+  try {
+    const tactic = await TacticBoard.findById(req.params.id);
+    if (!tactic) return res.status(404).json({ error: "Tactic not found" });
+    const rootId = tactic.parentTactic || tactic._id;
+    const versions = await TacticBoard.find({
+      $or: [{ _id: rootId }, { parentTactic: rootId }],
+    })
+      .select("title version versionName updatedAt createdBy")
+      .populate("createdBy", "name")
+      .sort({ version: 1 });
+    res.json({ versions, rootId: rootId.toString() });
+  } catch (err) {
+    next(err);
+  }
+});
+
+// POST /api/tactics/:id/clone — clone a tactic to personal (removes drill link)
+router.post("/:id/clone", async (req, res, next) => {
+  try {
+    const original = await TacticBoard.findById(req.params.id);
+    if (!original) return res.status(404).json({ error: "Tactic not found" });
+    const isOwner = original.createdBy.toString() === req.user._id.toString();
+    if (!isOwner && !original.isPublic && !original.drill) {
+      return res.status(403).json({ error: "Not authorized to clone this tactic" });
+    }
+    const clone = await TacticBoard.create({
+      title: `${original.title} (copy)`,
+      description: original.description,
+      sport: original.sport,
+      fieldType: original.fieldType,
+      homeTeam: original.homeTeam,
+      awayTeam: original.awayTeam,
+      steps: original.steps,
+      tags: [...original.tags],
+      drill: null,
+      parentTactic: null,
+      isPublic: false,
+      createdBy: req.user._id,
+    });
+    res.status(201).json(clone);
+  } catch (err) {
+    next(err);
+  }
+});
+
 // DELETE /api/tactics/:id
 router.delete(
   "/:id",
   checkOwnership(TacticBoard, { resourceName: "Tactic board", allowGroupTrainer: false }),
   async (req, res, next) => {
   try {
+    if (req.resource.drill) {
+      return res.status(400).json({ error: "Cannot delete a drill-linked tactic. Remove it from the drill instead." });
+    }
     await req.resource.deleteOne();
     res.json({ success: true });
   } catch (err) {

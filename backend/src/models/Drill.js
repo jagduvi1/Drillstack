@@ -64,6 +64,11 @@ const drillSchema = new Schema(
     diagrams: [{ type: String }],
     reflectionNotes: [reflectionSchema],
 
+    // ── Deletion protection ──────────────────────────────────────────────────
+    pendingDeletion: { type: Boolean, default: false, index: true },
+    deletionRequestedAt: { type: Date, default: null },
+    deletionRequestedBy: { type: Schema.Types.ObjectId, ref: "User", default: null },
+
     createdBy: { type: Schema.Types.ObjectId, ref: "User", required: true },
   },
   { timestamps: true }

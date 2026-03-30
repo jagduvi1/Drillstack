@@ -24,3 +24,4 @@ export const convertToVersion = (id, parentDrillId) =>
 export const getEmbeddingStatus = () => api.get("/drills/embedding-status");
 export const retryEmbedding = (id) =>
   api.post(`/drills/${id}/retry-embedding`);
+export const claimDrill = (id) => api.post(`/drills/${id}/claim`);
