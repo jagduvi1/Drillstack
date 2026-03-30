@@ -68,6 +68,11 @@ async function start() {
     );
   }
 
+  // Run pending deletion cleanup daily
+  const { runCleanup } = require("./jobs/cleanupPendingDeletions");
+  runCleanup();
+  setInterval(runCleanup, 24 * 60 * 60 * 1000);
+
   app.listen(PORT, () => console.log(`API listening on :${PORT}`));
 }
 

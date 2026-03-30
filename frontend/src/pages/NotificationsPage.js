@@ -2,7 +2,8 @@ import { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { getNotifications, forkSnapshot, dismissNotification } from "../api/notifications";
-import { FiBell, FiCopy, FiX, FiAlertCircle } from "react-icons/fi";
+import { claimDrill } from "../api/drills";
+import { FiBell, FiCopy, FiX, FiAlertCircle, FiShield } from "react-icons/fi";
 
 export default function NotificationsPage() {
   const { t } = useTranslation();
@@ -79,7 +80,23 @@ export default function NotificationsPage() {
                     </div>
                   )}
                   <div className="flex gap-sm mt-1">
-                    {n.snapshot && (
+                    {n.type === "drill_pending_deletion" && (
+                      <button
+                        className="btn btn-primary btn-sm"
+                        onClick={async () => {
+                          setActionLoading(n._id);
+                          try {
+                            await claimDrill(n.drillId._id || n.drillId);
+                            navigate(`/drills/${n.drillId._id || n.drillId}`);
+                          } catch { alert(t("notifications.claimFailed")); }
+                          finally { setActionLoading(null); }
+                        }}
+                        disabled={actionLoading === n._id}
+                      >
+                        <FiShield /> {actionLoading === n._id ? "..." : t("notifications.claimDrill")}
+                      </button>
+                    )}
+                    {n.snapshot && n.type !== "drill_pending_deletion" && (
                       <button
                         className="btn btn-primary btn-sm"
                         onClick={() => handleFork(n._id)}

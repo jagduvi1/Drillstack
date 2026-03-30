@@ -66,6 +66,11 @@ const tacticBoardSchema = new Schema(
     // Link to a drill (optional)
     drill: { type: Schema.Types.ObjectId, ref: "Drill", default: null },
 
+    // Versioning
+    parentTactic: { type: Schema.Types.ObjectId, ref: "TacticBoard", default: null },
+    version: { type: Number, default: 1 },
+    versionName: { type: String, default: "", trim: true },
+
     isPublic: { type: Boolean, default: false },
     group: { type: Schema.Types.ObjectId, ref: "Group", default: null },
     tags: [{ type: String }],
@@ -77,5 +82,6 @@ const tacticBoardSchema = new Schema(
 
 tacticBoardSchema.index({ createdBy: 1, updatedAt: -1 });
 tacticBoardSchema.index({ drill: 1 });
+tacticBoardSchema.index({ parentTactic: 1 });
 
 module.exports = mongoose.model("TacticBoard", tacticBoardSchema);

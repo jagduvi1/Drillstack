@@ -4,8 +4,9 @@ import { useTranslation } from "react-i18next";
 import useFetch from "../hooks/useFetch";
 import { useAuth } from "../context/AuthContext";
 import { useGroups } from "../context/GroupContext";
-import { getDrill, deleteDrill, updateDrill, uploadDiagram, addReflection, retryEmbedding, toggleStar, forkDrill, getVersions, setDefaultVersion, findSimilar, convertToVersion } from "../api/drills";
+import { getDrill, deleteDrill, updateDrill, uploadDiagram, addReflection, retryEmbedding, toggleStar, forkDrill, getVersions, setDefaultVersion, findSimilar, convertToVersion, claimDrill } from "../api/drills";
 import { toggleGroupStar } from "../api/groups";
+import { cloneTactic } from "../api/tactics";
 import { refineDrill } from "../api/ai";
 import { getTactics } from "../api/tactics";
 import DebugPanel from "../components/common/DebugPanel";
@@ -120,8 +121,19 @@ export default function DrillDetailPage() {
 
   const handleDelete = async () => {
     if (!window.confirm(t("drills.deleteDrill"))) return;
-    await deleteDrill(id);
-    navigate("/drills");
+    const res = await deleteDrill(id);
+    if (res.data.pendingDeletion) {
+      refetch(); // Refresh to show pending deletion banner
+    } else {
+      navigate("/drills");
+    }
+  };
+
+  const handleClaim = async () => {
+    try {
+      await claimDrill(id);
+      refetch();
+    } catch { /* ignore */ }
   };
 
   const handleStar = async () => {
@@ -134,6 +146,13 @@ export default function DrillDetailPage() {
     await toggleGroupStar(groupId, id);
     refetch();
     setShowStarMenu(false);
+  };
+
+  const handleCloneTactic = async (tacticId) => {
+    try {
+      const res = await cloneTactic(tacticId);
+      navigate(`/tactics/${res.data._id}`);
+    } catch { /* ignore */ }
   };
 
   // Groups where user is admin/trainer (can star for group)
@@ -344,8 +363,27 @@ export default function DrillDetailPage() {
           </div>
         </div>
 
+        {/* Pending deletion banner */}
+        {drill.pendingDeletion && (
+          <div className="alert alert-warning mb-1">
+            <div className="flex-between" style={{ alignItems: "center" }}>
+              <span>
+                <FiAlertCircle style={{ marginRight: "0.4rem" }} />
+                {drill.isOwner
+                  ? t("drills.pendingDeletionOwner", { days: Math.max(0, 30 - Math.floor((Date.now() - new Date(drill.deletionRequestedAt)) / 86400000)) })
+                  : t("drills.pendingDeletionOther")}
+              </span>
+              {!drill.isOwner && (
+                <button className="btn btn-primary btn-sm" style={{ marginLeft: "1rem", whiteSpace: "nowrap" }} onClick={handleClaim}>
+                  {t("drills.claimDrill")}
+                </button>
+              )}
+            </div>
+          </div>
+        )}
+
         {/* Read-only banner for non-owners */}
-        {!drill.isOwner && (
+        {!drill.isOwner && !drill.pendingDeletion && (
           <div className="alert alert-info flex-between mb-1" style={{ alignItems: "center" }}>
             <span><FiAlertCircle style={{ marginRight: "0.4rem" }} />{t("drills.readOnlyBanner")}</span>
             <button className="btn btn-primary btn-sm" style={{ marginLeft: "1rem", whiteSpace: "nowrap" }} onClick={handleFork}>
@@ -509,15 +547,22 @@ export default function DrillDetailPage() {
           ) : (
             <div className="mt-1" style={{ display: "flex", flexDirection: "column", gap: "0.5rem" }}>
               {linkedTactics.map((tb) => (
-                <Link key={tb._id} to={`/tactics/${tb._id}`} className="drill-tactic-card">
-                  <div>
-                    <strong>{tb.title || t("tactics.untitled")}</strong>
-                    <span className="text-sm text-muted" style={{ marginLeft: "0.5rem" }}>
-                      {tb.fieldType} · {tb.homeTeam?.formation || "4-4-2"} vs {tb.awayTeam?.formation || "4-4-2"}
-                    </span>
+                <div key={tb._id} className="drill-tactic-card" style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                  <Link to={`/tactics/${tb._id}`} style={{ flex: 1, textDecoration: "none", color: "inherit" }}>
+                    <div>
+                      <strong>{tb.title || t("tactics.untitled")}</strong>
+                      <span className="text-sm text-muted" style={{ marginLeft: "0.5rem" }}>
+                        {tb.fieldType} · {tb.homeTeam?.formation || "4-4-2"} vs {tb.awayTeam?.formation || "4-4-2"}
+                      </span>
+                    </div>
+                  </Link>
+                  <div className="flex gap-sm" style={{ alignItems: "center" }}>
+                    <span className="text-sm text-muted">{new Date(tb.updatedAt).toLocaleDateString()}</span>
+                    <button className="btn btn-secondary btn-sm" onClick={() => handleCloneTactic(tb._id)} title={t("drills.cloneTactic")}>
+                      <FiCopy />
+                    </button>
                   </div>
-                  <span className="text-sm text-muted">{new Date(tb.updatedAt).toLocaleDateString()}</span>
-                </Link>
+                </div>
               ))}
             </div>
           )}

@@ -107,6 +107,10 @@
     "editDrill": "Redigera övning",
     "createADrill": "Skapa en övning",
     "deleteDrill": "Radera denna övning?",
+    "pendingDeletionOwner": "Radering pågår. Tas bort om {{days}} dagar om ingen tar över.",
+    "pendingDeletionOther": "Ägaren har begärt radering av denna övning. Ta över den för att behålla den.",
+    "claimDrill": "Ta över övning",
+    "cloneTactic": "Klona till mina taktiker",
     "filterBySport": "Filtrera efter sport...",
     "starred": "Favoriter",
     "all": "Alla",
@@ -470,6 +474,8 @@
     "creating": "Skapar...",
     "dismiss": "Avfärda",
     "failedToFork": "Kunde inte skapa version från ögonblicksbild.",
+    "claimDrill": "Ta över övning",
+    "claimFailed": "Kunde inte ta över övning.",
     "drillLabel": "Övning:"
   },
   "pricing": {

@@ -6,7 +6,7 @@ const notificationSchema = new Schema(
     userId: { type: Schema.Types.ObjectId, ref: "User", required: true, index: true },
     type: {
       type: String,
-      enum: ["drill_changed"],
+      enum: ["drill_changed", "drill_pending_deletion"],
       required: true,
     },
     drillId: { type: Schema.Types.ObjectId, ref: "Drill", required: true },
