@@ -9,6 +9,7 @@ router.use("/", require("./drills"));
 router.use("/", require("./sessions"));
 router.use("/", require("./programs"));
 router.use("/", require("./tactics"));
+router.use("/", require("./splits"));
 
 // Re-export shared utilities for external consumers (if any)
 const { isDev, sanitizeDebug, sanitizeAiInput, escapeRegex } = require("./utils");
