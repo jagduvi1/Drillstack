@@ -1,12 +1,13 @@
 import { useState, useEffect, useRef } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { useNavigate, useParams, Link } from "react-router-dom";
 import { useTranslation } from "react-i18next";
-import { getDrill, createDrill, updateDrill, checkSimilarity } from "../api/drills";
+import { getDrill, createDrill, updateDrill, checkSimilarity, uploadDiagram } from "../api/drills";
+import { getTactics } from "../api/tactics";
 import { generateDrill, refineDraft } from "../api/ai";
 import DebugPanel from "../components/common/DebugPanel";
 import useDebugPanel from "../hooks/useDebugPanel";
 import useFormState from "../hooks/useFormState";
-import { FiZap, FiSave, FiX, FiPlus, FiTrash2, FiAlertCircle, FiCode, FiMessageCircle } from "react-icons/fi";
+import { FiZap, FiSave, FiX, FiPlus, FiTrash2, FiAlertCircle, FiCode, FiMessageCircle, FiTarget } from "react-icons/fi";
 import DrillFormAiChat from "../components/drills/DrillFormAiChat";
 
 const EMPTY_DRILL = {
@@ -47,6 +48,8 @@ export default function DrillFormPage() {
   const chatEndRef = useRef(null);
   const [aiChangedFields, setAiChangedFields] = useState(new Set());
   const aiChangeTimer = useRef(null);
+  const [diagrams, setDiagrams] = useState([]);
+  const [linkedTactics, setLinkedTactics] = useState([]);
 
   useEffect(() => {
     if (isEdit) {
@@ -64,8 +67,12 @@ export default function DrillFormPage() {
           variations: d.variations || [],
           commonMistakes: d.commonMistakes || [],
         });
+        setDiagrams(d.diagrams || []);
         setGenerated(true);
       });
+      getTactics({ drill: id })
+        .then((res) => setLinkedTactics(res.data.boards || []))
+        .catch(() => {});
     }
   }, [id, isEdit]);
 
@@ -208,6 +215,20 @@ export default function DrillFormPage() {
   const addListItem = (field) => addToList(field, "");
   const updateListItem = (field, idx, value) => updateInList(field, idx, value);
   const removeListItem = (field, idx) => removeFromList(field, idx);
+
+  const handleDiagramUpload = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const fd = new FormData();
+    fd.append("diagram", file);
+    try {
+      const res = await uploadDiagram(id, fd);
+      setDiagrams(res.data.diagrams || []);
+    } catch (err) {
+      setError(err.response?.data?.error || t("common.saveFailed"));
+    }
+    e.target.value = "";
+  };
 
   return (
     <div>
@@ -383,6 +404,54 @@ export default function DrillFormPage() {
             ))}
             <button type="button" className="btn btn-secondary btn-sm" onClick={() => addListItem("commonMistakes")}><FiPlus /> {t("drills.addMistake")}</button>
           </div>
+
+          {/* Diagrams (edit mode only) */}
+          {isEdit && (
+            <div className="card mb-1">
+              <h3 style={{ marginBottom: "1rem" }}>{t("drills.diagrams")}</h3>
+              <div className="flex gap-sm" style={{ flexWrap: "wrap" }}>
+                {diagrams.map((d, i) => (
+                  <img key={i} src={d} alt={`Diagram ${i + 1}`} style={{ maxWidth: 300, borderRadius: "var(--radius)", border: "1px solid var(--color-border)" }} />
+                ))}
+              </div>
+              <div className="mt-1">
+                <label className="text-sm text-muted" style={{ marginRight: "0.5rem" }}>{t("drills.uploadDiagram")}</label>
+                <input type="file" accept="image/*,.pdf" onChange={handleDiagramUpload} />
+              </div>
+            </div>
+          )}
+
+          {/* Linked Tactic Boards (edit mode only) */}
+          {isEdit && (
+            <div className="card mb-1">
+              <div className="flex-between">
+                <h3><FiTarget style={{ marginRight: "0.4rem" }} />{t("drills.tacticBoards")}</h3>
+                <Link
+                  to={`/tactics/new?${new URLSearchParams({ drillDescription: [form.description, form.howItWorks].filter(Boolean).join("\n\n"), drillTitle: form.title || "", drillId: id }).toString()}`}
+                  className="btn btn-primary btn-sm"
+                >
+                  <FiPlus /> {t("drills.newTacticBoard")}
+                </Link>
+              </div>
+              {linkedTactics.length === 0 ? (
+                <p className="text-sm text-muted mt-1">{t("drills.noTacticBoards")}</p>
+              ) : (
+                <div className="mt-1" style={{ display: "flex", flexDirection: "column", gap: "0.5rem" }}>
+                  {linkedTactics.map((tb) => (
+                    <Link key={tb._id} to={`/tactics/${tb._id}`} className="drill-tactic-card">
+                      <div>
+                        <strong>{tb.title || t("tactics.untitled")}</strong>
+                        <span className="text-sm text-muted" style={{ marginLeft: "0.5rem" }}>
+                          {tb.fieldType} · {tb.homeTeam?.formation || "4-4-2"} vs {tb.awayTeam?.formation || "4-4-2"}
+                        </span>
+                      </div>
+                      <span className="text-sm text-muted">{new Date(tb.updatedAt).toLocaleDateString()}</span>
+                    </Link>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
 
           <div className="flex gap-sm">
             <button type="submit" className="btn btn-primary" disabled={loading || checking}>

@@ -3,8 +3,10 @@ import { useParams, Link, useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import useFetch from "../hooks/useFetch";
 import { useAuth } from "../context/AuthContext";
+import { useGroups } from "../context/GroupContext";
 import { getDrill, deleteDrill, updateDrill, uploadDiagram, addReflection, retryEmbedding, toggleStar, forkDrill, getVersions, setDefaultVersion, findSimilar, convertToVersion } from "../api/drills";
-import { refineDrill, generateDiagram } from "../api/ai";
+import { toggleGroupStar } from "../api/groups";
+import { refineDrill } from "../api/ai";
 import { getTactics } from "../api/tactics";
 import DebugPanel from "../components/common/DebugPanel";
 import useDebugPanel from "../hooks/useDebugPanel";
@@ -12,21 +14,21 @@ import DrillVersionsPanel from "../components/drills/DrillVersionsPanel";
 import DrillEmbeddingStatus from "../components/drills/DrillEmbeddingStatus";
 import SimilarDrillsBanner from "../components/drills/SimilarDrillsBanner";
 import DrillChatPanel from "../components/drills/DrillChatPanel";
-import { FiEdit, FiTrash2, FiMessageCircle, FiLoader, FiAlertCircle, FiImage, FiStar, FiCopy, FiGitBranch, FiUser, FiCode, FiTarget, FiPlus, FiSave } from "react-icons/fi";
+import { FiEdit, FiTrash2, FiMessageCircle, FiLoader, FiAlertCircle, FiStar, FiCopy, FiGitBranch, FiUser, FiCode, FiTarget, FiPlus, FiSave } from "react-icons/fi";
 
 export default function DrillDetailPage() {
   const { t } = useTranslation();
   const { id } = useParams();
   const navigate = useNavigate();
   const { user } = useAuth();
+  const { groups, getUserRole } = useGroups();
   const isAdmin = user?.role === "admin" || user?.isSuperAdmin;
   const { data: drill, loading, refetch } = useFetch(() => getDrill(id), [id]);
   const [reflectionNote, setReflectionNote] = useState("");
   const [chatMessage, setChatMessage] = useState("");
   const [chatLoading, setChatLoading] = useState(false);
   const [showChat, setShowChat] = useState(false);
-  const [diagramLoading, setDiagramLoading] = useState(false);
-  const [diagramError, setDiagramError] = useState("");
+  const [showStarMenu, setShowStarMenu] = useState(false);
   const [showVersions, setShowVersions] = useState(false);
   const [versions, setVersions] = useState(null);
   const [similarDrills, setSimilarDrills] = useState(null);
@@ -74,11 +76,12 @@ export default function DrillDetailPage() {
     return () => { mounted = false; clearInterval(iv); };
   }, [drill?.embeddingStatus, refetch]);
 
-  // Check for similar drills once embedding is indexed (only for new drills without a parent)
+  // Check for similar drills once embedding is indexed (only for standalone drills with no versions)
   useEffect(() => {
     if (
       drill?.embeddingStatus === "indexed" &&
       !drill?.parentDrill &&
+      drill?.versionCount <= 1 &&
       !similarChecked.current &&
       !similarDismissed
     ) {
@@ -91,7 +94,15 @@ export default function DrillDetailPage() {
         })
         .catch(() => {}); // silently ignore
     }
-  }, [drill?.embeddingStatus, drill?.parentDrill, id, similarDismissed]);
+  }, [drill?.embeddingStatus, drill?.parentDrill, drill?.versionCount, id, similarDismissed]);
+
+  // Close star menu on outside click
+  useEffect(() => {
+    if (!showStarMenu) return;
+    const close = () => setShowStarMenu(false);
+    const timer = setTimeout(() => document.addEventListener("click", close), 0);
+    return () => { clearTimeout(timer); document.removeEventListener("click", close); };
+  }, [showStarMenu]);
 
   // Warn on browser close/refresh with unsaved changes
   useEffect(() => {
@@ -116,7 +127,20 @@ export default function DrillDetailPage() {
   const handleStar = async () => {
     await toggleStar(id);
     refetch();
+    setShowStarMenu(false);
   };
+
+  const handleGroupStar = async (groupId) => {
+    await toggleGroupStar(groupId, id);
+    refetch();
+    setShowStarMenu(false);
+  };
+
+  // Groups where user is admin/trainer (can star for group)
+  const starableGroups = groups.filter((g) => {
+    const role = getUserRole(g._id);
+    return role === "admin" || role === "trainer";
+  });
 
   const handleFork = async () => {
     const res = await forkDrill(id);
@@ -146,22 +170,6 @@ export default function DrillDetailPage() {
     refetch();
   };
 
-  const handleGenerateDiagram = async () => {
-    setDiagramLoading(true);
-    setDiagramError("");
-    try {
-      const res = await generateDiagram(id);
-      if (res.data.debug) {
-        addDebugEntry("Diagram Generation", res.data.debug);
-      }
-      refetch();
-    } catch (err) {
-      const msg = err.response?.data?.error || err.message || t("drills.diagramGenFailed");
-      setDiagramError(msg);
-    } finally {
-      setDiagramLoading(false);
-    }
-  };
 
   const handleConvertToVersion = async (parentDrillId) => {
     try {
@@ -270,13 +278,31 @@ export default function DrillDetailPage() {
             </div>
           </div>
           <div className="flex gap-sm">
-            <button
-              className={`btn btn-sm ${drill.isStarred ? "btn-star-active" : "btn-secondary"}`}
-              onClick={handleStar}
-              title={drill.isStarred ? t("drills.unstar") : t("drills.starThisDrill")}
-            >
-              <FiStar /> {drill.isStarred ? t("drills.starred") : t("drills.star")}
-            </button>
+            <div style={{ position: "relative" }}>
+              <button
+                className={`btn btn-sm ${drill.isStarred ? "btn-star-active" : "btn-secondary"}`}
+                onClick={starableGroups.length > 0 ? () => setShowStarMenu(!showStarMenu) : handleStar}
+                title={drill.isStarred ? t("drills.unstar") : t("drills.starThisDrill")}
+              >
+                <FiStar /> {drill.isStarred ? t("drills.starred") : t("drills.star")}
+              </button>
+              {showStarMenu && starableGroups.length > 0 && (
+                <div style={{
+                  position: "absolute", top: "100%", right: 0, zIndex: 20, marginTop: "0.25rem",
+                  background: "var(--color-card)", border: "1px solid var(--color-border)",
+                  borderRadius: "var(--radius)", minWidth: 200, boxShadow: "0 4px 12px rgba(0,0,0,0.15)",
+                }}>
+                  <button className="star-menu-item" onClick={handleStar}>
+                    <FiUser style={{ marginRight: "0.4rem" }} /> {t("drills.starForMe")}
+                  </button>
+                  {starableGroups.map((g) => (
+                    <button key={g._id} className="star-menu-item" onClick={() => handleGroupStar(g._id)}>
+                      {g.type === "club" ? "🏢" : "👥"} {g.name}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
             {debugEntries.length > 0 && (
               <button
                 className={`btn ${debugOpen ? "btn-primary" : "btn-secondary"}`}
@@ -335,6 +361,7 @@ export default function DrillDetailPage() {
             currentDrillId={id}
             defaultVersionId={versions.defaultVersionId}
             onSetDefault={handleSetDefault}
+            isAdmin={isAdmin}
           />
         )}
 
@@ -442,28 +469,7 @@ export default function DrillDetailPage() {
 
         {/* Diagrams */}
         <div className="card mb-1">
-          <div className="flex-between">
-            <h3>{t("drills.diagrams")}</h3>
-            {drill.isOwner && (
-              <button
-                className="btn btn-primary btn-sm"
-                onClick={handleGenerateDiagram}
-                disabled={diagramLoading}
-              >
-                {diagramLoading ? <><FiLoader className="spin" /> {t("drills.generating")}</> : <><FiImage /> {t("drills.generateWithAi")}</>}
-              </button>
-            )}
-          </div>
-          {diagramLoading && (
-            <p className="text-sm text-muted mt-1">
-              {t("drills.aiCreatingDiagram")}
-            </p>
-          )}
-          {diagramError && (
-            <p className="text-sm mt-1" style={{ color: "var(--color-danger, #ef4444)" }}>
-              {diagramError}
-            </p>
-          )}
+          <h3>{t("drills.diagrams")}</h3>
           <div className="flex gap-sm mt-1" style={{ flexWrap: "wrap" }}>
             {drill.diagrams?.map((d, i) => (
               <img key={i} src={d} alt={`Diagram ${i + 1}`} style={{ maxWidth: 400, borderRadius: "var(--radius)", border: "1px solid var(--color-border)" }} />
@@ -471,8 +477,8 @@ export default function DrillDetailPage() {
           </div>
           {drill.isOwner ? (
             <div className="mt-1">
-              <label className="text-sm text-muted" style={{ marginRight: "0.5rem" }}>{t("drills.uploadYourOwn")}</label>
-              <input type="file" accept="image/*" onChange={handleDiagramUpload} />
+              <label className="text-sm text-muted" style={{ marginRight: "0.5rem" }}>{t("drills.uploadDiagram")}</label>
+              <input type="file" accept="image/*,.pdf" onChange={handleDiagramUpload} />
             </div>
           ) : (
             <p className="text-sm text-muted mt-1">

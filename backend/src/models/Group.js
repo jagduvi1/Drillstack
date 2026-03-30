@@ -5,7 +5,7 @@ const { Schema } = mongoose;
 const memberSchema = new Schema(
   {
     user: { type: Schema.Types.ObjectId, ref: "User", required: true },
-    role: { type: String, enum: ["admin", "trainer", "member"], default: "member" },
+    role: { type: String, enum: ["owner", "admin", "trainer", "viewer"], default: "viewer" },
     joinedAt: { type: Date, default: Date.now },
   },
   { _id: false }
@@ -27,6 +27,11 @@ const groupSchema = new Schema(
 
     inviteCode: { type: String, unique: true, sparse: true },
 
+    starredDrills: [{ type: Schema.Types.ObjectId, ref: "Drill" }],
+
+    // Club verification — clubs require admin approval before full activation
+    verified: { type: Boolean, default: null }, // null = not applicable (teams), false = pending, true = verified
+
     createdBy: { type: Schema.Types.ObjectId, ref: "User", required: true },
   },
   { timestamps: true }
@@ -37,6 +42,10 @@ groupSchema.index({ "members.user": 1 });
 groupSchema.pre("save", function (next) {
   if (!this.inviteCode) {
     this.inviteCode = crypto.randomBytes(16).toString("hex");
+  }
+  // Clubs default to unverified, teams don't need verification
+  if (this.isNew && this.type === "club" && this.verified === null) {
+    this.verified = false;
   }
   next();
 });
