@@ -177,8 +177,8 @@ router.post(
   validate,
   async (req, res, next) => {
     try {
-      const { title, description, sport, intensity, setup, howItWorks, coachingPoints, variations, commonMistakes, diagrams, versionName, aiConversation } = req.body;
-      const drill = await Drill.create({ title, description, sport, intensity, setup, howItWorks, coachingPoints, variations, commonMistakes, diagrams, versionName, aiConversation, createdBy: req.user._id });
+      const { title, description, sport, intensity, setup, howItWorks, coachingPoints, variations, commonMistakes, diagrams, versionName, aiConversation, apparatus, skillLevel, prerequisites, safetyNotes, progressionParent } = req.body;
+      const drill = await Drill.create({ title, description, sport, intensity, setup, howItWorks, coachingPoints, variations, commonMistakes, diagrams, versionName, aiConversation, apparatus, skillLevel, prerequisites, safetyNotes, progressionParent: progressionParent || null, createdBy: req.user._id });
       indexDrill(drill).catch((e) => console.error("Index error:", e.message));
       res.status(201).json(drill);
     } catch (err) {
@@ -210,6 +210,11 @@ router.post("/:id/fork", authenticate, forkLimiter, async (req, res, next) => {
       variations: [...original.variations],
       commonMistakes: [...original.commonMistakes],
       diagrams: [...original.diagrams],
+      apparatus: original.apparatus,
+      skillLevel: original.skillLevel,
+      prerequisites: [...(original.prerequisites || [])],
+      safetyNotes: original.safetyNotes,
+      progressionParent: original.progressionParent,
       parentDrill: rootId,
       version: versionCount + 1,
       forkedBy: req.user._id,
@@ -256,10 +261,10 @@ router.put("/:id", authenticate, async (req, res, next) => {
     }
 
     // Now apply the update — explicitly pick allowed fields to prevent operator injection
-    const { title, description, sport, intensity, setup, howItWorks, coachingPoints, variations, commonMistakes, diagrams, versionName, aiConversation } = req.body;
+    const { title, description, sport, intensity, setup, howItWorks, coachingPoints, variations, commonMistakes, diagrams, versionName, aiConversation, apparatus, skillLevel, prerequisites, safetyNotes, progressionParent } = req.body;
     const drill = await Drill.findByIdAndUpdate(
       req.params.id,
-      { $set: { title, description, sport, intensity, setup, howItWorks, coachingPoints, variations, commonMistakes, diagrams, versionName, aiConversation } },
+      { $set: { title, description, sport, intensity, setup, howItWorks, coachingPoints, variations, commonMistakes, diagrams, versionName, aiConversation, apparatus, skillLevel, prerequisites, safetyNotes, progressionParent: progressionParent || null } },
       { new: true, runValidators: true }
     );
     indexDrill(drill).catch((e) => console.error("Index error:", e.message));

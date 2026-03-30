@@ -527,6 +527,166 @@ function VolleyballField({ sc, sportCfg }) {
   );
 }
 
+// ── Gymnastics renderers ────────────────────────────────────────────────────
+
+function GymnasticsFloor({ sc, sportCfg }) {
+  const w = sportCfg.width, h = sportCfg.height;
+  const lc = sportCfg.lineColor, lw = 2;
+  return (
+    <Group listening={false}>
+      <Rect x={0} y={0} width={sc.canvasW} height={sc.canvasH} fill={sportCfg.bgColor} />
+      {/* Floor mat — 12×12 centered in 14×14 area */}
+      <Rect x={sc.x(1)} y={sc.y(1)} width={sc.s(12)} height={sc.s(12)}
+        fill="#8a6aaa" cornerRadius={sc.s(0.2)} />
+      <Rect x={sc.x(1)} y={sc.y(1)} width={sc.s(12)} height={sc.s(12)}
+        stroke={lc} strokeWidth={lw} cornerRadius={sc.s(0.2)} />
+      {/* Boundary line inside mat */}
+      <Rect x={sc.x(2)} y={sc.y(2)} width={sc.s(10)} height={sc.s(10)}
+        stroke="rgba(255,255,255,0.3)" strokeWidth={1} dash={[6, 4]} />
+      {/* Center mark */}
+      <Circle x={sc.x(7)} y={sc.y(7)} radius={sc.s(0.15)} fill={lc} />
+      {/* Corner markers */}
+      <Line points={[sc.x(2), sc.y(2.5), sc.x(2), sc.y(2), sc.x(2.5), sc.y(2)]} stroke={lc} strokeWidth={1} />
+      <Line points={[sc.x(11.5), sc.y(2), sc.x(12), sc.y(2), sc.x(12), sc.y(2.5)]} stroke={lc} strokeWidth={1} />
+      <Line points={[sc.x(2), sc.y(11.5), sc.x(2), sc.y(12), sc.x(2.5), sc.y(12)]} stroke={lc} strokeWidth={1} />
+      <Line points={[sc.x(11.5), sc.y(12), sc.x(12), sc.y(12), sc.x(12), sc.y(11.5)]} stroke={lc} strokeWidth={1} />
+    </Group>
+  );
+}
+
+function GymnasticsBeam({ sc, sportCfg }) {
+  const w = sportCfg.width, h = sportCfg.height;
+  const lc = sportCfg.lineColor;
+  return (
+    <Group listening={false}>
+      <Rect x={0} y={0} width={sc.canvasW} height={sc.canvasH} fill={sportCfg.bgColor} />
+      {/* Safety mat area */}
+      <Rect x={sc.x(0.3)} y={sc.y(0.3)} width={sc.s(w - 0.6)} height={sc.s(h - 0.6)}
+        fill="#5a4a6a" cornerRadius={sc.s(0.15)} />
+      {/* Beam - centered, 5m long × 0.1m wide */}
+      <Rect x={sc.x(1)} y={sc.y(h / 2 - 0.05)} width={sc.s(5)} height={sc.s(0.1)}
+        fill="#c4a882" stroke="rgba(255,255,255,0.6)" strokeWidth={2} />
+      {/* Beam legs */}
+      <Rect x={sc.x(1.5)} y={sc.y(h / 2 + 0.05)} width={sc.s(0.15)} height={sc.s(0.4)} fill="#8a7a6a" />
+      <Rect x={sc.x(5.35)} y={sc.y(h / 2 + 0.05)} width={sc.s(0.15)} height={sc.s(0.4)} fill="#8a7a6a" />
+      {/* Center mark on beam */}
+      <Line points={[sc.x(3.5), sc.y(h / 2 - 0.08), sc.x(3.5), sc.y(h / 2 + 0.08)]}
+        stroke="rgba(255,255,255,0.4)" strokeWidth={1} />
+    </Group>
+  );
+}
+
+function GymnasticsVault({ sc, sportCfg }) {
+  const w = sportCfg.width, h = sportCfg.height;
+  return (
+    <Group listening={false}>
+      <Rect x={0} y={0} width={sc.canvasW} height={sc.canvasH} fill={sportCfg.bgColor} />
+      {/* Landing mat */}
+      <Rect x={sc.x(19)} y={sc.y(0.5)} width={sc.s(10)} height={sc.s(5)}
+        fill="#5a4a6a" cornerRadius={sc.s(0.2)} />
+      {/* Runway (25m) */}
+      <Rect x={sc.x(0.5)} y={sc.y(h / 2 - 0.6)} width={sc.s(16)} height={sc.s(1.2)}
+        fill="#7a6a5a" stroke="rgba(255,255,255,0.4)" strokeWidth={1} />
+      {/* Springboard */}
+      <Rect x={sc.x(16.5)} y={sc.y(h / 2 - 0.5)} width={sc.s(1.2)} height={sc.s(1)}
+        fill="#4a8a4a" stroke="rgba(255,255,255,0.6)" strokeWidth={2} cornerRadius={sc.s(0.1)} />
+      {/* Vault table */}
+      <Rect x={sc.x(18.5)} y={sc.y(h / 2 - 0.6)} width={sc.s(1.2)} height={sc.s(1.2)}
+        fill="#c4a882" stroke="rgba(255,255,255,0.8)" strokeWidth={2} cornerRadius={sc.s(0.08)} />
+      {/* Direction arrow */}
+      <Arrow points={[sc.x(3), sc.y(h / 2), sc.x(16), sc.y(h / 2)]}
+        stroke="rgba(255,255,255,0.2)" strokeWidth={2} pointerLength={8} pointerWidth={8} />
+    </Group>
+  );
+}
+
+function GymnasticsBars({ sc, sportCfg }) {
+  const w = sportCfg.width, h = sportCfg.height;
+  return (
+    <Group listening={false}>
+      <Rect x={0} y={0} width={sc.canvasW} height={sc.canvasH} fill={sportCfg.bgColor} />
+      {/* Safety mat area */}
+      <Rect x={sc.x(0.5)} y={sc.y(0.5)} width={sc.s(w - 1)} height={sc.s(h - 1)}
+        fill="#5a4a6a" cornerRadius={sc.s(0.2)} />
+      {/* High bar (top view — horizontal line) */}
+      <Line points={[sc.x(2.5), sc.y(1.8), sc.x(5.5), sc.y(1.8)]}
+        stroke="#c4a882" strokeWidth={4} />
+      {/* Low bar */}
+      <Line points={[sc.x(2.5), sc.y(3.5), sc.x(5.5), sc.y(3.5)]}
+        stroke="#c4a882" strokeWidth={3} />
+      {/* Bar supports */}
+      <Circle x={sc.x(2.5)} y={sc.y(1.8)} radius={sc.s(0.15)} fill="#8a7a6a" />
+      <Circle x={sc.x(5.5)} y={sc.y(1.8)} radius={sc.s(0.15)} fill="#8a7a6a" />
+      <Circle x={sc.x(2.5)} y={sc.y(3.5)} radius={sc.s(0.15)} fill="#8a7a6a" />
+      <Circle x={sc.x(5.5)} y={sc.y(3.5)} radius={sc.s(0.15)} fill="#8a7a6a" />
+      {/* Label */}
+      <Text x={sc.x(2.5)} y={sc.y(0.8)} text="High" fontSize={sc.s(0.4)} fill="rgba(255,255,255,0.4)" />
+      <Text x={sc.x(2.5)} y={sc.y(4.2)} text="Low" fontSize={sc.s(0.4)} fill="rgba(255,255,255,0.4)" />
+    </Group>
+  );
+}
+
+function GymnasticsTrampoline({ sc, sportCfg }) {
+  const w = sportCfg.width, h = sportCfg.height;
+  return (
+    <Group listening={false}>
+      <Rect x={0} y={0} width={sc.canvasW} height={sc.canvasH} fill={sportCfg.bgColor} />
+      {/* Safety pads around */}
+      <Rect x={sc.x(1)} y={sc.y(0.3)} width={sc.s(6)} height={sc.s(h - 0.6)}
+        fill="#5a4a6a" cornerRadius={sc.s(0.2)} />
+      {/* Trampoline frame */}
+      <Rect x={sc.x(1.5)} y={sc.y(0.6)} width={sc.s(5)} height={sc.s(h - 1.2)}
+        stroke="#888" strokeWidth={3} fill="none" cornerRadius={sc.s(0.15)} />
+      {/* Bounce surface */}
+      <Rect x={sc.x(1.8)} y={sc.y(0.9)} width={sc.s(4.4)} height={sc.s(h - 1.8)}
+        fill="#3a5a8a" cornerRadius={sc.s(0.1)} />
+      {/* Cross marks on surface */}
+      <Line points={[sc.x(4), sc.y(h / 2 - 0.3), sc.x(4), sc.y(h / 2 + 0.3)]}
+        stroke="rgba(255,255,255,0.3)" strokeWidth={1} />
+      <Line points={[sc.x(3.7), sc.y(h / 2), sc.x(4.3), sc.y(h / 2)]}
+        stroke="rgba(255,255,255,0.3)" strokeWidth={1} />
+    </Group>
+  );
+}
+
+function GymnasticsStations({ sc, sportCfg }) {
+  const w = sportCfg.width, h = sportCfg.height;
+  const lc = sportCfg.lineColor;
+  // Overview showing typical apparatus positions in a gym
+  return (
+    <Group listening={false}>
+      <Rect x={0} y={0} width={sc.canvasW} height={sc.canvasH} fill={sportCfg.bgColor} />
+      <Rect x={sc.x(0)} y={sc.y(0)} width={sc.s(w)} height={sc.s(h)}
+        fill={sportCfg.fieldColor1} stroke={lc} strokeWidth={2} cornerRadius={sc.s(0.3)} />
+      {/* Floor area (top-left) */}
+      <Rect x={sc.x(1)} y={sc.y(1)} width={sc.s(8)} height={sc.s(8)}
+        fill="#8a6aaa" stroke="rgba(255,255,255,0.3)" strokeWidth={1} cornerRadius={sc.s(0.2)} />
+      <Text x={sc.x(3.5)} y={sc.y(4.5)} text="Floor" fontSize={sc.s(0.8)} fill="rgba(255,255,255,0.5)" />
+      {/* Vault (top-right) */}
+      <Rect x={sc.x(12)} y={sc.y(2)} width={sc.s(16)} height={sc.s(3)}
+        fill="#7a6a5a" stroke="rgba(255,255,255,0.3)" strokeWidth={1} cornerRadius={sc.s(0.15)} />
+      <Text x={sc.x(18)} y={sc.y(3.2)} text="Vault" fontSize={sc.s(0.8)} fill="rgba(255,255,255,0.5)" />
+      {/* Beam (bottom-left) */}
+      <Rect x={sc.x(1)} y={sc.y(12)} width={sc.s(7)} height={sc.s(4)}
+        fill="#5a4a6a" stroke="rgba(255,255,255,0.3)" strokeWidth={1} cornerRadius={sc.s(0.15)} />
+      <Line points={[sc.x(2), sc.y(14), sc.x(7), sc.y(14)]} stroke="#c4a882" strokeWidth={3} />
+      <Text x={sc.x(3)} y={sc.y(12.5)} text="Beam" fontSize={sc.s(0.8)} fill="rgba(255,255,255,0.5)" />
+      {/* Bars (bottom-center) */}
+      <Rect x={sc.x(11)} y={sc.y(11)} width={sc.s(7)} height={sc.s(6)}
+        fill="#5a4a6a" stroke="rgba(255,255,255,0.3)" strokeWidth={1} cornerRadius={sc.s(0.15)} />
+      <Line points={[sc.x(12.5), sc.y(13), sc.x(16.5), sc.y(13)]} stroke="#c4a882" strokeWidth={3} />
+      <Line points={[sc.x(12.5), sc.y(15), sc.x(16.5), sc.y(15)]} stroke="#c4a882" strokeWidth={2} />
+      <Text x={sc.x(13)} y={sc.y(11.5)} text="Bars" fontSize={sc.s(0.8)} fill="rgba(255,255,255,0.5)" />
+      {/* Trampoline (bottom-right) */}
+      <Rect x={sc.x(21)} y={sc.y(11)} width={sc.s(6)} height={sc.s(6)}
+        fill="#5a4a6a" stroke="rgba(255,255,255,0.3)" strokeWidth={1} cornerRadius={sc.s(0.15)} />
+      <Rect x={sc.x(22)} y={sc.y(12)} width={sc.s(4)} height={sc.s(4)}
+        fill="#3a5a8a" stroke="#888" strokeWidth={2} cornerRadius={sc.s(0.1)} />
+      <Text x={sc.x(22)} y={sc.y(11.3)} text="Tramp" fontSize={sc.s(0.7)} fill="rgba(255,255,255,0.5)" />
+    </Group>
+  );
+}
+
 // ── Sport field dispatcher ──────────────────────────────────────────────────
 function SportField({ sc, sport, fieldType }) {
   const sportCfg = SPORT_CONFIGS[sport] || SPORT_CONFIGS.football;
@@ -543,6 +703,12 @@ function SportField({ sc, sport, fieldType }) {
     case "futsal": return <FutsalField sc={sc} sportCfg={sportCfg} />;
     case "floorball": return <FloorballField sc={sc} sportCfg={sportCfg} />;
     case "volleyball": return <VolleyballField sc={sc} sportCfg={sportCfg} />;
+    case "gymnastics-floor": return <GymnasticsFloor sc={sc} sportCfg={sportCfg} />;
+    case "gymnastics-beam": return <GymnasticsBeam sc={sc} sportCfg={sportCfg} />;
+    case "gymnastics-vault": return <GymnasticsVault sc={sc} sportCfg={sportCfg} />;
+    case "gymnastics-bars": return <GymnasticsBars sc={sc} sportCfg={sportCfg} />;
+    case "gymnastics-trampoline": return <GymnasticsTrampoline sc={sc} sportCfg={sportCfg} />;
+    case "gymnastics-stations": return <GymnasticsStations sc={sc} sportCfg={sportCfg} />;
     default: return <FootballField sc={sc} sportCfg={sportCfg} />;
   }
 }

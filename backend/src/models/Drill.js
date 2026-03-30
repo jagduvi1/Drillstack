@@ -30,6 +30,7 @@ const drillSchema = new Schema(
       players: { type: String, default: "" },
       space: { type: String, default: "" },
       equipment: [{ type: String }],
+      duration: { type: String, default: "" },
     },
 
     howItWorks: { type: String, default: "" },
@@ -42,6 +43,17 @@ const drillSchema = new Schema(
       enum: ["low", "medium", "high"],
       default: "medium",
     },
+
+    // ── Sport-specific fields ──────────────────────────────────────────────
+    apparatus: { type: String, default: "" }, // e.g. floor, beam, bars, vault, trampoline, general
+    skillLevel: {
+      type: String,
+      enum: ["beginner", "intermediate", "advanced", "competitive", ""],
+      default: "",
+    },
+    prerequisites: [{ type: String }],
+    safetyNotes: { type: String, default: "" },
+    progressionParent: { type: Schema.Types.ObjectId, ref: "Drill", default: null },
 
     // ── AI conversation history ─────────────────────────────────────────────
     aiConversation: [aiMessageSchema],

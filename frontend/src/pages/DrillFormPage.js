@@ -15,11 +15,15 @@ const EMPTY_DRILL = {
   description: "",
   sport: "",
   intensity: "medium",
-  setup: { players: "", space: "", equipment: [] },
+  setup: { players: "", space: "", equipment: [], duration: "" },
   howItWorks: "",
   coachingPoints: [],
   variations: [],
   commonMistakes: [],
+  apparatus: "",
+  skillLevel: "",
+  prerequisites: [],
+  safetyNotes: "",
 };
 
 export default function DrillFormPage() {
@@ -61,11 +65,15 @@ export default function DrillFormPage() {
           description: d.description || "",
           sport: d.sport || "",
           intensity: d.intensity || "medium",
-          setup: d.setup || { players: "", space: "", equipment: [] },
+          setup: d.setup || { players: "", space: "", equipment: [], duration: "" },
           howItWorks: d.howItWorks || "",
           coachingPoints: d.coachingPoints || [],
           variations: d.variations || [],
           commonMistakes: d.commonMistakes || [],
+          apparatus: d.apparatus || "",
+          skillLevel: d.skillLevel || "",
+          prerequisites: d.prerequisites || [],
+          safetyNotes: d.safetyNotes || "",
         });
         setDiagrams(d.diagrams || []);
         setGenerated(true);
@@ -342,6 +350,41 @@ export default function DrillFormPage() {
                   <option value="high">{t("drills.high")}</option>
                 </select>
               </div>
+            </div>
+          </div>
+
+          {/* Sport-specific fields */}
+          <div className={`card mb-1${["apparatus", "skillLevel"].some((f) => aiChangedFields.has(f)) ? " ai-changed" : ""}`}>
+            <h3 style={{ marginBottom: "1rem" }}>{t("drills.sportSpecific")}</h3>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "1rem" }}>
+              <div className="form-group">
+                <label>{t("drills.apparatus")}</label>
+                <input className="form-control" placeholder={t("drills.apparatusPlaceholder")} value={form.apparatus} onChange={(e) => set("apparatus", e.target.value)} />
+              </div>
+              <div className="form-group">
+                <label>{t("drills.skillLevel")}</label>
+                <select className="form-control" value={form.skillLevel} onChange={(e) => set("skillLevel", e.target.value)}>
+                  <option value="">{t("drills.anyLevel")}</option>
+                  <option value="beginner">{t("drills.beginner")}</option>
+                  <option value="intermediate">{t("drills.intermediate")}</option>
+                  <option value="advanced">{t("drills.advanced")}</option>
+                  <option value="competitive">{t("drills.competitive")}</option>
+                </select>
+              </div>
+            </div>
+            <div className="form-group">
+              <label>{t("drills.safetyNotes")}</label>
+              <textarea className="form-control" placeholder={t("drills.safetyNotesPlaceholder")} value={form.safetyNotes} onChange={(e) => set("safetyNotes", e.target.value)} style={{ minHeight: 60 }} />
+            </div>
+            <div className="form-group">
+              <label>{t("drills.prerequisites")}</label>
+              {(form.prerequisites || []).map((p, i) => (
+                <div key={i} className="flex gap-sm mb-1">
+                  <input className="form-control" value={p} onChange={(e) => updateListItem("prerequisites", i, e.target.value)} />
+                  <button type="button" className="btn btn-danger btn-sm" onClick={() => removeListItem("prerequisites", i)}><FiTrash2 /></button>
+                </div>
+              ))}
+              <button type="button" className="btn btn-secondary btn-sm" onClick={() => addListItem("prerequisites")}><FiPlus /> {t("drills.addPrerequisite")}</button>
             </div>
           </div>
 
