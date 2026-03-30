@@ -96,9 +96,18 @@
     "newPlan": "Ny plan",
     "searchDrills": "Sök övningar",
     "findDrillsDesc": "Hitta övningar genom att beskriva vad du behöver",
+    "upcomingSessions": "Kommande pass",
     "recentDrills": "Senaste övningar",
     "noDrillsYet": "Inga övningar ännu. Skapa din första övning för att komma igång.",
     "failedToStartTrial": "Kunde inte starta provperiod"
+  },
+  "calendar": {
+    "today": "Idag",
+    "week": "Vecka",
+    "month": "Månad",
+    "addSession": "Lägg till pass",
+    "reset": "Återställ",
+    "nextBlock": "Nästa block"
   },
   "drills": {
     "title": "Övningar",

@@ -96,9 +96,18 @@
     "newPlan": "New Plan",
     "searchDrills": "Search Drills",
     "findDrillsDesc": "Find drills by describing what you need",
+    "upcomingSessions": "Upcoming Sessions",
     "recentDrills": "Recent Drills",
     "noDrillsYet": "No drills yet. Create your first drill to get started.",
     "failedToStartTrial": "Failed to start trial"
+  },
+  "calendar": {
+    "today": "Today",
+    "week": "Week",
+    "month": "Month",
+    "addSession": "Add session",
+    "reset": "Reset",
+    "nextBlock": "Next block"
   },
   "drills": {
     "title": "Drills",

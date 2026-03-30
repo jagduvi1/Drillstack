@@ -14,6 +14,8 @@ import {
   FiCalendar,
 } from "react-icons/fi";
 import { BLOCK_ICONS, BLOCK_COLORS, blockDuration } from "../constants/blockTypes";
+import SessionTimer from "../components/sessions/SessionTimer";
+import "../styles/timer.css";
 
 export default function TodayPage() {
   const { t } = useTranslation();
@@ -190,6 +192,11 @@ export default function TodayPage() {
                       </div>
                     )}
                   </div>
+
+                  {/* Session Timer */}
+                  {sess.blocks?.length > 0 && (
+                    <SessionTimer blocks={(sess.blocks || []).sort((a, b) => a.order - b.order)} />
+                  )}
 
                   {/* Blocks — the actual training plan */}
                   <div className="today-blocks">

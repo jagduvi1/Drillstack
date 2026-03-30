@@ -8,6 +8,8 @@ import { getPlans } from "../api/plans";
 import { getUsage, startTrial } from "../api/billing";
 import { Link } from "react-router-dom";
 import { FiZap, FiPlay, FiCalendar, FiSearch, FiAward } from "react-icons/fi";
+import SessionCalendar from "../components/sessions/SessionCalendar";
+import "../styles/calendar.css";
 
 export default function DashboardPage() {
   const { t } = useTranslation();
@@ -120,6 +122,10 @@ export default function DashboardPage() {
           <Link to="/search" className="btn btn-secondary btn-sm mt-1">{t("dashboard.searchDrills")}</Link>
         </div>
       </div>
+
+      {/* Calendar */}
+      <h2 style={{ marginBottom: "0.75rem" }}><FiCalendar style={{ marginRight: "0.4rem" }} />{t("dashboard.upcomingSessions")}</h2>
+      <SessionCalendar mode="week" />
 
       <h2 style={{ marginBottom: "1rem" }}>{t("dashboard.recentDrills")}</h2>
       {drillData?.drills?.length ? (
