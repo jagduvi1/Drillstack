@@ -8,6 +8,7 @@ const { checkOwnership } = require("../middleware/checkOwnership");
 const { parsePagination } = require("../middleware/pagination");
 const Drill = require("../models/Drill");
 const User = require("../models/User");
+const Group = require("../models/Group");
 const Notification = require("../models/Notification");
 const { indexDrill, removeDrill, getQueueStatus, checkEmbeddingSimilarity, findSimilarDrills } = require("../services/sync");
 const { checkLimit } = require("../middleware/planLimits");
@@ -15,6 +16,35 @@ const { createDrillSnapshot } = require("../utils/drillSnapshot");
 const { standardLimiter } = require("../utils/rateLimiters");
 
 router.use(standardLimiter);
+
+// ── Helper: merge personal + team + club starred drills ─────────────────────
+async function getEffectiveStarredSet(userId) {
+  const [user, userGroups] = await Promise.all([
+    User.findById(userId).select("starredDrills unstarredDrills"),
+    Group.find({ "members.user": userId }).select("starredDrills parentClub").lean(),
+  ]);
+
+  const allIds = new Set((user?.starredDrills || []).map((id) => id.toString()));
+  const unstarred = new Set((user?.unstarredDrills || []).map((id) => id.toString()));
+
+  const parentClubIds = [];
+  for (const g of userGroups) {
+    for (const id of g.starredDrills || []) allIds.add(id.toString());
+    if (g.parentClub) parentClubIds.push(g.parentClub);
+  }
+
+  if (parentClubIds.length > 0) {
+    const clubs = await Group.find({ _id: { $in: parentClubIds } }).select("starredDrills").lean();
+    for (const c of clubs) {
+      for (const id of c.starredDrills || []) allIds.add(id.toString());
+    }
+  }
+
+  // Remove user's personal unstarred overrides
+  for (const id of unstarred) allIds.delete(id);
+
+  return allIds;
+}
 
 // GET /api/drills — public: returns ALL drills (no createdBy filter)
 router.get("/", authenticate, async (req, res, next) => {
@@ -24,10 +54,12 @@ router.get("/", authenticate, async (req, res, next) => {
     if (req.query.intensity) filter.intensity = String(req.query.intensity);
     // Only show "root" drills by default (not forks), unless ?versions=all
     if (req.query.versions !== "all") filter.parentDrill = null;
+    // Build effective starred set (personal + team + club, minus unstarred)
+    const starredSet = await getEffectiveStarredSet(req.user._id);
+
     // Filter by starred
     if (req.query.starred === "true") {
-      const u = await User.findById(req.user._id).select("starredDrills");
-      filter._id = { $in: u?.starredDrills || [] };
+      filter._id = { $in: [...starredSet] };
     }
 
     const { page, limit, skip } = parsePagination(req.query);
@@ -41,12 +73,28 @@ router.get("/", authenticate, async (req, res, next) => {
       Drill.countDocuments(filter),
     ]);
 
-    // Attach starred status for the current user
-    const user = await User.findById(req.user._id).select("starredDrills");
-    const starredSet = new Set((user?.starredDrills || []).map((id) => id.toString()));
+    // Swap in preferred versions
+    const user = await User.findById(req.user._id).select("defaultVersions");
+    const defaultVersions = user?.defaultVersions || new Map();
+
+    // For each parent drill, check if the user has a preferred version
+    const swapIds = [];
+    for (const d of drills) {
+      const prefId = defaultVersions.get(d._id.toString());
+      if (prefId && prefId.toString() !== d._id.toString()) {
+        swapIds.push(prefId);
+      }
+    }
+    const swapDrills = swapIds.length > 0
+      ? await Drill.find({ _id: { $in: swapIds } }).populate("createdBy", "name")
+      : [];
+    const swapMap = new Map(swapDrills.map((d) => [d._id.toString(), d]));
+
     const enriched = drills.map((d) => {
-      const obj = d.toObject();
-      obj.isStarred = starredSet.has(d._id.toString());
+      const prefId = defaultVersions.get(d._id.toString());
+      const preferred = prefId ? swapMap.get(prefId.toString()) : null;
+      const obj = preferred ? preferred.toObject() : d.toObject();
+      obj.isStarred = starredSet.has(obj._id.toString());
       return obj;
     });
 
@@ -107,11 +155,9 @@ router.get("/:id", authenticate, async (req, res, next) => {
       $or: [{ _id: rootId }, { parentDrill: rootId }],
     });
 
-    const user = await User.findById(req.user._id).select("starredDrills defaultVersions");
+    const starredSet = await getEffectiveStarredSet(req.user._id);
     const obj = drill.toObject();
-    obj.isStarred = (user?.starredDrills || []).some(
-      (id) => id.toString() === drill._id.toString()
-    );
+    obj.isStarred = starredSet.has(drill._id.toString());
     obj.versionCount = versionCount;
     obj.isOwner = drill.createdBy._id.toString() === req.user._id.toString();
 
@@ -241,7 +287,14 @@ router.post("/:id/find-similar", authenticate, async (req, res, next) => {
     const drill = await Drill.findById(req.params.id);
     if (!drill) return res.status(404).json({ error: "Drill not found" });
 
-    const similar = await findSimilarDrills(drill, drill._id.toString());
+    // Exclude all drills in the same version family
+    const rootId = drill.parentDrill || drill._id;
+    const familyDrills = await Drill.find({
+      $or: [{ _id: rootId }, { parentDrill: rootId }],
+    }).select("_id");
+    const excludeIds = new Set(familyDrills.map((d) => d._id.toString()));
+
+    const similar = await findSimilarDrills(drill, excludeIds);
     res.json({ similar });
   } catch (err) {
     next(err);
@@ -292,21 +345,34 @@ router.delete(
   }
 );
 
-// POST /api/drills/:id/star — toggle star
+// POST /api/drills/:id/star — toggle star (also sets as default version)
 router.post("/:id/star", authenticate, async (req, res, next) => {
   try {
-    const drillExists = await Drill.exists({ _id: req.params.id });
-    if (!drillExists) return res.status(404).json({ error: "Drill not found" });
+    const drill = await Drill.findById(req.params.id).select("parentDrill");
+    if (!drill) return res.status(404).json({ error: "Drill not found" });
 
     const user = await User.findById(req.user._id);
+    const drillId = req.params.id;
     const idx = user.starredDrills.findIndex(
-      (id) => id.toString() === req.params.id
+      (id) => id.toString() === drillId
     );
 
     if (idx === -1) {
-      user.starredDrills.push(req.params.id);
+      // Starring: add to personal stars, remove from unstarred overrides
+      user.starredDrills.push(drillId);
+      user.unstarredDrills = (user.unstarredDrills || []).filter(
+        (id) => id.toString() !== drillId
+      );
+      // Auto-set this version as the user's default for the drill family
+      const rootId = (drill.parentDrill || drill._id).toString();
+      user.defaultVersions.set(rootId, drillId);
     } else {
+      // Unstarring: remove from personal stars, add to unstarred overrides
+      // (so inherited group stars don't re-show this drill)
       user.starredDrills.splice(idx, 1);
+      if (!(user.unstarredDrills || []).some((id) => id.toString() === drillId)) {
+        user.unstarredDrills.push(drillId);
+      }
     }
     await user.save();
 

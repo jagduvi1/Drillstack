@@ -2,7 +2,7 @@ import { useTranslation } from "react-i18next";
 import { Link } from "react-router-dom";
 import { FiCheck, FiGitBranch } from "react-icons/fi";
 
-export default function DrillVersionsPanel({ versions, currentDrillId, defaultVersionId, onSetDefault, onClose }) {
+export default function DrillVersionsPanel({ versions, currentDrillId, defaultVersionId, onSetDefault, isAdmin, onClose }) {
   const { t } = useTranslation();
 
   if (!versions) return null;
@@ -25,11 +25,11 @@ export default function DrillVersionsPanel({ versions, currentDrillId, defaultVe
               <div className="flex gap-sm">
                 {defaultVersionId === v._id.toString() ? (
                   <span className="tag tag-success"><FiCheck /> {t("drills.default")}</span>
-                ) : (
+                ) : isAdmin ? (
                   <button className="btn btn-secondary btn-sm" onClick={() => onSetDefault(v._id)}>
                     {t("drills.setAsDefault")}
                   </button>
-                )}
+                ) : null}
               </div>
             </div>
           </div>

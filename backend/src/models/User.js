@@ -15,6 +15,8 @@ const userSchema = new mongoose.Schema(
     role: { type: String, enum: ["coach", "admin"], default: "coach" },
     sports: [{ type: String, trim: true }],
     starredDrills: [{ type: mongoose.Schema.Types.ObjectId, ref: "Drill" }],
+    // Drills the user has explicitly unstarred (overrides inherited group/club stars)
+    unstarredDrills: [{ type: mongoose.Schema.Types.ObjectId, ref: "Drill" }],
     // Map of parentDrillId → preferred versionId
     defaultVersions: {
       type: Map,

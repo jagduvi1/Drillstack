@@ -17,7 +17,7 @@ async function resolveUserGroups(req, res, next) {
     req.userTrainerGroupIds = groups
       .filter((g) => {
         const m = g.members.find((m) => m.user.toString() === userId.toString());
-        return m && (m.role === "admin" || m.role === "trainer");
+        return m && (m.role === "owner" || m.role === "admin" || m.role === "trainer");
       })
       .map((g) => g._id);
 

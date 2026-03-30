@@ -306,15 +306,15 @@ export default function TacticBoardPage() {
   }, [selectedPieceId, currentStepIdx]);
 
   // ── Playback engine ─────────────────────────────────────────────────────
+  const playStartIdx = useRef(0);
   useEffect(() => {
     if (!isPlaying || steps.length < 2) {
       if (isPlaying) setIsPlaying(false);
       return;
     }
-    let stepIdx = 0;
+    let stepIdx = playStartIdx.current;
     let startTime = null;
-    setCurrentStepIdx(0);
-    setAnimStep(0);
+    setAnimStep(stepIdx);
     setAnimProgress(0);
 
     const animate = (timestamp) => {
@@ -506,7 +506,7 @@ export default function TacticBoardPage() {
     const handler = (e) => {
       if (e.target.tagName === "INPUT" || e.target.tagName === "TEXTAREA" || e.target.tagName === "SELECT") return;
       if (e.key === "Delete" || e.key === "Backspace") { deleteSelectedPiece(); }
-      else if (e.key === " ") { e.preventDefault(); setIsPlaying((p) => !p); }
+      else if (e.key === " ") { e.preventDefault(); if (isPlaying) { setIsPlaying(false); } else { const start = currentStepIdx >= steps.length - 1 ? 0 : currentStepIdx; playStartIdx.current = start; setCurrentStepIdx(start); setIsPlaying(true); } }
       else if (e.key === "1") setTool("select");
       else if (e.key === "2") setTool("arrow");
       else if (e.key === "3") setTool("pass");
@@ -531,7 +531,7 @@ export default function TacticBoardPage() {
         <div className="tactic-fs-controls">
           <div className="tactic-fs-playback">
             <button className="tactic-fs-btn" disabled={steps.length < 2}
-              onClick={() => { if (isPlaying) setIsPlaying(false); else { setCurrentStepIdx(0); setIsPlaying(true); } }}>
+              onClick={() => { if (isPlaying) { setIsPlaying(false); } else { const start = currentStepIdx >= steps.length - 1 ? 0 : currentStepIdx; playStartIdx.current = start; setCurrentStepIdx(start); setIsPlaying(true); } }}>
               {isPlaying ? <FiPause /> : <FiPlay />}
             </button>
             <button className="tactic-fs-btn" onClick={() => { setIsPlaying(false); setCurrentStepIdx(0); }}><FiSkipBack /></button>
@@ -666,7 +666,7 @@ export default function TacticBoardPage() {
         <div className="tactic-playback-controls">
           <button className="tactic-play-btn" disabled={steps.length < 2}
             title={isPlaying ? t("tactics.timeline.pause") : t("tactics.timeline.play")}
-            onClick={() => { if (isPlaying) setIsPlaying(false); else { setCurrentStepIdx(0); setIsPlaying(true); } }}>
+            onClick={() => { if (isPlaying) { setIsPlaying(false); } else { const start = currentStepIdx >= steps.length - 1 ? 0 : currentStepIdx; playStartIdx.current = start; setCurrentStepIdx(start); setIsPlaying(true); } }}>
             {isPlaying ? <FiPause /> : <FiPlay />}
           </button>
           <button className="tactic-play-btn" onClick={() => { setIsPlaying(false); setCurrentStepIdx(0); }} title={t("tactics.timeline.toStart")}><FiSkipBack /></button>

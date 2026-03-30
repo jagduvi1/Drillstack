@@ -22,20 +22,23 @@ function createScale(canvasW, canvasH, fieldType = "full", padding = 30, zoom = 
   const baseScaleY = (canvasH - 2 * padding) / cfg.h;
   const baseScale = Math.min(baseScaleX, baseScaleY);
 
-  // Apply zoom: multiply the pixel-per-meter scale
-  const scale = baseScale * zoom;
+  // Field always fills the canvas at base scale
+  const scale = baseScale;
 
   const fieldW = cfg.w * scale;
   const fieldH = cfg.h * scale;
 
-  // Center the zoomed field, then apply pan offset
-  const offsetX = (canvasW - fieldW) / 2 + panX;
-  const offsetY = (canvasH - fieldH) / 2 + panY;
+  const offsetX = (canvasW - fieldW) / 2;
+  const offsetY = (canvasH - fieldH) / 2;
+
+  // Element scale: zoom only affects players, arrows, and other pieces
+  const elemScale = baseScale * zoom;
 
   return {
     x: (m) => offsetX + (m - cfg.x) * scale,
     y: (m) => offsetY + m * scale,
     s: (m) => m * scale,
+    es: (m) => m * elemScale,        // element scale (affected by zoom)
     inv: (px, py) => [(px - offsetX) / scale + cfg.x, (py - offsetY) / scale],
     fieldX: offsetX,
     fieldY: offsetY,
@@ -45,6 +48,7 @@ function createScale(canvasW, canvasH, fieldType = "full", padding = 30, zoom = 
     canvasH,
     cfg,
     scale,
+    zoom,
   };
 }
 
@@ -545,7 +549,7 @@ function SportField({ sc, sport, fieldType }) {
 
 // ── Player / Ball / Cone Piece ──────────────────────────────────────────────
 function PlayerPiece({ piece, x, y, sc, draggable, isGhost, isSelected, homeColor, awayColor, onDragEnd, onSelect, pitchBounds }) {
-  const radius = sc.s(1.8);
+  const radius = sc.es(1.8);
   const px = sc.x(x);
   const py = sc.y(y);
   const bounds = pitchBounds || { width: 105, height: 68 };
@@ -601,15 +605,17 @@ function TacticArrow({ arrow, sc, tool, onDelete }) {
   const x2 = sc.x(arrow.toX), y2 = sc.y(arrow.toY);
   const color = arrow.color || "#ffffff";
   const handleClick = () => { if (tool === "eraser") onDelete?.(arrow.id); };
+  const sw = sc.es(0.4);       // stroke width scaled with zoom
+  const pl = sc.es(1.3);       // pointer length
+  const pw = sc.es(1.3);       // pointer width
 
   if (arrow.style === "dribble") {
-    // Wavy line + arrowhead
     const pts = wavyLinePoints(x1, y1, x2, y2, 6, 5);
     return (
       <Group>
-        <Line points={pts} stroke={color} strokeWidth={3} hitStrokeWidth={14} onClick={handleClick} onTap={handleClick} />
+        <Line points={pts} stroke={color} strokeWidth={sw} hitStrokeWidth={14} onClick={handleClick} onTap={handleClick} />
         <Arrow points={[x1 + (x2 - x1) * 0.85, y1 + (y2 - y1) * 0.85, x2, y2]}
-          stroke={color} strokeWidth={3} pointerLength={10} pointerWidth={10}
+          stroke={color} strokeWidth={sw} pointerLength={pl} pointerWidth={pw}
           hitStrokeWidth={14} onClick={handleClick} onTap={handleClick} />
       </Group>
     );
@@ -617,25 +623,24 @@ function TacticArrow({ arrow, sc, tool, onDelete }) {
 
   if (arrow.style === "pass") {
     return (
-      <Arrow points={[x1, y1, x2, y2]} stroke={color} strokeWidth={2}
-        pointerLength={8} pointerWidth={8} dash={[3, 5]}
+      <Arrow points={[x1, y1, x2, y2]} stroke={color} strokeWidth={sw * 0.7}
+        pointerLength={pl * 0.8} pointerWidth={pw * 0.8} dash={[3, 5]}
         hitStrokeWidth={14} onClick={handleClick} onTap={handleClick} />
     );
   }
 
   if (arrow.style === "ballPass") {
-    // Ball movement line: thicker dotted with filled arrowhead
     return (
-      <Arrow points={[x1, y1, x2, y2]} stroke="#fbbf24" fill="#fbbf24" strokeWidth={3}
-        pointerLength={10} pointerWidth={10} dash={[6, 4]}
+      <Arrow points={[x1, y1, x2, y2]} stroke="#fbbf24" fill="#fbbf24" strokeWidth={sw}
+        pointerLength={pl} pointerWidth={pw} dash={[6, 4]}
         hitStrokeWidth={14} onClick={handleClick} onTap={handleClick} />
     );
   }
 
   // solid or dashed
   return (
-    <Arrow points={[x1, y1, x2, y2]} stroke={color} strokeWidth={3}
-      pointerLength={10} pointerWidth={10}
+    <Arrow points={[x1, y1, x2, y2]} stroke={color} strokeWidth={sw}
+      pointerLength={pl} pointerWidth={pw}
       dash={arrow.style === "dashed" ? [8, 6] : undefined}
       hitStrokeWidth={14} onClick={handleClick} onTap={handleClick} />
   );
@@ -676,16 +681,11 @@ export default function TacticCanvas({
   const stageW = dims.width;
   const stageH = dims.height;
 
-  // Reset pan when zoom changes
-  useEffect(() => {
-    setPanOffset({ x: 0, y: 0 });
-  }, [zoom]);
-
-  // Zoom is baked into the coordinate scale — no Stage transforms needed
-  const sc = createScale(stageW, stageH, fieldType, 30, zoom, panOffset.x, panOffset.y, sportFieldConfigs);
+  // Zoom only affects element sizes, field always fills canvas — no panning needed
+  const sc = createScale(stageW, stageH, fieldType, 30, zoom, 0, 0, sportFieldConfigs);
 
   const isDrawTool = DRAW_TOOLS.includes(tool);
-  const canPan = zoom !== 1;
+  const canPan = false;
 
   // Compute pan limits independently of sc (avoids circular deps)
   const panLimits = (() => {
