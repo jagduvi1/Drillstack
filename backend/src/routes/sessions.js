@@ -75,6 +75,12 @@ router.get("/", authenticate, resolveUserGroups, async (req, res, next) => {
     const filter = buildSessionFilter(req);
     if (req.query.sport) filter.sport = String(req.query.sport);
     if (req.query.group) filter.group = String(req.query.group);
+    // Date range filter for calendar view
+    if (req.query.dateFrom || req.query.dateTo) {
+      filter.date = {};
+      if (req.query.dateFrom) filter.date.$gte = new Date(String(req.query.dateFrom));
+      if (req.query.dateTo) filter.date.$lte = new Date(String(req.query.dateTo) + "T23:59:59.999Z");
+    }
 
     const { page, limit, skip } = parsePagination(req.query);
 
