@@ -18,7 +18,11 @@ const joinLimiter = createLimiter(15 * 60 * 1000, 10);
 const ROLE_LEVELS = { owner: 4, admin: 3, trainer: 2, viewer: 1 };
 
 function getMemberRole(group, userId) {
-  const m = group.members.find((m) => m.user.toString() === userId.toString());
+  const uid = userId.toString();
+  const m = group.members.find((m) => {
+    const mid = m.user?._id ? m.user._id.toString() : m.user.toString();
+    return mid === uid;
+  });
   return m ? m.role : null;
 }
 
