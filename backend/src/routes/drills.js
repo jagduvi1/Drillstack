@@ -14,6 +14,7 @@ const { indexDrill, removeDrill, getQueueStatus, checkEmbeddingSimilarity, findS
 const { checkLimit } = require("../middleware/planLimits");
 const { createDrillSnapshot } = require("../utils/drillSnapshot");
 const { standardLimiter } = require("../utils/rateLimiters");
+const { logAudit } = require("../models/AuditLog");
 
 router.use(standardLimiter);
 
@@ -217,6 +218,7 @@ router.post("/:id/fork", authenticate, forkLimiter, async (req, res, next) => {
     });
 
     indexDrill(fork).catch((e) => console.error("Index error:", e.message));
+    logAudit("drill.fork", { userId: req.user._id, ip: req.ip, targetType: "drill", targetId: fork._id, details: { originalId: req.params.id } });
     res.status(201).json(fork);
   } catch (err) {
     next(err);
@@ -367,6 +369,7 @@ router.delete(
           await Notification.insertMany(notifications);
         }
 
+        logAudit("drill.delete.pending", { userId: req.user._id, ip: req.ip, targetType: "drill", targetId: drill._id, details: { title: drill.title } });
         return res.json({ message: "Deletion pending", pendingDeletion: true });
       }
 
@@ -375,6 +378,7 @@ router.delete(
       await TacticBoard.deleteMany({ drill: drill._id });
       await Drill.findByIdAndDelete(drill._id);
       removeDrill(drill._id).catch((e) => console.error("Remove index error:", e.message));
+      logAudit("drill.delete", { userId: req.user._id, ip: req.ip, targetType: "drill", targetId: drill._id, details: { title: drill.title } });
       res.json({ message: "Deleted" });
     } catch (err) {
       next(err);
@@ -414,6 +418,7 @@ router.post("/:id/claim", authenticate, async (req, res, next) => {
       type: "drill_pending_deletion",
     });
 
+    logAudit("drill.claim", { userId: req.user._id, ip: req.ip, targetType: "drill", targetId: drill._id, details: { title: drill.title } });
     res.json(drill);
   } catch (err) {
     next(err);

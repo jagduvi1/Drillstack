@@ -45,6 +45,8 @@ app.use("/api/notifications", require("./routes/notifications"));
 app.use("/api/tactics", require("./routes/tactics"));
 app.use("/api/billing", require("./routes/billing"));
 app.use("/api/groups", require("./routes/groups"));
+app.use("/api/contributions", require("./routes/contributions"));
+app.use("/api/reports", require("./routes/reports"));
 
 // Health check
 app.get("/api/health", (_req, res) => res.json({ status: "ok" }));
