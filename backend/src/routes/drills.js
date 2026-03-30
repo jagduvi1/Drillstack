@@ -41,12 +41,29 @@ router.get("/", authenticate, async (req, res, next) => {
       Drill.countDocuments(filter),
     ]);
 
-    // Attach starred status for the current user
-    const user = await User.findById(req.user._id).select("starredDrills");
+    // Attach starred status and swap in preferred versions
+    const user = await User.findById(req.user._id).select("starredDrills defaultVersions");
     const starredSet = new Set((user?.starredDrills || []).map((id) => id.toString()));
+    const defaultVersions = user?.defaultVersions || new Map();
+
+    // For each parent drill, check if the user has a preferred version
+    const swapIds = [];
+    for (const d of drills) {
+      const prefId = defaultVersions.get(d._id.toString());
+      if (prefId && prefId.toString() !== d._id.toString()) {
+        swapIds.push(prefId);
+      }
+    }
+    const swapDrills = swapIds.length > 0
+      ? await Drill.find({ _id: { $in: swapIds } }).populate("createdBy", "name")
+      : [];
+    const swapMap = new Map(swapDrills.map((d) => [d._id.toString(), d]));
+
     const enriched = drills.map((d) => {
-      const obj = d.toObject();
-      obj.isStarred = starredSet.has(d._id.toString());
+      const prefId = defaultVersions.get(d._id.toString());
+      const preferred = prefId ? swapMap.get(prefId.toString()) : null;
+      const obj = preferred ? preferred.toObject() : d.toObject();
+      obj.isStarred = starredSet.has(obj._id.toString());
       return obj;
     });
 
@@ -292,11 +309,11 @@ router.delete(
   }
 );
 
-// POST /api/drills/:id/star — toggle star
+// POST /api/drills/:id/star — toggle star (also sets as default version)
 router.post("/:id/star", authenticate, async (req, res, next) => {
   try {
-    const drillExists = await Drill.exists({ _id: req.params.id });
-    if (!drillExists) return res.status(404).json({ error: "Drill not found" });
+    const drill = await Drill.findById(req.params.id).select("parentDrill");
+    if (!drill) return res.status(404).json({ error: "Drill not found" });
 
     const user = await User.findById(req.user._id);
     const idx = user.starredDrills.findIndex(
@@ -305,6 +322,9 @@ router.post("/:id/star", authenticate, async (req, res, next) => {
 
     if (idx === -1) {
       user.starredDrills.push(req.params.id);
+      // Auto-set this version as the user's default for the drill family
+      const rootId = (drill.parentDrill || drill._id).toString();
+      user.defaultVersions.set(rootId, req.params.id);
     } else {
       user.starredDrills.splice(idx, 1);
     }
