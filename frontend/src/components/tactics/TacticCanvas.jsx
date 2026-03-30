@@ -3,7 +3,7 @@ import { Stage, Layer, Rect, Circle, Line, Arrow, Text, Group, RegularPolygon } 
 import { SPORT_CONFIGS, DRAW_TOOLS, getPitch } from "./sportConfigs";
 
 // Re-export for consumers that import from TacticCanvas
-export { FORMATIONS, DRAW_TOOLS, createInitialStep, buildFormationPieces, SPORT_CONFIGS, SPORT_FORMATIONS, getFormations, getDefaultFormation, getPitch } from "./sportConfigs";
+export { FORMATIONS, DRAW_TOOLS, createInitialStep, buildFormationPieces, SPORT_CONFIGS, SPORT_FORMATIONS, SPORT_GROUPS, getSportGroup, getFormations, getDefaultFormation, getPitch } from "./sportConfigs";
 
 // Helper to get field configs for a sport
 export function getFieldConfigs(sport = "football") {
@@ -91,7 +91,10 @@ import SportField from "./FieldRenderers";
 
 // ── Player / Ball / Cone Piece ──────────────────────────────────────────────
 function PlayerPiece({ piece, x, y, sc, draggable, isGhost, isSelected, homeColor, awayColor, onDragEnd, onSelect, pitchBounds }) {
-  const radius = sc.es(1.8);
+  // Scale player radius relative to field size (1.8m on 105m = ~1.7% — keep that ratio)
+  const fieldDiag = Math.sqrt(sc.cfg.w * sc.cfg.w + sc.cfg.h * sc.cfg.h);
+  const baseRadius = Math.max(0.8, Math.min(1.8, fieldDiag * 0.014));
+  const radius = sc.es(baseRadius);
   const px = sc.x(x);
   const py = sc.y(y);
   const bounds = pitchBounds || { width: 105, height: 68 };

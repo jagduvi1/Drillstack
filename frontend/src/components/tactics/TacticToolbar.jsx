@@ -4,7 +4,7 @@ import {
   FiTrash2, FiPlus, FiMinus,
   FiCircle, FiTriangle, FiCpu, FiZoomIn, FiZoomOut,
 } from "react-icons/fi";
-import { SPORT_CONFIGS } from "./TacticCanvas";
+import { SPORT_CONFIGS, SPORT_GROUPS, getSportGroup } from "./TacticCanvas";
 
 // ── Custom SVG icon components ──────────────────────────────────────────────
 export function IconDribble() {
@@ -117,11 +117,29 @@ export default function TacticToolbar({
 
       {/* Row 2: sport, field type, formations, colors (edit mode only) */}
       {!coachMode && <div className="tactic-toolbar tactic-toolbar-row2">
-        <select className="form-control form-control-sm" value={sport} onChange={(e) => onSportChange(e.target.value)} style={{ width: "auto", minWidth: 0 }}>
-          {Object.entries(SPORT_CONFIGS).map(([key, cfg]) => (
-            <option key={key} value={key}>{t(`tactics.sports.${key}`, cfg.label)}</option>
+        {/* Sport selector: pick sport, then variant if applicable */}
+        <select className="form-control form-control-sm" value={getSportGroup(sport)?.key || sport}
+          onChange={(e) => {
+            const group = SPORT_GROUPS.find((g) => g.key === e.target.value);
+            onSportChange(group?.variants?.length > 0 ? group.variants[0].key : group.key);
+          }}
+          style={{ width: "auto", minWidth: 0 }}>
+          {SPORT_GROUPS.map((g) => (
+            <option key={g.key} value={g.key}>{t(`tactics.sports.${g.key}`, g.label)}</option>
           ))}
         </select>
+        {(() => {
+          const group = getSportGroup(sport);
+          return group?.variants?.length > 0 ? (
+            <select className="form-control form-control-sm" value={sport}
+              onChange={(e) => onSportChange(e.target.value)}
+              style={{ width: "auto", minWidth: 0 }}>
+              {group.variants.map((v) => (
+                <option key={v.key} value={v.key}>{v.label}</option>
+              ))}
+            </select>
+          ) : null;
+        })()}
 
         <select className="form-control form-control-sm" value={fieldType} onChange={(e) => onFieldTypeChange(e.target.value)} style={{ width: "auto", minWidth: 0 }}>
           {Object.keys(sportFieldViews).map((key) => (
