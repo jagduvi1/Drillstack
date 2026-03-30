@@ -4,7 +4,7 @@ const { Schema } = mongoose;
 const drillContributionSchema = new Schema(
   {
     drill: { type: Schema.Types.ObjectId, ref: "Drill", required: true, index: true },
-    type: { type: String, enum: ["video", "drawing"], required: true },
+    type: { type: String, enum: ["video", "drawing", "tactic"], required: true },
 
     // Video fields
     url: { type: String, default: "" },
@@ -12,6 +12,9 @@ const drillContributionSchema = new Schema(
 
     // Drawing fields (uploaded file path)
     filePath: { type: String, default: "" },
+
+    // Tactic board reference
+    tactic: { type: Schema.Types.ObjectId, ref: "TacticBoard", default: null },
 
     // Visibility: who can see this contribution
     visibility: {

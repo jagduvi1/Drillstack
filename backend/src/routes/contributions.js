@@ -7,6 +7,7 @@ const upload = require("../middleware/upload");
 const { standardLimiter, createLimiter } = require("../utils/rateLimiters");
 const DrillContribution = require("../models/DrillContribution");
 const Drill = require("../models/Drill");
+const TacticBoard = require("../models/TacticBoard");
 const { logAudit } = require("../models/AuditLog");
 
 const uploadLimiter = createLimiter(60 * 60 * 1000, 30);
@@ -37,6 +38,7 @@ router.get("/:drillId", async (req, res, next) => {
     })
       .populate("createdBy", "name")
       .populate("group", "name type")
+      .populate("tactic", "title sport fieldType homeTeam awayTeam")
       .sort({ createdAt: -1 });
 
     res.json(contributions);
@@ -140,6 +142,64 @@ router.post(
       });
 
       await contribution.populate("createdBy", "name");
+      res.status(201).json(contribution);
+    } catch (err) {
+      next(err);
+    }
+  }
+);
+
+// POST /api/contributions/:drillId/tactic — link a tactic board
+router.post(
+  "/:drillId/tactic",
+  [
+    body("tacticId").isMongoId(),
+    body("title").optional().trim().isLength({ max: 200 }),
+    body("visibility").optional().isIn(["public", "private", "group"]),
+    body("group").optional().isMongoId(),
+  ],
+  validate,
+  async (req, res, next) => {
+    try {
+      const drillId = String(req.params.drillId);
+      const drillExists = await Drill.exists({ _id: drillId });
+      if (!drillExists) return res.status(404).json({ error: "Drill not found" });
+
+      const tacticId = String(req.body.tacticId);
+      const tactic = await TacticBoard.findById(tacticId);
+      if (!tactic) return res.status(404).json({ error: "Tactic board not found" });
+
+      const visibility = req.body.visibility || "public";
+      if (visibility === "group" && !req.body.group) {
+        return res.status(400).json({ error: "Group ID required for group visibility" });
+      }
+      if (visibility === "group") {
+        const groupId = String(req.body.group);
+        if (!req.userGroupIds?.some((id) => id.toString() === groupId)) {
+          return res.status(403).json({ error: "You are not a member of that group" });
+        }
+      }
+
+      const contribution = await DrillContribution.create({
+        drill: drillId,
+        type: "tactic",
+        tactic: tacticId,
+        title: req.body.title || tactic.title || "",
+        visibility,
+        group: visibility === "group" ? String(req.body.group) : null,
+        createdBy: req.user._id,
+      });
+
+      await logAudit("contribution.create", {
+        userId: req.user._id,
+        ip: req.ip,
+        targetType: "contribution",
+        targetId: contribution._id,
+        details: { drillId, type: "tactic", tacticId, visibility },
+      });
+
+      await contribution.populate("createdBy", "name");
+      await contribution.populate("tactic", "title sport fieldType homeTeam awayTeam");
       res.status(201).json(contribution);
     } catch (err) {
       next(err);

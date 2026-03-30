@@ -597,10 +597,13 @@ export default function DrillDetailPage() {
         {/* User Contributions (Videos & Drawings) */}
         <DrillContributions
           drillId={id}
+          drillTitle={drill.title}
+          drillDescription={[drill.description, drill.howItWorks].filter(Boolean).join("\n\n")}
           contributions={contributions}
           groups={groups}
           userId={user._id}
           onAddVideo={async (data) => { await addVideo(id, data); fetchContributions(); }}
+          onAddTactic={async (data) => { const { addTacticContribution } = await import("../api/contributions"); await addTacticContribution(id, data); fetchContributions(); }}
           onAddDrawing={handleAddDrawing}
           onDeleteContribution={handleDeleteContribution}
           onReport={handleReport}

@@ -22,23 +22,28 @@ function createScale(canvasW, canvasH, fieldType = "full", padding = 30, zoom = 
   const baseScaleY = (canvasH - 2 * padding) / cfg.h;
   const baseScale = Math.min(baseScaleX, baseScaleY);
 
-  // Field always fills the canvas at base scale
-  const scale = baseScale;
+  // Zoom out (< 1): field stays full size, only elements shrink
+  // Zoom in (> 1): field grows beyond canvas (pan to navigate)
+  const fieldZoom = zoom <= 1 ? 1 : zoom;
+  const scale = baseScale * fieldZoom;
 
   const fieldW = cfg.w * scale;
   const fieldH = cfg.h * scale;
 
-  const offsetX = (canvasW - fieldW) / 2;
-  const offsetY = (canvasH - fieldH) / 2;
+  const offsetX = (canvasW - fieldW) / 2 + panX;
+  const offsetY = (canvasH - fieldH) / 2 + panY;
 
-  // Element scale: zoom only affects players, arrows, and other pieces
-  const elemScale = baseScale * zoom;
+  // Element scale:
+  // Zoom out: elements shrink with zoom (more space on field)
+  // Zoom in: elements grow slowly (capped at 1.3x) so they don't become huge
+  const elemZoom = zoom <= 1 ? zoom : 1 + (zoom - 1) * 0.3;
+  const elemScale = baseScale * Math.min(elemZoom, 1.3);
 
   return {
     x: (m) => offsetX + (m - cfg.x) * scale,
     y: (m) => offsetY + m * scale,
     s: (m) => m * scale,
-    es: (m) => m * elemScale,        // element scale (affected by zoom)
+    es: (m) => m * elemScale,
     inv: (px, py) => [(px - offsetX) / scale + cfg.x, (py - offsetY) / scale],
     fieldX: offsetX,
     fieldY: offsetY,
@@ -218,11 +223,15 @@ export default function TacticCanvas({
   const stageW = dims.width;
   const stageH = dims.height;
 
-  // Zoom only affects element sizes, field always fills canvas — no panning needed
-  const sc = createScale(stageW, stageH, fieldType, 30, zoom, 0, 0, sportFieldConfigs);
+  // Reset pan when zoom changes
+  useEffect(() => {
+    setPanOffset({ x: 0, y: 0 });
+  }, [zoom]);
+
+  const sc = createScale(stageW, stageH, fieldType, 30, zoom, panOffset.x, panOffset.y, sportFieldConfigs);
 
   const isDrawTool = DRAW_TOOLS.includes(tool);
-  const canPan = false;
+  const canPan = zoom > 1;
 
   // Compute pan limits independently of sc (avoids circular deps)
   const panLimits = (() => {
