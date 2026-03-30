@@ -258,7 +258,14 @@ router.post("/:id/find-similar", authenticate, async (req, res, next) => {
     const drill = await Drill.findById(req.params.id);
     if (!drill) return res.status(404).json({ error: "Drill not found" });
 
-    const similar = await findSimilarDrills(drill, drill._id.toString());
+    // Exclude all drills in the same version family
+    const rootId = drill.parentDrill || drill._id;
+    const familyDrills = await Drill.find({
+      $or: [{ _id: rootId }, { parentDrill: rootId }],
+    }).select("_id");
+    const excludeIds = new Set(familyDrills.map((d) => d._id.toString()));
+
+    const similar = await findSimilarDrills(drill, excludeIds);
     res.json({ similar });
   } catch (err) {
     next(err);

@@ -272,7 +272,12 @@ async function checkEmbeddingSimilarity(parentDrillId, newDrillData) {
 }
 
 // ── Find similar drills via Qdrant vector search ─────────────────────────────
-async function findSimilarDrills(drillData, excludeDrillId, limit = 5) {
+async function findSimilarDrills(drillData, excludeIds, limit = 5) {
+  // excludeIds can be a Set of IDs or a single string ID (backwards compat)
+  const excludeSet = excludeIds instanceof Set
+    ? excludeIds
+    : new Set(excludeIds ? [excludeIds.toString()] : []);
+
   const text = drillToEmbeddingText(drillData);
   let vector;
   try {
@@ -289,16 +294,16 @@ async function findSimilarDrills(drillData, excludeDrillId, limit = 5) {
   try {
     const results = await qdrant.search(COLLECTION, {
       vector,
-      limit: limit + 1, // fetch extra in case we need to exclude self
+      limit: limit + excludeSet.size + 1, // fetch extra to account for exclusions
       score_threshold: SIMILARITY_THRESHOLD,
       with_payload: true,
     });
 
-    // Filter out the drill itself and map to useful data
+    // Filter out excluded drills and map to useful data
     const similar = [];
     for (const hit of results) {
       const mongoId = hit.payload?.mongoId;
-      if (mongoId === excludeDrillId?.toString()) continue;
+      if (excludeSet.has(mongoId)) continue;
       if (similar.length >= limit) break;
 
       const drill = await Drill.findById(mongoId)
