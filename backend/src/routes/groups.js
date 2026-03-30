@@ -9,6 +9,7 @@ const Drill = require("../models/Drill");
 const { checkLimit } = require("../middleware/planLimits");
 const { getEffectivePlan } = require("../middleware/planLimits");
 const { createLimiter, standardLimiter } = require("../utils/rateLimiters");
+const { logAudit } = require("../models/AuditLog");
 
 const memberLimiter = createLimiter(60 * 60 * 1000, 50);
 const joinLimiter = createLimiter(15 * 60 * 1000, 10);
@@ -313,8 +314,10 @@ router.put("/:id/members/:userId", standardLimiter, authenticate, async (req, re
     if (req.body.role && !validRoles.includes(req.body.role)) {
       return res.status(400).json({ error: "Invalid role. Must be admin, trainer, or viewer" });
     }
+    const oldRole = member.role;
     member.role = req.body.role || member.role;
     await group.save();
+    logAudit("group.role.change", { userId: req.user._id, ip: req.ip, targetType: "group", targetId: group._id, details: { memberId: req.params.userId, oldRole, newRole: member.role } });
     await group.populate("members.user", "name email");
     res.json(group);
   } catch (err) {
