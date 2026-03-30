@@ -184,28 +184,9 @@ export const SPORT_FORMATIONS = {
     ],
   },
   gymnastics: {
-    "solo": [{ role: "G", x: 7, y: 7 }],
-    "with-coach": [{ role: "G", x: 7, y: 7 }, { role: "C", x: 2, y: 12 }],
-    "with-spotters": [{ role: "G", x: 7, y: 7 }, { role: "S", x: 5, y: 7 }, { role: "S", x: 9, y: 7 }],
-  },
-  "gymnastics-beam": {
-    "solo": [{ role: "G", x: 3.5, y: 1.5 }],
-    "with-spotter": [{ role: "G", x: 3.5, y: 1.5 }, { role: "S", x: 3.5, y: 2.8 }],
-  },
-  "gymnastics-vault": {
-    "solo": [{ role: "G", x: 2, y: 3 }],
-    "with-spotter": [{ role: "G", x: 2, y: 3 }, { role: "S", x: 19, y: 3 }],
-  },
-  "gymnastics-bars": {
-    "solo": [{ role: "G", x: 4, y: 3 }],
-    "with-spotter": [{ role: "G", x: 4, y: 3 }, { role: "S", x: 6, y: 4.5 }],
-  },
-  "gymnastics-trampoline": {
-    "solo": [{ role: "G", x: 4, y: 2.5 }],
-    "with-spotters": [{ role: "G", x: 4, y: 2.5 }, { role: "S", x: 1, y: 2.5 }, { role: "S", x: 7, y: 2.5 }],
-  },
-  "gymnastics-stations": {
-    "overview": [],
+    "solo": [{ role: "G", x: 15, y: 10 }],
+    "with-coach": [{ role: "G", x: 15, y: 10 }, { role: "C", x: 5, y: 16 }],
+    "with-spotters": [{ role: "G", x: 15, y: 10 }, { role: "S", x: 12, y: 10 }, { role: "S", x: 18, y: 10 }],
   },
   volleyball: {
     // 6v6 — 18×9
