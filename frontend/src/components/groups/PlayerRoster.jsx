@@ -1,9 +1,9 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, memo } from "react";
 import { useTranslation } from "react-i18next";
 import { getPlayers, addPlayer, updatePlayer, deletePlayer } from "../../api/players";
 import { FiPlus, FiTrash2, FiEdit, FiChevronDown, FiChevronUp, FiUser } from "react-icons/fi";
 
-export default function PlayerRoster({ groupId, canEdit }) {
+export default memo(function PlayerRoster({ groupId, canEdit }) {
   const { t } = useTranslation();
   const [players, setPlayers] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -141,4 +141,4 @@ export default function PlayerRoster({ groupId, canEdit }) {
       )}
     </div>
   );
-}
+});

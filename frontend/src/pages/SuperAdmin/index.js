@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
+
 import TabOverview from "./TabOverview";
 import TabServices from "./TabServices";
 import TabDatabase from "./TabDatabase";
@@ -19,6 +20,12 @@ const TABS = [
 
 export default function SuperAdmin() {
   const navigate = useNavigate();
+
+  // Hide sidebar while on this page
+  useEffect(() => {
+    document.body.classList.add("superadmin-active");
+    return () => document.body.classList.remove("superadmin-active");
+  }, []);
   const [tab, setTab] = useState("overview");
   const [autoRefresh, setAutoRefresh] = useState(false);
   const [lastRefresh, setLastRefresh] = useState(new Date());

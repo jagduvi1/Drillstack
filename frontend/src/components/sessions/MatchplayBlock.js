@@ -1,6 +1,7 @@
+import { memo } from "react";
 import { useTranslation } from "react-i18next";
 
-export default function MatchplayBlock({ block, onChange }) {
+export default memo(function MatchplayBlock({ block, onChange }) {
   const { t } = useTranslation();
   const set = (field, value) => onChange({ ...block, [field]: value });
 
@@ -48,4 +49,4 @@ export default function MatchplayBlock({ block, onChange }) {
       </div>
     </div>
   );
-}
+});

@@ -1,6 +1,7 @@
+import { memo } from "react";
 import { useTranslation } from "react-i18next";
 
-export default function BreakBlock({ block, onChange }) {
+export default memo(function BreakBlock({ block, onChange }) {
   const { t } = useTranslation();
   return (
     <div className="flex gap-sm" style={{ alignItems: "center" }}>
@@ -25,4 +26,4 @@ export default function BreakBlock({ block, onChange }) {
       />
     </div>
   );
-}
+});

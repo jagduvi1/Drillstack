@@ -1,7 +1,8 @@
+import { memo } from "react";
 import { FiPlus, FiTrash2 } from "react-icons/fi";
 import { useTranslation } from "react-i18next";
 
-export default function StationBlock({ block, onChange, onPickDrillForStation, onPreviewDrill }) {
+export default memo(function StationBlock({ block, onChange, onPickDrillForStation, onPreviewDrill }) {
   const { t } = useTranslation();
   const setField = (field, value) => onChange({ ...block, [field]: value });
 
@@ -127,4 +128,4 @@ export default function StationBlock({ block, onChange, onPickDrillForStation, o
       </div>
     </div>
   );
-}
+});

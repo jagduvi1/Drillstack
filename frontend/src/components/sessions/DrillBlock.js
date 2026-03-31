@@ -1,7 +1,8 @@
+import { memo } from "react";
 import { FiPlus, FiTrash2 } from "react-icons/fi";
 import { useTranslation } from "react-i18next";
 
-export default function DrillBlock({ block, onChange, onPickDrill, onPreviewDrill }) {
+export default memo(function DrillBlock({ block, onChange, onPickDrill, onPreviewDrill }) {
   const { t } = useTranslation();
   const updateDrill = (idx, field, value) => {
     const updated = [...block.drills];
@@ -88,4 +89,4 @@ export default function DrillBlock({ block, onChange, onPickDrill, onPreviewDril
       </div>
     </div>
   );
-}
+});
