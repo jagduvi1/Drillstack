@@ -16,7 +16,7 @@ import TacticToolbar from "../components/tactics/TacticToolbar";
 import TacticAiModal from "../components/tactics/TacticAiModal";
 import DebugPanel from "../components/common/DebugPanel";
 import useDebugPanel from "../hooks/useDebugPanel";
-import { getTactic, createTactic, updateTactic, generateTacticAnimation, refineTacticAnimation } from "../api/tactics";
+import { getTactic, createTactic, updateTactic, generateTacticAnimation, generateTacticFromDrill, refineTacticAnimation } from "../api/tactics";
 import { useAuth } from "../context/AuthContext";
 
 function easeInOutQuad(t) {
@@ -514,13 +514,47 @@ export default function TacticBoardPage() {
   const autoGenTriggered = useRef(false);
   useEffect(() => {
     if (autoGenTriggered.current || id) return;
-    const drillDesc = searchParams.get("drillDescription");
-    const drillTitle = searchParams.get("drillTitle");
     const drillIdParam = searchParams.get("drillId");
-    if (drillDesc) {
-      autoGenTriggered.current = true;
-      if (drillTitle) setTitle(drillTitle);
-      if (drillIdParam) { setDrillId(drillIdParam); if (drillTitle) setDrillTitle(drillTitle); }
+    const drillTitle_ = searchParams.get("drillTitle");
+    const drillDesc = searchParams.get("drillDescription");
+    if (!drillIdParam && !drillDesc) return;
+
+    autoGenTriggered.current = true;
+    if (drillTitle_) setTitle(drillTitle_);
+    if (drillIdParam) { setDrillId(drillIdParam); if (drillTitle_) setDrillTitle(drillTitle_); }
+
+    // If we have a drill ID, use the full-context endpoint (Opus) — auto-generate immediately
+    if (drillIdParam) {
+      setAiLoading(true);
+      setShowAiModal(true);
+      setAiChat([{ role: "assistant", content: t("tactics.ai.generatingFromDrill") }]);
+      setAiHasGenerated(true); // Show chat mode so user sees progress
+      generateTacticFromDrill(drillIdParam, {
+        sport, fieldType, numHomePlayers: homePlayers.length, numAwayPlayers: awayPlayers.length,
+        homeFormation, awayFormation,
+      })
+        .then((res) => {
+          const { animation, debug } = res.data;
+          if (debug) addDebugEntry(`AI Tactic from drill: ${drillTitle_}`, debug);
+          if (animation?.steps?.length) {
+            setSteps(animation.steps);
+            setCurrentStepIdx(0);
+            if (animation.title && !title) setTitle(animation.title);
+            setAiChat([
+              { role: "assistant", content: t("tactics.ai.generatedFromDrill") },
+            ]);
+          } else {
+            setAiChat([{ role: "assistant", content: t("tactics.ai.generationFailed") }]);
+          }
+        })
+        .catch((err) => {
+          const errDebug = err.response?.data?.debug;
+          if (errDebug) addDebugEntry(`AI Tactic from drill (failed)`, errDebug);
+          setAiChat([{ role: "assistant", content: err.response?.data?.error || t("tactics.ai.generationFailed") }]);
+        })
+        .finally(() => setAiLoading(false));
+    } else {
+      // Fallback: show the modal with the description pre-filled
       setAiPrompt(drillDesc);
       setShowAiModal(true);
     }

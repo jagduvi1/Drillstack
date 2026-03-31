@@ -15,6 +15,7 @@ const {
   buildRefineSessionPrompt,
   buildFeasibilityPrompt,
   buildTacticGenerationPrompt,
+  buildDrillTacticPrompt,
 } = require("./prompts");
 
 // ── Field dimensions for tactic board ────────────────────────────────────────
@@ -366,6 +367,72 @@ async function refineTacticAnimation(currentSteps, conversationHistory, sport = 
   }
 }
 
+async function generateTacticFromDrill(drill, options = {}) {
+  const sport = drill.sport || options.sport || "football";
+  const {
+    fieldType = "full",
+    numHomePlayers = 11,
+    numAwayPlayers = 0,
+    homeFormation = "4-4-2",
+    awayFormation = "4-4-2",
+  } = options;
+
+  const dims = getFieldDims(sport, fieldType);
+  const system = buildDrillTacticPrompt(drill, fieldType, dims, numHomePlayers, numAwayPlayers, sport);
+
+  const sportLabel = sport === "hockey" ? "ice hockey" : sport;
+  const prompt = `Create a detailed tactical animation for this ${sportLabel} drill:
+
+DRILL: "${drill.title}"
+
+DESCRIPTION:
+${drill.description}
+
+HOW IT WORKS:
+${drill.howItWorks || "(not specified)"}
+
+SETUP:
+- Players: ${drill.setup?.players || "not specified"}
+- Space: ${drill.setup?.space || "not specified"}
+- Equipment: ${drill.setup?.equipment?.join(", ") || "none specified"}
+- Duration: ${drill.setup?.duration || "not specified"}
+
+COACHING POINTS:
+${drill.coachingPoints?.length ? drill.coachingPoints.map((p, i) => `${i + 1}. ${p}`).join("\n") : "(none)"}
+
+VARIATIONS:
+${drill.variations?.length ? drill.variations.map((v, i) => `${i + 1}. ${v}`).join("\n") : "(none)"}
+
+COMMON MISTAKES TO AVOID:
+${drill.commonMistakes?.length ? drill.commonMistakes.map((m, i) => `${i + 1}. ${m}`).join("\n") : "(none)"}
+
+Sport: ${sportLabel}
+Field view: ${fieldType}
+Home formation: ${homeFormation} (${numHomePlayers} players)
+${numAwayPlayers > 0 ? `Away formation: ${awayFormation} (${numAwayPlayers} players)` : "No away team — this is a training drill."}
+Intensity: ${drill.intensity || "medium"}
+
+Generate a step-by-step animation that clearly shows how this drill is set up and executed. Use cones for markers if the setup mentions them. Include a ball if relevant.`;
+
+  // Use the best available model for drill-to-tactic generation
+  const { content: raw, debug } = await completeWithDebug(system, prompt, {
+    model: process.env.TACTIC_AI_MODEL || undefined,
+  });
+  try {
+    const result = parseJSON(raw);
+    if (result.steps && Array.isArray(result.steps)) {
+      result.steps = sanitizeTacticSteps(result.steps, dims);
+    }
+    return { animation: result, debug };
+  } catch {
+    return {
+      animation: null,
+      error: "Could not generate tactic animation. The drill may need more detail.",
+      debug,
+    };
+  }
+}
+
 module.exports = {
   complete,
   completeChat: require("./providers").completeChat,
@@ -381,5 +448,6 @@ module.exports = {
   checkSimilarity,
   checkSessionFeasibility,
   generateTacticAnimation,
+  generateTacticFromDrill,
   refineTacticAnimation,
 };

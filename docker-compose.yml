@@ -49,6 +49,7 @@ services:
       - QDRANT_URL=http://qdrant:6333
       - AI_PROVIDER=${AI_PROVIDER:-anthropic}
       - AI_MODEL=${AI_MODEL:-claude-sonnet-4-6}
+      - TACTIC_AI_MODEL=${TACTIC_AI_MODEL:-}
       - AI_API_KEY=${AI_API_KEY:-}
       - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY:-}
       - OPENAI_API_KEY=${OPENAI_API_KEY:-}

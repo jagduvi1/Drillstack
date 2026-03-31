@@ -72,15 +72,19 @@ async function completeChat(systemPrompt, messages) {
   return callProvider(settings.ai_provider, settings.ai_model, systemPrompt, messages);
 }
 
-async function completeWithDebug(systemPrompt, userPrompt) {
+async function completeWithDebug(systemPrompt, userPrompt, { model: modelOverride } = {}) {
   const settings = await getAISettings();
+  const provider = settings.ai_provider;
+  const model = modelOverride || settings.ai_model;
   const startTime = Date.now();
-  const content = await complete(systemPrompt, userPrompt);
+  const content = await callProvider(provider, model, systemPrompt, [
+    { role: "user", content: userPrompt },
+  ]);
   return {
     content,
     debug: {
-      provider: settings.ai_provider,
-      model: settings.ai_model,
+      provider,
+      model,
       systemPrompt,
       userPrompt,
       rawResponse: content,
