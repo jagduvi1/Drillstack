@@ -141,13 +141,8 @@ export default function GroupDetailPage() {
     if (!query.trim()) { setDrillResults([]); return; }
     setSearchLoading(true);
     try {
-      const res = await getDrills({ sport: query });
-      // Also try general fetch and filter client-side by title
-      const all = await getDrills({});
-      const filtered = (all.data.drills || []).filter((d) =>
-        d.title.toLowerCase().includes(query.toLowerCase())
-      );
-      setDrillResults(filtered.slice(0, 8));
+      const res = await getDrills({ search: query, limit: 8 });
+      setDrillResults(res.data.drills || []);
     } catch {
       setDrillResults([]);
     } finally {
