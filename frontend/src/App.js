@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, lazy, Suspense } from "react";
 import { Routes, Route } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import Sidebar from "./components/layout/Sidebar";
@@ -30,8 +30,8 @@ import GroupFormPage from "./pages/GroupFormPage";
 import GroupJoinPage from "./pages/GroupJoinPage";
 import PricingPage from "./pages/PricingPage";
 import PrivacyPolicyPage from "./pages/PrivacyPolicyPage";
-import TacticBoardListPage from "./pages/TacticBoardListPage";
-import TacticBoardPage from "./pages/TacticBoardPage";
+const TacticBoardListPage = lazy(() => import("./pages/TacticBoardListPage"));
+const TacticBoardPage = lazy(() => import("./pages/TacticBoardPage"));
 import { useAuth } from "./context/AuthContext";
 import { FiMenu } from "react-icons/fi";
 
@@ -83,6 +83,7 @@ export default function App() {
 
       <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
       <main className="app-main">
+        <Suspense fallback={<div className="loading">{t("common.loading")}</div>}>
         <Routes>
           <Route path="/" element={<ProtectedRoute><DashboardPage /></ProtectedRoute>} />
           <Route path="/today" element={<ProtectedRoute><TodayPage /></ProtectedRoute>} />
@@ -115,6 +116,7 @@ export default function App() {
             <Route path="/superadmin" element={<ProtectedRoute><SuperAdminPage /></ProtectedRoute>} />
           )}
         </Routes>
+        </Suspense>
       </main>
     </div>
   );

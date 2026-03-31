@@ -1,7 +1,7 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { useTranslation } from "react-i18next";
-import useUnsavedChanges from "../hooks/useUnsavedChanges";
+import useFormDirty from "../hooks/useFormDirty";
 import { getPlan, createPlan, updatePlan } from "../api/plans";
 import SessionPickerModal from "../components/plans/SessionPickerModal";
 import { useGroups } from "../context/GroupContext";
@@ -29,9 +29,7 @@ export default function PlanFormPage() {
     group: activeGroupId || "",
     visibility: activeGroupId ? "group" : "private",
   });
-  const [dirty, setDirty] = useState(false);
-  const loaded = useRef(false);
-  useUnsavedChanges(dirty);
+  const [dirty, setDirty, markLoaded] = useFormDirty(form);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [newGoal, setNewGoal] = useState("");
@@ -72,16 +70,12 @@ export default function PlanFormPage() {
         if ((p.goals && p.goals.length > 0) || (p.focusAreas && p.focusAreas.length > 0)) {
           setShowExtras(true);
         }
-        loaded.current = true;
+        markLoaded();
       });
     } else {
-      loaded.current = true;
+      markLoaded();
     }
   }, [id, isEdit]);
-
-  useEffect(() => {
-    if (loaded.current) setDirty(true);
-  }, [form]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();

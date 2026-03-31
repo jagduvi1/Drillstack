@@ -36,6 +36,7 @@
   display: flex;
   align-items: center;
   gap: 16px;
+  flex-wrap: wrap;
   position: sticky;
   top: 0;
   z-index: 100;
@@ -87,12 +88,18 @@
   border-bottom: 1px solid var(--sa-border);
   display: flex;
   padding: 0 20px;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
 }
+.sa-tabs::-webkit-scrollbar { display: none; }
 
 .sa-tab {
   background: transparent;
   border: none;
   border-bottom: 2px solid transparent;
+  white-space: nowrap;
+  flex-shrink: 0;
   color: var(--sa-text-dim);
   font-family: var(--sa-font);
   font-size: 12px;
