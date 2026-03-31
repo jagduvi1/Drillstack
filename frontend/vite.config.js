@@ -1,5 +1,16 @@
 import { defineConfig, transformWithEsbuild } from "vite";
 import react from "@vitejs/plugin-react";
+import { execSync } from "child_process";
+
+function gitVersion() {
+  try {
+    const hash = execSync("git rev-parse --short HEAD").toString().trim();
+    const date = execSync("git log -1 --format=%cd --date=short").toString().trim();
+    return `${date} (${hash})`;
+  } catch {
+    return "dev";
+  }
+}
 
 // Treat .js files containing JSX the same as .jsx files.
 // This matches CRA / other MERN toolchain behavior.
@@ -17,6 +28,9 @@ function jsxInJsPlugin() {
 }
 
 export default defineConfig({
+  define: {
+    __APP_VERSION__: JSON.stringify(gitVersion()),
+  },
   plugins: [jsxInJsPlugin(), react()],
   optimizeDeps: {
     esbuildOptions: {
