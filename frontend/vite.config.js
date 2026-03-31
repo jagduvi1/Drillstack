@@ -3,6 +3,7 @@ import react from "@vitejs/plugin-react";
 import { execSync } from "child_process";
 
 function gitVersion() {
+  if (process.env.VITE_APP_VERSION) return process.env.VITE_APP_VERSION;
   try {
     const hash = execSync("git rev-parse --short HEAD").toString().trim();
     const date = execSync("git log -1 --format=%cd --date=short").toString().trim();
