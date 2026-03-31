@@ -163,6 +163,9 @@ export default function Sidebar({ isOpen, onClose }) {
           <button className="btn btn-secondary btn-sm" onClick={logout}>
             <FiLogOut /> {t("nav.logout")}
           </button>
+          <div className="text-xs text-muted" style={{ marginTop: "0.75rem", opacity: 0.6, fontSize: "0.65rem" }}>
+            v {__APP_VERSION__}
+          </div>
         </div>
       </aside>
     </>
