@@ -10,15 +10,20 @@
 
 ## What it does
 
-DrillStack is a training knowledge base where coaches can:
+DrillStack is a complete training management platform for coaches across all sports:
 
-- **Author drills** — with purpose, instruction focus, guided discovery questions, rules, success criteria, variations, common mistakes, diagrams, and post-session reflections
-- **Build training sessions** — structured as Information → Warm-up → Train the Purpose → Cool-down → Reflection, with auto-calculated duration, equipment aggregation, and conflict warnings
-- **Plan periods / seasons** — parallel focus blocks, weekly session assignment, observation notes, and coverage tracking
-- **Search** — semantic (Qdrant), keyword (Meilisearch, feature-flagged), or hybrid
-- **AI assistance** — tag suggestions, guided questions, common mistakes, variations, and summaries (provider-agnostic: OpenAI, Anthropic, Ollama)
-
-All taxonomies (skills, roles, game forms, equipment, didactic strategies…) are **configurable at runtime** — no code changes needed to add a new sport or concept.
+- **Drill Library** — create, fork, version, star, and share drills with descriptions, coaching points, variations, safety notes, and skill progression chains
+- **Tactic Boards** — interactive animated boards for 8+ sports (football, handball, hockey, basketball, futsal, floorball, volleyball, gymnastics) with player positions, arrows, and step-by-step animations
+- **Training Sessions** — build sessions with blocks (drills, stations, matchplay, breaks), calendar scheduling, and auto-calculated duration + equipment lists
+- **Period Plans** — season planning with weekly session assignment and focus areas
+- **On-the-field execution** — session timer with block navigation, attendance tracking (tap players present), and AI-powered team splitting
+- **Teams & Clubs** — role-based groups (owner/admin/trainer/viewer) with starred drill inheritance, player rosters, and club verification
+- **User Contributions** — any user can add YouTube videos, drawings, and tactic boards to public drills with visibility controls (public/private/team)
+- **AI Assistance** — drill generation, session suggestions, team splitting, and refinement (OpenAI, Anthropic, or Ollama)
+- **Search** — semantic (Qdrant), keyword (Meilisearch), text filter, and drill-specific filters (sport, skill level, apparatus)
+- **GDPR Compliant** — data export, account deletion, audit log retention, EXIF stripping, privacy policy
+- **Reporting** — flag inappropriate content for admin review
+- **Print/Export** — clean printable session plans
 
 ---
 
@@ -94,44 +99,83 @@ See [.env.example](.env.example) for the full list. Key variables:
 ## API overview
 
 ```
+# Auth & Account
 POST   /api/auth/register
 POST   /api/auth/login
 GET    /api/auth/me
+PUT    /api/auth/preferences
+GET    /api/auth/export          # GDPR: download all data
+DELETE /api/auth/account         # GDPR: delete account
 
-GET    /api/taxonomy?category=&sport=
-POST   /api/taxonomy
-DELETE /api/taxonomy/:id
-
-GET    /api/drills
+# Drills
+GET    /api/drills               # ?sport=&skillLevel=&search=&starred=
 POST   /api/drills
 GET    /api/drills/:id
 PUT    /api/drills/:id
 DELETE /api/drills/:id
-POST   /api/drills/:id/diagrams
-POST   /api/drills/:id/reflections
+POST   /api/drills/:id/fork
+POST   /api/drills/:id/star
+POST   /api/drills/:id/claim
+GET    /api/drills/:id/versions
+GET    /api/drills/:id/progressions
 
-GET    /api/sessions
+# Sessions
+GET    /api/sessions             # ?dateFrom=&dateTo=&sport=&group=
 POST   /api/sessions
 GET    /api/sessions/:id
 PUT    /api/sessions/:id
 DELETE /api/sessions/:id
+GET    /api/sessions/today
+PUT    /api/sessions/:id/attendance
 
+# Plans
 GET    /api/plans
 POST   /api/plans
 GET    /api/plans/:id
 PUT    /api/plans/:id
 DELETE /api/plans/:id
-GET    /api/plans/:id/coverage
 
+# Tactics
+GET    /api/tactics
+POST   /api/tactics
+GET    /api/tactics/:id
+PUT    /api/tactics/:id
+POST   /api/tactics/:id/clone
+GET    /api/tactics/:id/versions
+
+# Groups (Teams & Clubs)
+GET    /api/groups
+POST   /api/groups
+GET    /api/groups/:id
+POST   /api/groups/:id/members
+POST   /api/groups/:id/star-drill/:drillId
+PUT    /api/groups/:id/verify    # Admin: verify club
+
+# Players
+GET    /api/players/:groupId
+POST   /api/players/:groupId
+PUT    /api/players/:groupId/:playerId
+DELETE /api/players/:groupId/:playerId
+
+# Contributions (Videos, Drawings, Tactics on drills)
+GET    /api/contributions/:drillId
+POST   /api/contributions/:drillId/video
+POST   /api/contributions/:drillId/drawing
+POST   /api/contributions/:drillId/tactic
+
+# AI
+POST   /api/ai/generate          # Generate drill
+POST   /api/ai/refine/:id        # Refine drill with AI
+POST   /api/ai/split-simple      # Random equal split
+POST   /api/ai/split-smart       # AI-powered balanced split
+
+# Reports
+POST   /api/reports
+GET    /api/reports               # Admin only
+
+# Search
 GET    /api/search/semantic?q=
 GET    /api/search/keyword?q=
-GET    /api/search/hybrid?q=
-
-POST   /api/ai/suggest-tags
-POST   /api/ai/guided-questions
-POST   /api/ai/common-mistakes
-POST   /api/ai/variations
-POST   /api/ai/summarize
 ```
 
 ---
