@@ -31,6 +31,7 @@
     "unknown": "Unknown",
     "change": "Change",
     "saveFailed": "Save failed",
+    "unsavedWarning": "You have unsaved changes. Are you sure you want to leave?",
     "checking": "Checking..."
   },
   "nav": {
@@ -751,6 +752,7 @@
     "cone": "Cone",
     "player": "Player",
     "removePiece": "Remove selected",
+    "labelPlaceholder": "Label",
     "tools": {
       "select": "Select & Move",
       "arrow": "Run / Movement",

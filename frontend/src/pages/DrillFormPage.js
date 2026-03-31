@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { useNavigate, useParams, Link } from "react-router-dom";
 import { useTranslation } from "react-i18next";
+import useUnsavedChanges from "../hooks/useUnsavedChanges";
 import { getDrill, createDrill, updateDrill, checkSimilarity, uploadDiagram } from "../api/drills";
 import { getTactics } from "../api/tactics";
 import { generateDrill, refineDraft } from "../api/ai";
@@ -34,6 +35,9 @@ export default function DrillFormPage() {
 
   const { form, setForm, set, setNested, addToList, updateInList, removeFromList } = useFormState(EMPTY_DRILL);
   const setSetup = (field, value) => setNested("setup", field, value);
+  const [dirty, setDirty] = useState(false);
+  const loaded = useRef(false);
+  useUnsavedChanges(dirty);
   const [aiPrompt, setAiPrompt] = useState("");
   const [loading, setLoading] = useState(false);
   const [generating, setGenerating] = useState(false);
@@ -77,12 +81,20 @@ export default function DrillFormPage() {
         });
         setDiagrams(d.diagrams || []);
         setGenerated(true);
+        loaded.current = true;
       });
       getTactics({ drill: id })
         .then((res) => setLinkedTactics(res.data.boards || []))
         .catch(() => {});
+    } else {
+      loaded.current = true;
     }
   }, [id, isEdit]);
+
+  // Mark dirty on form changes (skip initial load)
+  useEffect(() => {
+    if (loaded.current) setDirty(true);
+  }, [form]);
 
   // setSetup is aliased from setNested("setup", field, value) via useFormState
 
@@ -186,6 +198,7 @@ export default function DrillFormPage() {
             ])
           : undefined,
       };
+      setDirty(false);
       if (isEdit) {
         await updateDrill(id, form);
         navigate("/drills");
