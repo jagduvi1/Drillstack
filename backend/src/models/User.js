@@ -15,6 +15,7 @@ const userSchema = new mongoose.Schema(
     role: { type: String, enum: ["coach", "admin"], default: "coach" },
     sports: [{ type: String, trim: true }],
     preferredSport: { type: String, default: "", trim: true },
+    hideEmail: { type: Boolean, default: false },
     starredDrills: [{ type: mongoose.Schema.Types.ObjectId, ref: "Drill" }],
     // Drills the user has explicitly unstarred (overrides inherited group/club stars)
     unstarredDrills: [{ type: mongoose.Schema.Types.ObjectId, ref: "Drill" }],

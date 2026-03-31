@@ -29,6 +29,7 @@ import GroupDetailPage from "./pages/GroupDetailPage";
 import GroupFormPage from "./pages/GroupFormPage";
 import GroupJoinPage from "./pages/GroupJoinPage";
 import PricingPage from "./pages/PricingPage";
+import PrivacyPolicyPage from "./pages/PrivacyPolicyPage";
 import TacticBoardListPage from "./pages/TacticBoardListPage";
 import TacticBoardPage from "./pages/TacticBoardPage";
 import { useAuth } from "./context/AuthContext";
@@ -107,6 +108,7 @@ export default function App() {
           <Route path="/groups/join/:code" element={<ProtectedRoute><GroupJoinPage /></ProtectedRoute>} />
           <Route path="/groups/:id" element={<ProtectedRoute><GroupDetailPage /></ProtectedRoute>} />
           <Route path="/pricing" element={<ProtectedRoute><PricingPage /></ProtectedRoute>} />
+          <Route path="/privacy" element={<PrivacyPolicyPage />} />
           <Route path="/search" element={<ProtectedRoute><SearchPage /></ProtectedRoute>} />
           <Route path="/notifications" element={<ProtectedRoute><NotificationsPage /></ProtectedRoute>} />
           {user.isSuperAdmin && (
