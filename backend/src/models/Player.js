@@ -7,7 +7,6 @@ const playerSchema = new Schema(
     group: { type: Schema.Types.ObjectId, ref: "Group", required: true, index: true },
     position: { type: String, default: "", trim: true },
     number: { type: Number, default: null },
-    birthYear: { type: Number, default: null },
     strengths: [{ type: String, trim: true }],
     weaknesses: [{ type: String, trim: true }],
     notes: { type: String, default: "" },

@@ -208,13 +208,119 @@ router.get("/me", standardLimiter, authenticate, (req, res) => {
 // PUT /api/auth/preferences — update user preferences
 router.put("/preferences", standardLimiter, authenticate, async (req, res, next) => {
   try {
-    const allowed = ["preferredSport", "name"];
+    const allowed = ["preferredSport", "name", "hideEmail"];
     const update = {};
     for (const key of allowed) {
-      if (req.body[key] !== undefined) update[key] = String(req.body[key]).slice(0, 100);
+      if (req.body[key] !== undefined) {
+        update[key] = key === "hideEmail" ? Boolean(req.body[key]) : String(req.body[key]).slice(0, 100);
+      }
     }
     const user = await User.findByIdAndUpdate(req.user._id, { $set: update }, { new: true });
     res.json({ user: user.toJSON() });
+  } catch (err) {
+    next(err);
+  }
+});
+
+// GET /api/auth/export — download all personal data (GDPR Article 20)
+router.get("/export", standardLimiter, authenticate, async (req, res, next) => {
+  try {
+    const Drill = require("../../models/Drill");
+    const TrainingSession = require("../../models/TrainingSession");
+    const Group = require("../../models/Group");
+    const Notification = require("../../models/Notification");
+    const DrillContribution = require("../../models/DrillContribution");
+    const TacticBoard = require("../../models/TacticBoard");
+    const AuditLog = require("../../models/AuditLog");
+    const Player = require("../../models/Player");
+
+    const userId = req.user._id;
+    const [user, drills, sessions, groups, notifications, contributions, tactics, players, auditLogs] = await Promise.all([
+      User.findById(userId),
+      Drill.find({ createdBy: userId }).select("-__v").lean(),
+      TrainingSession.find({ createdBy: userId }).select("-__v").lean(),
+      Group.find({ "members.user": userId }).select("name type sport").lean(),
+      Notification.find({ userId }).select("-__v").lean(),
+      DrillContribution.find({ createdBy: userId }).select("-__v").lean(),
+      TacticBoard.find({ createdBy: userId }).select("title sport fieldType createdAt").lean(),
+      Player.find({ createdBy: userId }).select("-__v").lean(),
+      AuditLog.find({ userId }).select("action createdAt details").lean(),
+    ]);
+
+    const exportData = {
+      exportDate: new Date().toISOString(),
+      account: { name: user.name, email: user.email, role: user.role, sports: user.sports, preferredSport: user.preferredSport, createdAt: user.createdAt },
+      drills: drills.length,
+      drillData: drills,
+      sessions: sessions.length,
+      sessionData: sessions,
+      groups: groups,
+      notifications: notifications,
+      contributions: contributions,
+      tacticBoards: tactics,
+      players: players,
+      activityLog: auditLogs,
+    };
+
+    res.setHeader("Content-Disposition", `attachment; filename="drillstack-export-${Date.now()}.json"`);
+    res.setHeader("Content-Type", "application/json");
+    res.json(exportData);
+  } catch (err) {
+    next(err);
+  }
+});
+
+// DELETE /api/auth/account — delete account and all personal data (GDPR Article 17)
+router.delete("/account", standardLimiter, authenticate, async (req, res, next) => {
+  try {
+    const Drill = require("../../models/Drill");
+    const TrainingSession = require("../../models/TrainingSession");
+    const Group = require("../../models/Group");
+    const Notification = require("../../models/Notification");
+    const DrillContribution = require("../../models/DrillContribution");
+    const TacticBoard = require("../../models/TacticBoard");
+    const AuditLog = require("../../models/AuditLog");
+    const Player = require("../../models/Player");
+    const Report = require("../../models/Report");
+
+    const userId = req.user._id;
+
+    // Remove user from all groups (but keep team data intact)
+    await Group.updateMany(
+      { "members.user": userId },
+      { $pull: { members: { user: userId } } }
+    );
+
+    // Anonymize team-shared content (keep it, remove personal link)
+    await Promise.all([
+      // Team sessions/drills: anonymize createdBy instead of deleting
+      TrainingSession.updateMany({ createdBy: userId, group: { $ne: null } }, { $set: { createdBy: null } }),
+      Drill.updateMany({ createdBy: userId, $or: [{ parentDrill: { $ne: null } }] }, { $set: { createdBy: null } }),
+      // Players belong to the team — anonymize creator
+      Player.updateMany({ createdBy: userId }, { $set: { createdBy: null } }),
+      // Reports — anonymize reporter
+      Report.updateMany({ reportedBy: userId }, { $set: { reportedBy: null } }),
+    ]);
+
+    // Delete personal content (not shared with teams)
+    await Promise.all([
+      Drill.deleteMany({ createdBy: userId }),
+      TrainingSession.deleteMany({ createdBy: userId }),
+      DrillContribution.deleteMany({ createdBy: userId }),
+      TacticBoard.deleteMany({ createdBy: userId }),
+      Notification.deleteMany({ userId }),
+    ]);
+
+    // Anonymize audit logs (keep for security, remove identity)
+    await AuditLog.updateMany(
+      { userId },
+      { $set: { userId: null, email: "", ip: "" } }
+    );
+
+    // Delete user account
+    await User.findByIdAndDelete(userId);
+
+    res.json({ message: "Account and all personal data deleted" });
   } catch (err) {
     next(err);
   }

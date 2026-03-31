@@ -29,4 +29,24 @@ async function runCleanup() {
   }
 }
 
-module.exports = { runCleanup };
+// Anonymize audit logs older than 12 months (GDPR: IP addresses are personal data)
+const AUDIT_RETENTION_MONTHS = 12;
+
+async function cleanupAuditLogs() {
+  const AuditLog = require("../models/AuditLog");
+  const cutoff = new Date();
+  cutoff.setMonth(cutoff.getMonth() - AUDIT_RETENTION_MONTHS);
+  try {
+    const result = await AuditLog.updateMany(
+      { createdAt: { $lt: cutoff }, ip: { $ne: "" } },
+      { $set: { ip: "", email: "" } }
+    );
+    if (result.modifiedCount > 0) {
+      console.log(`Audit cleanup: anonymized ${result.modifiedCount} old log(s)`);
+    }
+  } catch (err) {
+    console.error("Audit cleanup error:", err.message);
+  }
+}
+
+module.exports = { runCleanup, cleanupAuditLogs };
