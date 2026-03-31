@@ -782,6 +782,8 @@
       "generating": "Generating...",
       "generationFailed": "Could not generate the animation. Try a more detailed description.",
       "generated": "Tactic board generated! You can now ask me to make changes.",
+      "generatingFromDrill": "Generating tactic board from your drill... This uses our best AI model for the most accurate result.",
+      "generatedFromDrill": "Tactic board generated from your drill! Review the animation and ask me to make any changes — e.g. 'make it a static setup with no movement' or 'move the defenders wider'.",
       "refined": "Board updated with your changes!",
       "thinking": "Thinking...",
       "you": "You",

@@ -533,6 +533,22 @@ If the request is unclear or you need clarification, return:
 
 Return valid JSON only.`;
 
+function buildDrillTacticPrompt(drill, fieldType, dims, numHomePlayers, numAwayPlayers, sport) {
+  const base = buildTacticGenerationPrompt(fieldType, dims, numHomePlayers, numAwayPlayers, sport);
+
+  return `${base}
+
+IMPORTANT — DRILL CONTEXT:
+You have been given a complete coaching drill with structured information. Use ALL of it to produce the most accurate, realistic tactical animation possible. Think carefully about:
+- The setup: how many players, what space, what equipment — position cones and players accordingly.
+- How it works: this is the core movement pattern. The animation must show each phase step by step.
+- Coaching points: these reveal the intent — use them to make player movement purposeful and realistic.
+- Variations: if relevant, show the primary version of the drill.
+- Common mistakes: avoid these in your animation (e.g. if "players bunch up" is a mistake, space them well).
+
+Your animation should be detailed enough that a coach watching it can understand the full drill without reading the text. Show the movement flow clearly with 4-8 well-paced steps. Use arrows to highlight key passes and runs. Position cones where the drill setup requires them.`;
+}
+
 module.exports = {
   DRILL_SYSTEM_PROMPT,
   REFINE_DRILL_PROMPT,
@@ -545,4 +561,5 @@ module.exports = {
   buildRefineSessionPrompt,
   buildFeasibilityPrompt,
   buildTacticGenerationPrompt,
+  buildDrillTacticPrompt,
 };

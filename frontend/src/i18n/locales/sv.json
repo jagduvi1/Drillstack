@@ -782,6 +782,8 @@
       "generating": "Genererar...",
       "generationFailed": "Kunde inte generera animationen. Prova en mer detaljerad beskrivning.",
       "generated": "Taktiktavla skapad! Du kan nu be mig göra ändringar.",
+      "generatingFromDrill": "Genererar taktiktavla från din övning... Detta använder vår bästa AI-modell för bästa resultat.",
+      "generatedFromDrill": "Taktiktavla skapad från din övning! Granska animationen och be mig göra ändringar — t.ex. 'gör det till en statisk uppställning utan rörelse' eller 'flytta försvararna bredare'.",
       "refined": "Tavlan uppdaterad med dina ändringar!",
       "thinking": "Tänker...",
       "you": "Du",

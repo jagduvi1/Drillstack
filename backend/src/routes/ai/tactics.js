@@ -33,6 +33,33 @@ router.post(
   }
 );
 
+// POST /api/ai/generate-tactic-from-drill/:id — generate tactic from full drill context (uses best model)
+router.post(
+  "/generate-tactic-from-drill/:id",
+  authenticate,
+  checkAiLimit,
+  async (req, res, next) => {
+    try {
+      const drill = await Drill.findById(req.params.id);
+      if (!drill) return res.status(404).json({ error: "Drill not found" });
+
+      const { sport, fieldType, numHomePlayers, numAwayPlayers, homeFormation, awayFormation } = req.body;
+      const { animation, error, debug } = await aiService.generateTacticFromDrill(drill, {
+        sport: sport || drill.sport,
+        fieldType,
+        numHomePlayers,
+        numAwayPlayers,
+        homeFormation,
+        awayFormation,
+      });
+      if (error) return res.status(422).json({ error, debug: sanitizeDebug(debug) });
+      res.json({ animation, debug: sanitizeDebug(debug) });
+    } catch (err) {
+      next(err);
+    }
+  }
+);
+
 // POST /api/ai/generate-tactic-animation — generate tactic board animation from drill description
 router.post(
   "/generate-tactic-animation",
