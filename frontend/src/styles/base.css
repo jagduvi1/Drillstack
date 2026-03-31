@@ -136,6 +136,35 @@ a {
   min-width: 0;
 }
 
+/* ── Super Admin: full-width, no sidebar ── */
+body.superadmin-active .app-sidebar,
+body.superadmin-active .mobile-header,
+body.superadmin-active .sidebar-backdrop { display: none !important; }
+body.superadmin-active .app-layout { padding-top: 0; }
+body.superadmin-active .app-main { max-width: 100%; padding: 1rem 1.5rem; }
+
+.superadmin-page { width: 100%; }
+.superadmin-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+}
+.superadmin-tabs {
+  display: flex;
+  gap: 0.5rem;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  padding-bottom: 0.5rem;
+  border-bottom: 1px solid var(--color-border);
+  margin-bottom: 1rem;
+  scrollbar-width: none;
+}
+.superadmin-tabs::-webkit-scrollbar { display: none; }
+.superadmin-tabs .btn { white-space: nowrap; flex-shrink: 0; }
+
 /* --- Mobile Header (visible < 768px) --- */
 .mobile-header {
   display: none; /* hidden on desktop */
