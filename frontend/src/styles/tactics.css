@@ -170,6 +170,7 @@
 .tactic-canvas-container canvas {
   display: block;
   background: #1a472a;
+  touch-action: none;
 }
 .tactic-canvas-container.tactic-pannable {
   cursor: grab;
@@ -482,6 +483,7 @@
   border: none;
   border-radius: 0;
   margin: 0;
+  touch-action: none;
 }
 
 /* Auto-rotate: landscape pitch on portrait screen */
