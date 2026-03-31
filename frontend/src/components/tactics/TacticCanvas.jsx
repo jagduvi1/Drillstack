@@ -271,7 +271,21 @@ export default function TacticCanvas({
 
   // ── Stage mouse handlers (drawing + pan) ──────────────────────────────
   const handleStageMouseDown = useCallback((e) => {
-    const btn = e.evt.button;
+    const isTouch = e.evt.type?.startsWith("touch");
+    const btn = isTouch ? 0 : e.evt.button;
+    const clientX = isTouch ? e.evt.touches[0]?.clientX : e.evt.clientX;
+    const clientY = isTouch ? e.evt.touches[0]?.clientY : e.evt.clientY;
+
+    // Two-finger touch = pan (always available on touch devices)
+    if (isTouch && e.evt.touches.length >= 2) {
+      e.evt.preventDefault();
+      const mid = {
+        x: (e.evt.touches[0].clientX + e.evt.touches[1].clientX) / 2,
+        y: (e.evt.touches[0].clientY + e.evt.touches[1].clientY) / 2,
+      };
+      panState.current = { startX: mid.x, startY: mid.y, origX: panOffset.x, origY: panOffset.y, isTouch: true };
+      return;
+    }
 
     // Pan: right-click or middle-click anywhere when zoom != 1
     // Also: left-click on empty background (not on a piece) when not drawing
@@ -281,7 +295,7 @@ export default function TacticCanvas({
       const isBgLeft = btn === 0 && isBackground && !isDrawTool;
       if (isRightOrMiddle || isBgLeft) {
         e.evt.preventDefault();
-        panState.current = { startX: e.evt.clientX, startY: e.evt.clientY, origX: panOffset.x, origY: panOffset.y };
+        panState.current = { startX: clientX, startY: clientY, origX: panOffset.x, origY: panOffset.y };
         containerRef.current.style.cursor = "grabbing";
         return;
       }
@@ -296,7 +310,19 @@ export default function TacticCanvas({
   const handleStageMouseMove = useCallback((e) => {
     // Pan movement (handled in Stage events for responsiveness)
     if (panState.current) {
-      applyPan(e.evt.clientX, e.evt.clientY);
+      const isTouch = e.evt.type?.startsWith("touch");
+      let cx, cy;
+      if (isTouch && panState.current.isTouch && e.evt.touches.length >= 2) {
+        cx = (e.evt.touches[0].clientX + e.evt.touches[1].clientX) / 2;
+        cy = (e.evt.touches[0].clientY + e.evt.touches[1].clientY) / 2;
+      } else if (isTouch) {
+        cx = e.evt.touches[0]?.clientX;
+        cy = e.evt.touches[0]?.clientY;
+      } else {
+        cx = e.evt.clientX;
+        cy = e.evt.clientY;
+      }
+      applyPan(cx, cy);
       return;
     }
     // Arrow drawing

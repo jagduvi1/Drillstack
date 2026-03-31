@@ -681,7 +681,7 @@ export default function TacticBoardPage() {
       {/* Canvas */}
       <TacticCanvas
         pieces={displayedPieces} arrows={displayedArrows} ghostPieces={ghostPieces}
-        tool={DRAW_TOOLS.includes(tool) ? tool : tool === "ballPass" ? "pass" : tool}
+        tool={isFullscreen ? "select" : DRAW_TOOLS.includes(tool) ? tool : tool === "ballPass" ? "pass" : tool}
         isPlaying={isPlaying}
         sport={sport}
         onPieceMove={handlePieceMove} onArrowCreate={(arrow) => {
