@@ -125,6 +125,16 @@
   font-weight: 500;
   flex-shrink: 0;
 }
+.tactic-label-input {
+  width: 5rem;
+  padding: 0.15rem 0.4rem;
+  border: 1px solid #fbbf24;
+  border-radius: var(--radius);
+  background: #fff;
+  font-size: 0.85rem;
+  font-weight: 600;
+  text-align: center;
+}
 .tactic-color-dot {
   display: inline-block;
   width: 12px;

@@ -31,6 +31,7 @@
     "unknown": "Okänd",
     "change": "Ändra",
     "saveFailed": "Kunde inte spara",
+    "unsavedWarning": "Du har osparade ändringar. Är du säker på att du vill lämna?",
     "checking": "Kontrollerar..."
   },
   "nav": {
@@ -751,6 +752,7 @@
     "cone": "Kon",
     "player": "Spelare",
     "removePiece": "Ta bort markerad",
+    "labelPlaceholder": "Etikett",
     "tools": {
       "select": "Välj & Flytta",
       "arrow": "Löpning / Rörelse",

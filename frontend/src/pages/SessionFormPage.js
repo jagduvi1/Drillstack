@@ -1,6 +1,7 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { useTranslation } from "react-i18next";
+import useUnsavedChanges from "../hooks/useUnsavedChanges";
 import { getSession, createSession, updateSession } from "../api/sessions";
 import { suggestSession } from "../api/ai";
 import BlockList from "../components/sessions/BlockList";
@@ -33,6 +34,9 @@ export default function SessionFormPage() {
 
   const { groups, activeGroupId } = useGroups();
   const [form, setForm] = useState({ ...EMPTY_SESSION, group: activeGroupId || "", visibility: activeGroupId ? "group" : "private" });
+  const [dirty, setDirty] = useState(false);
+  const loaded = useRef(false);
+  useUnsavedChanges(dirty);
   const [mode, setMode] = useState("manual"); // "manual" | "ai"
   const [aiPrompt, setAiPrompt] = useState("");
   const [aiNumPlayers, setAiNumPlayers] = useState("");
@@ -86,9 +90,15 @@ export default function SessionFormPage() {
           });
         })
         .catch(() => setError(t("sessions.failedToLoad")))
-        .finally(() => setLoading(false));
+        .finally(() => { setLoading(false); loaded.current = true; });
+    } else {
+      loaded.current = true;
     }
   }, [id, isEdit]);
+
+  useEffect(() => {
+    if (loaded.current) setDirty(true);
+  }, [form]);
 
   // Compute total duration
   const totalDuration = form.blocks.reduce((sum, block) => {
@@ -266,6 +276,7 @@ export default function SessionFormPage() {
           stations: (b.stations || []).map(({ _drillTitle, ...rest }) => rest),
         })),
       };
+      setDirty(false);
       if (isEdit) {
         await updateSession(id, payload);
       } else {

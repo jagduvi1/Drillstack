@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import { useParams, useNavigate, useSearchParams, Link } from "react-router-dom";
 import { useTranslation } from "react-i18next";
+import useUnsavedChanges from "../hooks/useUnsavedChanges";
 import {
   FiArrowLeft, FiSave,
   FiTrash2, FiPlus, FiPlay, FiPause, FiSkipBack, FiSkipForward,
@@ -53,6 +54,8 @@ export default function TacticBoardPage() {
   const [selectedPieceId, setSelectedPieceId] = useState(null);
   const [isSaving, setIsSaving] = useState(false);
   const [saveMsg, setSaveMsg] = useState("");
+  const [dirty, setDirty] = useState(false);
+  useUnsavedChanges(dirty);
   const [zoom, setZoom] = useState(1);
 
   // ── Coach mode (interactive whiteboard — no editing, just show & draw) ──
@@ -160,6 +163,7 @@ export default function TacticBoardPage() {
 
   // ── Piece mutation ──────────────────────────────────────────────────────
   const handlePieceMove = useCallback((pieceId, x, y) => {
+    setDirty(true);
     setSteps((prev) => {
       const next = [...prev];
       const step = { ...next[currentStepIdx] };
@@ -171,6 +175,7 @@ export default function TacticBoardPage() {
 
   // ── Arrow ops ───────────────────────────────────────────────────────────
   const handleArrowCreate = useCallback((arrow) => {
+    setDirty(true);
     setSteps((prev) => {
       const next = [...prev];
       const step = { ...next[currentStepIdx] };
@@ -181,6 +186,7 @@ export default function TacticBoardPage() {
   }, [currentStepIdx]);
 
   const handleArrowDelete = useCallback((arrowId) => {
+    setDirty(true);
     setSteps((prev) => {
       const next = [...prev];
       const step = { ...next[currentStepIdx] };
@@ -192,6 +198,7 @@ export default function TacticBoardPage() {
 
   // ── Step management ─────────────────────────────────────────────────────
   const addStep = () => {
+    setDirty(true);
     const last = steps[steps.length - 1];
     const newStep = {
       id: `step-${Date.now()}`, label: `Step ${steps.length + 1}`, duration: 1500,
@@ -203,6 +210,7 @@ export default function TacticBoardPage() {
 
   const deleteStep = (idx) => {
     if (steps.length <= 1) return;
+    setDirty(true);
     setSteps((prev) => prev.filter((_, i) => i !== idx));
     setCurrentStepIdx((prev) => Math.min(prev, steps.length - 2));
   };
@@ -310,6 +318,17 @@ export default function TacticBoardPage() {
     setSelectedPieceId(null);
   }, [selectedPieceId, currentStepIdx]);
 
+  const handlePieceLabel = useCallback((pieceId, label) => {
+    setDirty(true);
+    // Update the label across ALL steps so the name stays consistent in animations
+    setSteps((prev) =>
+      prev.map((step) => ({
+        ...step,
+        pieces: step.pieces.map((p) => p.id === pieceId ? { ...p, label } : p),
+      }))
+    );
+  }, []);
+
   // ── Playback engine ─────────────────────────────────────────────────────
   const playStartIdx = useRef(0);
   useEffect(() => {
@@ -388,6 +407,7 @@ export default function TacticBoardPage() {
         const res = await createTactic(data);
         navigate(`/tactics/${res.data._id}`, { replace: true });
       }
+      setDirty(false);
       setSaveMsg(t("tactics.boardSaved"));
       setTimeout(() => setSaveMsg(""), 2000);
     } catch {
@@ -587,7 +607,7 @@ export default function TacticBoardPage() {
         ) : (
           <>
             <Link to="/tactics" className="btn btn-secondary btn-sm"><FiArrowLeft /> <span className="tactic-hide-xs">{t("tactics.title")}</span></Link>
-            <input className="tactic-title-input" value={title} onChange={(e) => setTitle(e.target.value)} placeholder={t("tactics.untitled")} />
+            <input className="tactic-title-input" value={title} onChange={(e) => { setTitle(e.target.value); setDirty(true); }} placeholder={t("tactics.untitled")} />
             {drillId && (
               <Link to={`/drills/${drillId}`} className="tactic-drill-link" title={drillTitle || t("tactics.linkedDrill")}>
                 <FiTarget /> <span className="tactic-hide-xs">{drillTitle || t("tactics.linkedDrill")}</span>
@@ -638,11 +658,20 @@ export default function TacticBoardPage() {
       {selectedPiece && !isPlaying && !isFullscreen && !coachMode && (
         <div className="tactic-selection-bar">
           <span>
-            {selectedPiece.type === "ball" ? t("tactics.ball") : selectedPiece.type === "cone" ? t("tactics.cone") : `${t("tactics.player")} ${selectedPiece.label}`}
+            {selectedPiece.type === "ball" ? t("tactics.ball") : selectedPiece.type === "cone" ? t("tactics.cone") : t("tactics.player")}
             {selectedPiece.team !== "neutral" && (
               <span className="tactic-color-dot" style={{ background: selectedPiece.team === "home" ? homeColor : awayColor, marginLeft: 6 }} />
             )}
           </span>
+          {selectedPiece.type === "player" && (
+            <input
+              className="tactic-label-input"
+              value={selectedPiece.label}
+              onChange={(e) => handlePieceLabel(selectedPiece.id, e.target.value)}
+              placeholder={t("tactics.labelPlaceholder")}
+              maxLength={5}
+            />
+          )}
           <button className="btn btn-danger btn-sm" onClick={deleteSelectedPiece}>
             <FiTrash2 /> {t("tactics.removePiece")}
           </button>
