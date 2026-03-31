@@ -1,10 +1,17 @@
 import { useState, useEffect, useCallback } from "react";
 import { useTranslation } from "react-i18next";
+import { Link } from "react-router-dom";
+import { FiArrowLeft } from "react-icons/fi";
 import * as adminApi from "../api/superadmin";
 
 const TABS = ["overview", "services", "database", "ai", "users", "audit"];
 
 export default function SuperAdminPage() {
+  // Hide sidebar while on this page
+  useEffect(() => {
+    document.body.classList.add("superadmin-active");
+    return () => document.body.classList.remove("superadmin-active");
+  }, []);
   const { t } = useTranslation();
   const [tab, setTab] = useState("overview");
   const [data, setData] = useState(null);
@@ -41,9 +48,12 @@ export default function SuperAdminPage() {
   }, [autoRefresh, fetchTab]);
 
   return (
-    <div>
-      <div className="flex-between mb-1">
-        <h1>{t("admin.title")}</h1>
+    <div className="superadmin-page">
+      <div className="superadmin-header">
+        <div className="flex gap-sm" style={{ alignItems: "center" }}>
+          <Link to="/" className="btn btn-secondary btn-sm"><FiArrowLeft /></Link>
+          <h1 style={{ margin: 0 }}>{t("admin.title")}</h1>
+        </div>
         <div className="flex gap-sm">
           <label className="text-sm">
             <input type="checkbox" checked={autoRefresh} onChange={(e) => setAutoRefresh(e.target.checked)} />
@@ -53,22 +63,20 @@ export default function SuperAdminPage() {
         </div>
       </div>
 
-      {(() => {
-        const tabLabels = { overview: t("admin.overview"), services: t("admin.services"), database: t("admin.database"), ai: t("admin.aiEmbeddings"), users: t("admin.users"), audit: t("admin.audit") };
-        return (
-          <div className="flex gap-sm mb-1" style={{ borderBottom: "1px solid var(--color-border)", paddingBottom: "0.5rem" }}>
-            {TABS.map((tb) => (
-              <button
-                key={tb}
-                className={`btn btn-sm ${tab === tb ? "btn-primary" : "btn-secondary"}`}
-                onClick={() => setTab(tb)}
-              >
-                {tabLabels[tb] || tb}
-              </button>
-            ))}
-          </div>
-        );
-      })()}
+      <div className="superadmin-tabs">
+        {(() => {
+          const tabLabels = { overview: t("admin.overview"), services: t("admin.services"), database: t("admin.database"), ai: t("admin.aiEmbeddings"), users: t("admin.users"), audit: t("admin.audit") };
+          return TABS.map((tb) => (
+            <button
+              key={tb}
+              className={`btn btn-sm ${tab === tb ? "btn-primary" : "btn-secondary"}`}
+              onClick={() => setTab(tb)}
+            >
+              {tabLabels[tb] || tb}
+            </button>
+          ));
+        })()}
+      </div>
 
       {loading && !data ? (
         <div className="loading">{t("common.loading")}</div>
