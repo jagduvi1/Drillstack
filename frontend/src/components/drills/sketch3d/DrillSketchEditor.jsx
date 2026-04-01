@@ -1,6 +1,6 @@
 import { useState, useCallback, useRef } from "react";
 import { Canvas } from "@react-three/fiber";
-import { OrbitControls, Environment } from "@react-three/drei";
+import { OrbitControls } from "@react-three/drei";
 import { useTranslation } from "react-i18next";
 import Pitch3D, { PITCH_W, PITCH_H } from "./Pitch3D";
 import { Player3D, Cone3D, Ball3D, Arrow3D } from "./Pieces3D";
@@ -195,7 +195,9 @@ export default function DrillSketchEditor({ sketch, onChange, readOnly = false, 
             target={[0, 0, 0]}
           />
 
-          <Environment preset="sunset" />
+          {/* Sky color */}
+          <color attach="background" args={["#87ceeb"]} />
+          <fog attach="fog" args={["#87ceeb", 100, 200]} />
         </Canvas>
       </div>
     </div>

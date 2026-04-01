@@ -1,6 +1,6 @@
 import { useRef, useState } from "react";
 import { useThree } from "@react-three/fiber";
-import { Text } from "@react-three/drei";
+// Using sprite-based labels instead of Text (drei Text requires font loading which can fail)
 import * as THREE from "three";
 
 const raycaster = new THREE.Raycaster();
@@ -56,11 +56,78 @@ function DraggablePiece({ children, position, onMove, isSelected, onSelect, enab
       {/* Selection ring */}
       {isSelected && (
         <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.05, 0]}>
-          <ringGeometry args={[1.8, 2.2, 32]} />
+          <ringGeometry args={[1.4, 1.7, 32]} />
           <meshBasicMaterial color="#fbbf24" side={THREE.DoubleSide} />
         </mesh>
       )}
       {children}
+    </group>
+  );
+}
+
+// ── Low-poly humanoid player ────────────────────────────────────────────────
+function LowPolyPlayer({ color, skinColor = "#f4c587" }) {
+  return (
+    <group>
+      {/* Feet / shoes */}
+      <mesh position={[-0.22, 0.1, 0]} castShadow>
+        <boxGeometry args={[0.22, 0.2, 0.35]} />
+        <meshStandardMaterial color="#222" />
+      </mesh>
+      <mesh position={[0.22, 0.1, 0]} castShadow>
+        <boxGeometry args={[0.22, 0.2, 0.35]} />
+        <meshStandardMaterial color="#222" />
+      </mesh>
+
+      {/* Legs (shorts) */}
+      <mesh position={[-0.22, 0.55, 0]} castShadow>
+        <boxGeometry args={[0.28, 0.7, 0.28]} />
+        <meshStandardMaterial color={skinColor} />
+      </mesh>
+      <mesh position={[0.22, 0.55, 0]} castShadow>
+        <boxGeometry args={[0.28, 0.7, 0.28]} />
+        <meshStandardMaterial color={skinColor} />
+      </mesh>
+
+      {/* Shorts */}
+      <mesh position={[0, 0.95, 0]} castShadow>
+        <boxGeometry args={[0.75, 0.35, 0.4]} />
+        <meshStandardMaterial color={color} />
+      </mesh>
+
+      {/* Torso / jersey */}
+      <mesh position={[0, 1.4, 0]} castShadow>
+        <boxGeometry args={[0.7, 0.7, 0.4]} />
+        <meshStandardMaterial color={color} />
+      </mesh>
+
+      {/* Arms */}
+      <mesh position={[-0.52, 1.3, 0]} castShadow>
+        <boxGeometry args={[0.2, 0.65, 0.2]} />
+        <meshStandardMaterial color={skinColor} />
+      </mesh>
+      <mesh position={[0.52, 1.3, 0]} castShadow>
+        <boxGeometry args={[0.2, 0.65, 0.2]} />
+        <meshStandardMaterial color={skinColor} />
+      </mesh>
+
+      {/* Neck */}
+      <mesh position={[0, 1.85, 0]}>
+        <cylinderGeometry args={[0.12, 0.15, 0.15, 8]} />
+        <meshStandardMaterial color={skinColor} />
+      </mesh>
+
+      {/* Head */}
+      <mesh position={[0, 2.15, 0]} castShadow>
+        <boxGeometry args={[0.4, 0.45, 0.4]} />
+        <meshStandardMaterial color={skinColor} />
+      </mesh>
+
+      {/* Hair */}
+      <mesh position={[0, 2.42, 0]}>
+        <boxGeometry args={[0.42, 0.12, 0.42]} />
+        <meshStandardMaterial color="#3a2a1a" />
+      </mesh>
     </group>
   );
 }
@@ -72,22 +139,12 @@ export function Player3D({ piece, onMove, isSelected, onSelect, enabled }) {
       position={[piece.x, 0, piece.z]}
       onMove={onMove} isSelected={isSelected} onSelect={onSelect} enabled={enabled}
     >
-      {/* Body cylinder */}
-      <mesh position={[0, 1, 0]} castShadow>
-        <cylinderGeometry args={[0.6, 0.8, 2, 16]} />
-        <meshStandardMaterial color={color} />
-      </mesh>
-      {/* Head sphere */}
-      <mesh position={[0, 2.3, 0]} castShadow>
-        <sphereGeometry args={[0.45, 16, 16]} />
-        <meshStandardMaterial color="#fde68a" />
-      </mesh>
-      {/* Label */}
+      <LowPolyPlayer color={color} />
+      {/* Label sprite above head */}
       {piece.label && (
-        <Text position={[0, 3.2, 0]} fontSize={0.8} color="white"
-          anchorX="center" anchorY="middle" outlineWidth={0.08} outlineColor="black">
-          {piece.label}
-        </Text>
+        <sprite position={[0, 3, 0]} scale={[1, 0.5, 1]}>
+          <spriteMaterial color="white" transparent opacity={0.85} />
+        </sprite>
       )}
     </DraggablePiece>
   );
@@ -103,6 +160,11 @@ export function Cone3D({ piece, onMove, isSelected, onSelect, enabled }) {
         <coneGeometry args={[0.5, 1, 16]} />
         <meshStandardMaterial color="#ff8c00" />
       </mesh>
+      {/* Base */}
+      <mesh position={[0, 0.02, 0]} rotation={[-Math.PI / 2, 0, 0]}>
+        <circleGeometry args={[0.55, 16]} />
+        <meshStandardMaterial color="#ff6600" />
+      </mesh>
     </DraggablePiece>
   );
 }
@@ -113,53 +175,43 @@ export function Ball3D({ piece, onMove, isSelected, onSelect, enabled }) {
       position={[piece.x, 0, piece.z]}
       onMove={onMove} isSelected={isSelected} onSelect={onSelect} enabled={enabled}
     >
-      <mesh position={[0, 0.4, 0]} castShadow>
-        <sphereGeometry args={[0.4, 16, 16]} />
-        <meshStandardMaterial color="white" />
+      <mesh position={[0, 0.35, 0]} castShadow>
+        <icosahedronGeometry args={[0.35, 1]} />
+        <meshStandardMaterial color="white" flatShading />
       </mesh>
-      {/* Dark pentagons pattern (simplified) */}
-      <mesh position={[0, 0.4, 0]}>
-        <sphereGeometry args={[0.42, 8, 8]} />
-        <meshStandardMaterial color="#333" wireframe transparent opacity={0.3} />
+      {/* Dark panels */}
+      <mesh position={[0, 0.35, 0]}>
+        <icosahedronGeometry args={[0.36, 0]} />
+        <meshStandardMaterial color="#333" wireframe transparent opacity={0.4} />
       </mesh>
     </DraggablePiece>
   );
 }
 
 export function Arrow3D({ arrow }) {
-  const points = [
-    new THREE.Vector3(arrow.fromX, 0.3, arrow.fromZ),
-    new THREE.Vector3(arrow.toX, 0.3, arrow.toZ),
-  ];
   const color = arrow.color || "#ffffff";
   const dashed = arrow.style === "dashed" || arrow.style === "pass";
 
-  // Arrowhead
   const dx = arrow.toX - arrow.fromX;
   const dz = arrow.toZ - arrow.fromZ;
   const len = Math.sqrt(dx * dx + dz * dz);
   if (len < 0.5) return null;
   const angle = Math.atan2(dx, dz);
 
+  // Arrow shaft as a thin box
+  const midX = (arrow.fromX + arrow.toX) / 2;
+  const midZ = (arrow.fromZ + arrow.toZ) / 2;
+
   return (
     <group>
-      <line>
-        <bufferGeometry>
-          <bufferAttribute
-            attach="attributes-position"
-            count={2}
-            array={new Float32Array([points[0].x, points[0].y, points[0].z, points[1].x, points[1].y, points[1].z])}
-            itemSize={3}
-          />
-        </bufferGeometry>
-        {dashed
-          ? <lineDashedMaterial color={color} dashSize={1} gapSize={0.5} />
-          : <lineBasicMaterial color={color} linewidth={2} />
-        }
-      </line>
-      {/* Arrowhead cone */}
-      <mesh position={[arrow.toX, 0.3, arrow.toZ]} rotation={[0, angle, 0]}>
-        <coneGeometry args={[0.4, 1, 8]} />
+      {/* Shaft */}
+      <mesh position={[midX, 0.15, midZ]} rotation={[0, angle, 0]}>
+        <boxGeometry args={[0.15, 0.1, len - 0.8]} />
+        <meshStandardMaterial color={color} transparent={dashed} opacity={dashed ? 0.5 : 0.9} />
+      </mesh>
+      {/* Arrowhead */}
+      <mesh position={[arrow.toX, 0.2, arrow.toZ]} rotation={[-Math.PI / 2, 0, -angle + Math.PI]}>
+        <coneGeometry args={[0.4, 0.8, 6]} />
         <meshStandardMaterial color={color} />
       </mesh>
     </group>
