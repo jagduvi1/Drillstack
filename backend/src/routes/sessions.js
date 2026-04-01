@@ -115,7 +115,8 @@ router.get("/today", authenticate, resolveUserGroups, async (req, res, next) => 
     const dateSessions = await TrainingSession.find(dateFilter)
       .populate(POPULATE_BLOCKS)
       .populate("group", "name sport")
-      .populate("attendees", "name position number");
+      .populate("attendees", "name position number")
+      .populate("trainerAttendees", "name role");
 
     // 2) Plans (own + group shared)
     const planFilter = {
@@ -301,8 +302,19 @@ router.put("/:id/attendance", authenticate, resolveUserGroups, async (req, res, 
       .map((g) => ({ name: String(g.name).trim().slice(0, 100), position: String(g.position || "").trim().slice(0, 50) }));
     session.guestAttendees = guests;
     session.actualPlayers = session.attendees.length + guests.length;
+
+    // Trainer attendance
+    session.trainerAttendees = req.body.trainerAttendees || [];
+    const guestTrainers = (req.body.guestTrainers || [])
+      .filter((g) => g?.name?.trim())
+      .slice(0, 10)
+      .map((g) => ({ name: String(g.name).trim().slice(0, 100), role: String(g.role || "").trim().slice(0, 50) }));
+    session.guestTrainers = guestTrainers;
+    session.actualTrainers = session.trainerAttendees.length + guestTrainers.length;
+
     await session.save();
     await session.populate("attendees", "name position number");
+    await session.populate("trainerAttendees", "name role");
     res.json(session);
   } catch (err) {
     next(err);

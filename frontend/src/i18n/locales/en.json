@@ -602,6 +602,24 @@
     "reshuffle": "Reshuffle",
     "reset": "Reset"
   },
+  "trainers": {
+    "title": "Trainers ({{count}})",
+    "trainers": "Trainers",
+    "addTrainer": "Add Trainer",
+    "namePlaceholder": "Trainer name...",
+    "rolePlaceholder": "Role (e.g. head coach, assistant)...",
+    "noTrainers": "No trainers added yet.",
+    "name": "Name",
+    "specialization": "Specialization",
+    "phone": "Phone",
+    "email": "Email",
+    "notes": "Notes",
+    "certs": "certifications",
+    "certPlaceholder": "Certifications (comma-separated)...",
+    "deleteConfirm": "Remove this trainer?",
+    "guestTrainerName": "Guest trainer name...",
+    "addGuestTrainer": "Add guest trainer"
+  },
   "search": {
     "title": "Search",
     "description": "Describe what you're looking for — the AI will find matching drills using semantic search.",
