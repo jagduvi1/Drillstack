@@ -10,7 +10,7 @@ import "../../../styles/sketch3d.css";
 
 const TOOLS = ["select", "arrow"];
 
-export default function DrillSketchEditor({ sketch, onChange, readOnly = false }) {
+export default function DrillSketchEditor({ sketch, onChange, readOnly = false, fullHeight = false }) {
   const { t } = useTranslation();
   const [tool, setTool] = useState("select");
   const [selectedId, setSelectedId] = useState(null);
@@ -96,7 +96,7 @@ export default function DrillSketchEditor({ sketch, onChange, readOnly = false }
   }, [tool, arrowStart, pieces, arrows, update, readOnly]);
 
   return (
-    <div className="drill-sketch-editor">
+    <div className="drill-sketch-editor" style={fullHeight ? { height: "100%", display: "flex", flexDirection: "column" } : undefined}>
       {/* Toolbar */}
       {!readOnly && (
         <div className="sketch-toolbar">
@@ -140,7 +140,7 @@ export default function DrillSketchEditor({ sketch, onChange, readOnly = false }
       )}
 
       {/* 3D Canvas */}
-      <div className="sketch-canvas-wrapper">
+      <div className="sketch-canvas-wrapper" style={fullHeight ? { height: "100%" } : undefined}>
         <Canvas
           shadows
           camera={{ position: [0, 60, 50], fov: 45 }}

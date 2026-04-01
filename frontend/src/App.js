@@ -34,6 +34,8 @@ import PricingPage from "./pages/PricingPage";
 import PrivacyPolicyPage from "./pages/PrivacyPolicyPage";
 const TacticBoardListPage = lazy(() => import("./pages/TacticBoardListPage"));
 const TacticBoardPage = lazy(() => import("./pages/TacticBoardPage"));
+const SketchListPage = lazy(() => import("./pages/SketchListPage"));
+const SketchPage = lazy(() => import("./pages/SketchPage"));
 import { useAuth } from "./context/AuthContext";
 import { FiMenu } from "react-icons/fi";
 
@@ -106,6 +108,9 @@ export default function App() {
           <Route path="/tactics" element={<ProtectedRoute><TacticBoardListPage /></ProtectedRoute>} />
           <Route path="/tactics/new" element={<ProtectedRoute><TacticBoardPage /></ProtectedRoute>} />
           <Route path="/tactics/:id" element={<ProtectedRoute><TacticBoardPage /></ProtectedRoute>} />
+          <Route path="/sketches" element={<ProtectedRoute><SketchListPage /></ProtectedRoute>} />
+          <Route path="/sketches/new" element={<ProtectedRoute><SketchPage /></ProtectedRoute>} />
+          <Route path="/sketches/:id" element={<ProtectedRoute><SketchPage /></ProtectedRoute>} />
           <Route path="/groups" element={<ProtectedRoute><GroupsPage /></ProtectedRoute>} />
           <Route path="/groups/new" element={<ProtectedRoute><GroupFormPage /></ProtectedRoute>} />
           <Route path="/groups/join/:code" element={<ProtectedRoute><GroupJoinPage /></ProtectedRoute>} />
