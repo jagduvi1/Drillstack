@@ -22,7 +22,7 @@ router.post(
   async (req, res, next) => {
     try {
       const { description, sport } = req.body;
-      const { drill: generated, debug } = await aiService.generateDrill(description, sport);
+      const { drill: generated, debug } = await aiService.generateDrill(description, sport, { userSport: req.user.preferredSport });
       res.json({ drill: generated, debug: sanitizeDebug(debug) });
     } catch (err) {
       next(err);
@@ -40,7 +40,7 @@ router.post(
   async (req, res, next) => {
     try {
       const { description, sport } = req.body;
-      const { drill: generated, debug } = await aiService.generateDrill(description, sport);
+      const { drill: generated, debug } = await aiService.generateDrill(description, sport, { userSport: req.user.preferredSport });
 
       const drill = await Drill.create({
         ...generated,
@@ -97,7 +97,7 @@ router.post(
         .filter((m) => m.role === "user" || m.role === "assistant")
         .slice(-10);
 
-      const result = await aiService.refineDrill(currentDrill, recentMessages);
+      const result = await aiService.refineDrill(currentDrill, recentMessages, { userSport: req.user.preferredSport });
 
       if (result.drill) {
         // Save only the conversation history — the refined fields are returned
@@ -150,7 +150,7 @@ router.post(
   validate,
   async (req, res, next) => {
     try {
-      const { summary, debug } = await aiService.summarizeDrill(req.body.drill);
+      const { summary, debug } = await aiService.summarizeDrill(req.body.drill, { userSport: req.user.preferredSport });
       res.json({ summary, debug: sanitizeDebug(debug) });
     } catch (err) {
       next(err);
@@ -178,7 +178,7 @@ router.post(
         { role: "user", content: sanitizeAiInput(message) },
       ];
 
-      const result = await aiService.refineDrill(currentDrill, messages);
+      const result = await aiService.refineDrill(currentDrill, messages, { userSport: req.user.preferredSport });
 
       const updatedHistory = [
         ...conversationHistory,

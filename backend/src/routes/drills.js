@@ -13,6 +13,7 @@ const Notification = require("../models/Notification");
 const { indexDrill, removeDrill, getQueueStatus, checkEmbeddingSimilarity, findSimilarDrills } = require("../services/sync");
 const { checkLimit } = require("../middleware/planLimits");
 const { createDrillSnapshot } = require("../utils/drillSnapshot");
+const { escapeRegex } = require("./ai/utils");
 const { standardLimiter } = require("../utils/rateLimiters");
 const { logAudit } = require("../models/AuditLog");
 
@@ -56,10 +57,10 @@ router.get("/", authenticate, async (req, res, next) => {
     if (req.query.apparatus) filter.apparatus = String(req.query.apparatus);
     if (req.query.skillLevel) filter.skillLevel = String(req.query.skillLevel);
     if (req.query.search) {
-      const search = String(req.query.search).slice(0, 200);
+      const escaped = escapeRegex(String(req.query.search).slice(0, 200));
       filter.$or = [
-        { title: { $regex: search, $options: "i" } },
-        { description: { $regex: search, $options: "i" } },
+        { title: { $regex: escaped, $options: "i" } },
+        { description: { $regex: escaped, $options: "i" } },
       ];
     }
     // Only show "root" drills by default (not forks), unless ?versions=all

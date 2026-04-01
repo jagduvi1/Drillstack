@@ -46,7 +46,8 @@
     "notifications": "Aviseringar",
     "superAdmin": "Superadmin",
     "logout": "Logga ut",
-    "tactics": "Taktik"
+    "tactics": "Taktik",
+    "settings": "Inställningar"
   },
   "auth": {
     "trainingBank": "Träningsbank",
@@ -795,5 +796,13 @@
     "en": "English",
     "sv": "Svenska",
     "label": "Språk"
+  },
+  "settings": {
+    "title": "Inställningar",
+    "preferredSport": "Föredragen sport",
+    "preferredSportHelp": "AI-coachen anpassar sina råd efter din sport.",
+    "none": "Ej valt",
+    "name": "Visningsnamn",
+    "saved": "Inställningar sparade"
   }
 }

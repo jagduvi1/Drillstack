@@ -40,6 +40,10 @@ export function AuthProvider({ children }) {
     setUser(res.data.user);
   }, []);
 
+  const updateUser = useCallback((updatedUser) => {
+    setUser(updatedUser);
+  }, []);
+
   const logout = useCallback(async () => {
     const refreshToken = localStorage.getItem("refreshToken");
     // Revoke server-side (best-effort)
@@ -52,7 +56,7 @@ export function AuthProvider({ children }) {
   }, []);
 
   return (
-    <AuthContext.Provider value={{ user, loading, login, register, logout }}>
+    <AuthContext.Provider value={{ user, loading, login, register, logout, updateUser }}>
       {children}
     </AuthContext.Provider>
   );

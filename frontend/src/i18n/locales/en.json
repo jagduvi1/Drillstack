@@ -46,7 +46,8 @@
     "notifications": "Notifications",
     "superAdmin": "Super Admin",
     "logout": "Logout",
-    "tactics": "Tactics"
+    "tactics": "Tactics",
+    "settings": "Settings"
   },
   "auth": {
     "trainingBank": "Training Bank",
@@ -795,5 +796,13 @@
     "en": "English",
     "sv": "Svenska",
     "label": "Language"
+  },
+  "settings": {
+    "title": "Settings",
+    "preferredSport": "Preferred Sport",
+    "preferredSportHelp": "The AI coach will tailor advice to your sport when set.",
+    "none": "Not set",
+    "name": "Display Name",
+    "saved": "Settings saved"
   }
 }
