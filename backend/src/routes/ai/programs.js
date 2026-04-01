@@ -26,6 +26,7 @@ router.post(
         weeks,
         startDate,
         endDate,
+        userSport: req.user.preferredSport,
       });
       res.json({ program: generated, debug: sanitizeDebug(debug) });
     } catch (err) {
@@ -65,6 +66,7 @@ router.post(
         weeks,
         startDate,
         endDate,
+        userSport: req.user.preferredSport,
       });
 
       const plan = await PeriodPlan.create({
@@ -139,7 +141,8 @@ router.post(
 
       const result = await aiService.refineTrainingProgram(
         currentProgram,
-        recentMessages
+        recentMessages,
+        { userSport: req.user.preferredSport }
       );
 
       if (result.program) {

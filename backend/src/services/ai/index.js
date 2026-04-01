@@ -4,11 +4,11 @@
  */
 const { complete, completeWithDebug, completeChatWithDebug, parseJSON } = require("./providers");
 const {
-  DRILL_SYSTEM_PROMPT,
-  REFINE_DRILL_PROMPT,
-  PROGRAM_SYSTEM_PROMPT,
-  REFINE_PROGRAM_PROMPT,
-  ADAPT_SESSION_PROMPT,
+  buildDrillSystemPrompt,
+  buildRefineDrillPrompt,
+  buildProgramSystemPrompt,
+  buildRefineProgramPrompt,
+  buildAdaptSessionPrompt,
   SIMILARITY_PROMPT,
   REFINE_TACTIC_PROMPT,
   buildSessionGenerationPrompt,
@@ -81,12 +81,12 @@ function sanitizeTacticSteps(steps, dims) {
 
 // ── Drill ────────────────────────────────────────────────────────────────────
 
-async function generateDrill(userDescription, sport) {
+async function generateDrill(userDescription, sport, { userSport } = {}) {
   const prompt = sport
     ? `Sport: ${sport}\n\nDrill idea: ${userDescription}`
     : userDescription;
 
-  const { content: raw, debug } = await completeWithDebug(DRILL_SYSTEM_PROMPT, prompt);
+  const { content: raw, debug } = await completeWithDebug(buildDrillSystemPrompt(userSport || sport), prompt);
   try {
     return { drill: parseJSON(raw), debug };
   } catch {
@@ -107,14 +107,14 @@ async function generateDrill(userDescription, sport) {
   }
 }
 
-async function refineDrill(currentDrill, conversationHistory) {
+async function refineDrill(currentDrill, conversationHistory, { userSport } = {}) {
   const messages = [
     { role: "user", content: `Here is the current drill:\n${JSON.stringify(currentDrill, null, 2)}` },
     { role: "assistant", content: "I have the drill. What changes would you like to make?" },
     ...conversationHistory.map((m) => ({ role: m.role, content: m.content })),
   ];
 
-  const { content: raw, debug } = await completeChatWithDebug(REFINE_DRILL_PROMPT, messages);
+  const { content: raw, debug } = await completeChatWithDebug(buildRefineDrillPrompt(userSport || currentDrill.sport), messages);
   try {
     return { drill: parseJSON(raw), message: null, debug };
   } catch {
@@ -122,8 +122,10 @@ async function refineDrill(currentDrill, conversationHistory) {
   }
 }
 
-async function summarizeDrill(drill) {
-  const system = `You are a sports coaching assistant. Summarize this drill in 2-3 concise sentences suitable for quick reference.`;
+async function summarizeDrill(drill, { userSport } = {}) {
+  const sport = userSport || drill.sport;
+  const persona = sport ? `${sport} coaching` : "sports coaching";
+  const system = `You are a ${persona} assistant. Summarize this drill in 2-3 concise sentences suitable for quick reference.`;
   const { content, debug } = await completeWithDebug(system, JSON.stringify(drill));
   return { summary: content, debug };
 }
@@ -150,7 +152,7 @@ How it works: ${editedData.howItWorks || originalDrill.howItWorks || ""}`;
 // ── Session ──────────────────────────────────────────────────────────────────
 
 async function generateSessionPlan(description, availableDrills, opts = {}) {
-  const { numPlayers, totalMinutes, starredIds } = opts;
+  const { numPlayers, totalMinutes, starredIds, userSport } = opts;
   const playerInfo = numPlayers ? `Number of players: ${numPlayers}.` : "";
   const timeInfo = totalMinutes ? `Target total session time: ~${totalMinutes} minutes.` : "";
 
@@ -160,7 +162,7 @@ async function generateSessionPlan(description, availableDrills, opts = {}) {
     return `- "${d.title}"${star} (${d.intensity}, ${d.setup?.duration || "?"}, ${d.sport || "general"})`;
   }).join("\n");
 
-  const system = buildSessionGenerationPrompt(playerInfo, timeInfo, drillList);
+  const system = buildSessionGenerationPrompt(playerInfo, timeInfo, drillList, userSport);
   const { content: raw, debug } = await completeWithDebug(system, description);
   try {
     return { plan: parseJSON(raw), debug };
@@ -169,14 +171,14 @@ async function generateSessionPlan(description, availableDrills, opts = {}) {
   }
 }
 
-async function refineSession(currentSession, conversationHistory, availableDrillTitles = []) {
+async function refineSession(currentSession, conversationHistory, availableDrillTitles = [], { userSport } = {}) {
   const messages = [
     { role: "user", content: `Here is the current session:\n${JSON.stringify(currentSession, null, 2)}` },
     { role: "assistant", content: "I have the session. What changes would you like to make?" },
     ...conversationHistory.map((m) => ({ role: m.role, content: m.content })),
   ];
 
-  const systemPrompt = buildRefineSessionPrompt(availableDrillTitles);
+  const systemPrompt = buildRefineSessionPrompt(availableDrillTitles, userSport);
   const { content, debug } = await completeChatWithDebug(systemPrompt, messages);
   try {
     return { session: parseJSON(content), message: null, debug };
@@ -185,7 +187,7 @@ async function refineSession(currentSession, conversationHistory, availableDrill
   }
 }
 
-async function adaptSession(originalSession, constraints) {
+async function adaptSession(originalSession, constraints, { userSport } = {}) {
   const prompt = `ORIGINAL PLANNED SESSION:
 ${JSON.stringify(originalSession, null, 2)}
 
@@ -194,7 +196,7 @@ ${constraints}
 
 Please adapt this session for today's conditions.`;
 
-  const { content: raw, debug } = await completeWithDebug(ADAPT_SESSION_PROMPT, prompt);
+  const { content: raw, debug } = await completeWithDebug(buildAdaptSessionPrompt(userSport || originalSession.sport), prompt);
   try {
     return { adapted: parseJSON(raw), debug };
   } catch {
@@ -213,7 +215,7 @@ Please adapt this session for today's conditions.`;
   }
 }
 
-async function checkSessionFeasibility(session, actualPlayers, actualTrainers) {
+async function checkSessionFeasibility(session, actualPlayers, actualTrainers, { userSport } = {}) {
   const blocksDesc = (session.blocks || []).map((b) => {
     let desc = `[${b.type}] "${b.label || b.type}"`;
     if (b.type === "drills") {
@@ -235,7 +237,7 @@ async function checkSessionFeasibility(session, actualPlayers, actualTrainers) {
     return desc;
   }).join("\n");
 
-  const system = buildFeasibilityPrompt();
+  const system = buildFeasibilityPrompt(userSport || session.sport);
   const prompt = `Session: "${session.title}"
 Sport: ${session.sport || "general"}
 Originally planned for: ${session.expectedPlayers} players, ${session.expectedTrainers} trainers
@@ -260,7 +262,7 @@ ${blocksDesc}`;
 
 // ── Training Program ─────────────────────────────────────────────────────────
 
-async function generateTrainingProgram({ description, sport, sessionsPerWeek, weeks, startDate, endDate }) {
+async function generateTrainingProgram({ description, sport, sessionsPerWeek, weeks, startDate, endDate, userSport }) {
   const parts = [];
   if (sport) parts.push(`Sport: ${sport}`);
   if (sessionsPerWeek) parts.push(`Sessions per week: ${sessionsPerWeek}`);
@@ -268,7 +270,7 @@ async function generateTrainingProgram({ description, sport, sessionsPerWeek, we
   else if (startDate && endDate) parts.push(`Period: ${startDate} to ${endDate}`);
   parts.push(`\nProgram request: ${description}`);
 
-  const { content: raw, debug } = await completeWithDebug(PROGRAM_SYSTEM_PROMPT, parts.join("\n"));
+  const { content: raw, debug } = await completeWithDebug(buildProgramSystemPrompt(userSport || sport), parts.join("\n"));
   try {
     return { program: parseJSON(raw), debug };
   } catch {
@@ -286,14 +288,14 @@ async function generateTrainingProgram({ description, sport, sessionsPerWeek, we
   }
 }
 
-async function refineTrainingProgram(currentProgram, conversationHistory) {
+async function refineTrainingProgram(currentProgram, conversationHistory, { userSport } = {}) {
   const messages = [
     { role: "user", content: `Here is the current training program:\n${JSON.stringify(currentProgram, null, 2)}` },
     { role: "assistant", content: "I have the program. What changes would you like to make?" },
     ...conversationHistory.map((m) => ({ role: m.role, content: m.content })),
   ];
 
-  const { content: raw, debug } = await completeChatWithDebug(REFINE_PROGRAM_PROMPT, messages);
+  const { content: raw, debug } = await completeChatWithDebug(buildRefineProgramPrompt(userSport || currentProgram.sport), messages);
   try {
     return { program: parseJSON(raw), message: null, debug };
   } catch {

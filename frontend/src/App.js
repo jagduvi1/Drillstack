@@ -28,6 +28,7 @@ import GroupsPage from "./pages/GroupsPage";
 import GroupDetailPage from "./pages/GroupDetailPage";
 import GroupFormPage from "./pages/GroupFormPage";
 import GroupJoinPage from "./pages/GroupJoinPage";
+import SettingsPage from "./pages/SettingsPage";
 import PricingPage from "./pages/PricingPage";
 import PrivacyPolicyPage from "./pages/PrivacyPolicyPage";
 const TacticBoardListPage = lazy(() => import("./pages/TacticBoardListPage"));
@@ -108,6 +109,7 @@ export default function App() {
           <Route path="/groups/new" element={<ProtectedRoute><GroupFormPage /></ProtectedRoute>} />
           <Route path="/groups/join/:code" element={<ProtectedRoute><GroupJoinPage /></ProtectedRoute>} />
           <Route path="/groups/:id" element={<ProtectedRoute><GroupDetailPage /></ProtectedRoute>} />
+          <Route path="/settings" element={<ProtectedRoute><SettingsPage /></ProtectedRoute>} />
           <Route path="/pricing" element={<ProtectedRoute><PricingPage /></ProtectedRoute>} />
           <Route path="/privacy" element={<PrivacyPolicyPage />} />
           <Route path="/search" element={<ProtectedRoute><SearchPage /></ProtectedRoute>} />

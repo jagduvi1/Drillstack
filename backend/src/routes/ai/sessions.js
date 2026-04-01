@@ -61,7 +61,7 @@ router.post(
       const result = await aiService.generateSessionPlan(
         req.body.description,
         drills,
-        { numPlayers: req.body.numPlayers, totalMinutes: req.body.totalMinutes, starredIds: [...starredIdSet] }
+        { numPlayers: req.body.numPlayers, totalMinutes: req.body.totalMinutes, starredIds: [...starredIdSet], userSport: req.user.preferredSport }
       );
 
       // Post-process: strip out any drill references that don't match existing drills
@@ -211,7 +211,7 @@ router.post(
       const titleSet = new Set([...sessionDrillTitles, ...semanticTitles]);
       const availableDrillTitles = [...titleSet];
 
-      const result = await aiService.refineSession(currentSession, recentMessages, availableDrillTitles);
+      const result = await aiService.refineSession(currentSession, recentMessages, availableDrillTitles, { userSport: req.user.preferredSport });
 
       if (result.session) {
         // AI returned updated block structure — update labels/notes/durations/descriptions
@@ -317,7 +317,7 @@ router.post(
   async (req, res, next) => {
     try {
       const { session, constraints } = req.body;
-      const result = await aiService.adaptSession(session, constraints);
+      const result = await aiService.adaptSession(session, constraints, { userSport: req.user.preferredSport });
       res.json({ adapted: result.adapted, debug: sanitizeDebug(result.debug) });
     } catch (err) {
       next(err);
@@ -352,7 +352,8 @@ router.post(
       const result = await aiService.checkSessionFeasibility(
         session,
         actualPlayers,
-        actualTrainers
+        actualTrainers,
+        { userSport: req.user.preferredSport }
       );
       const { debug, ...feasibility } = result;
       res.json({ ...feasibility, debug: sanitizeDebug(debug) });
