@@ -930,7 +930,8 @@
     "away": "Away",
     "addBall": "Add ball",
     "addCone": "Add cone",
-    "clickEndpoint": "Click to place arrow endpoint..."
+    "clickEndpoint": "Click to place arrow endpoint...",
+    "fullscreen": "Fullscreen"
   },
   "sketches": {
     "title": "3D Sketches",
