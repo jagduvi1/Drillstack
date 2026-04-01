@@ -7,7 +7,7 @@ const playerMetricsSchema = new Schema(
     group: { type: Schema.Types.ObjectId, ref: "Group", required: true },
     ratings: {
       type: Map,
-      of: Number, // each value 0-100
+      of: mongoose.Schema.Types.Mixed, // Number (0-100), String (level), or Boolean (certification)
       default: () => new Map(),
     },
   },

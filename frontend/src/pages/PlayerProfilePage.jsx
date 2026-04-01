@@ -33,7 +33,8 @@ export default function PlayerProfilePage() {
 
   const { player, metrics, goals, recentNotes, history, attendance } = data;
   const sport = player.group?.sport || "";
-  const metricKeys = getMetricsForSport(sport);
+  const metricDefs = getMetricsForSport(sport);
+  const metricKeys = metricDefs.filter((d) => d.type === "rating").map((d) => d.key);
   const age = player.dateOfBirth
     ? Math.floor((Date.now() - new Date(player.dateOfBirth).getTime()) / (365.25 * 24 * 60 * 60 * 1000))
     : null;
@@ -177,6 +178,22 @@ export default function PlayerProfilePage() {
           {Object.keys(metrics).length > 0 && (
             <div className="card" style={{ padding: "0.75rem", marginBottom: "0.75rem" }}>
               <h4 style={{ margin: "0 0 0.5rem" }}>{t("playerProfile.tabs.skills")}</h4>
+              {/* Certs & levels */}
+              {metricDefs.filter((d) => d.type === "cert" || d.type === "level").some((d) => metrics[d.key] !== undefined) && (
+                <div className="flex gap-sm" style={{ flexWrap: "wrap", marginBottom: "0.5rem" }}>
+                  {metricDefs.filter((d) => d.type === "cert" && metrics[d.key]).map((d) => (
+                    <span key={d.key} className="tag tag-success" style={{ fontSize: "0.65rem" }}>
+                      {t(`metrics.${d.key}`, d.key)}
+                    </span>
+                  ))}
+                  {metricDefs.filter((d) => d.type === "level" && metrics[d.key]).map((d) => (
+                    <span key={d.key} className="tag" style={{ fontSize: "0.65rem" }}>
+                      {t(`metrics.${d.key}`, d.key)}: {t(`skillLevels.${metrics[d.key]}`, metrics[d.key])}
+                    </span>
+                  ))}
+                </div>
+              )}
+              {/* Rating bars */}
               <div className="metrics-summary-grid">
                 {metricKeys.map((key) => (
                   metrics[key] !== undefined ? (
@@ -234,7 +251,7 @@ export default function PlayerProfilePage() {
             groupId={groupId}
             playerId={playerId}
             metrics={metrics}
-            metricKeys={metricKeys}
+            metricDefs={metricDefs}
             onSaved={(newMetrics) => setData((prev) => ({ ...prev, metrics: newMetrics }))}
           />
           {history.length > 0 && (

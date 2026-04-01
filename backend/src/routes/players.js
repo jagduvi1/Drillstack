@@ -210,27 +210,28 @@ router.put("/:groupId/:playerId/metrics", async (req, res, next) => {
     let existing = await PlayerMetrics.findOne({ player: req.params.playerId });
     const oldRatings = existing ? Object.fromEntries(existing.ratings) : {};
 
-    // Create history entries for changed metrics
+    // Sanitize and create history entries for changed metrics
     const historyEntries = [];
+    const sanitized = {};
     for (const [metric, newValue] of Object.entries(ratings)) {
-      const val = Math.max(0, Math.min(100, Math.round(Number(newValue))));
+      // Determine type from value: boolean = cert, string = level, number = rating
+      let val;
+      if (typeof newValue === "boolean") {
+        val = newValue;
+      } else if (typeof newValue === "string" && isNaN(Number(newValue))) {
+        val = String(newValue).slice(0, 50);
+      } else {
+        val = Math.max(0, Math.min(100, Math.round(Number(newValue))));
+      }
+      sanitized[metric] = val;
+
       const oldVal = oldRatings[metric];
-      if (oldVal !== undefined && oldVal !== val) {
+      if (oldVal !== val && (oldVal !== undefined || val !== 0)) {
         historyEntries.push({
           player: req.params.playerId,
           group: req.params.groupId,
           metric,
-          oldValue: oldVal,
-          newValue: val,
-          changedBy: req.user._id,
-          note: note || "",
-        });
-      } else if (oldVal === undefined) {
-        historyEntries.push({
-          player: req.params.playerId,
-          group: req.params.groupId,
-          metric,
-          oldValue: 0,
+          oldValue: oldVal ?? (typeof val === "boolean" ? false : typeof val === "string" ? "" : 0),
           newValue: val,
           changedBy: req.user._id,
           note: note || "",
@@ -240,12 +241,6 @@ router.put("/:groupId/:playerId/metrics", async (req, res, next) => {
 
     if (historyEntries.length > 0) {
       await PlayerSkillHistory.insertMany(historyEntries);
-    }
-
-    // Upsert metrics
-    const sanitized = {};
-    for (const [k, v] of Object.entries(ratings)) {
-      sanitized[k] = Math.max(0, Math.min(100, Math.round(Number(v))));
     }
 
     if (existing) {
