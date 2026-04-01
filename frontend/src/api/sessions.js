@@ -6,4 +6,5 @@ export const getSession = (id) => api.get(`/sessions/${id}`);
 export const createSession = (data) => api.post("/sessions", data);
 export const updateSession = (id, data) => api.put(`/sessions/${id}`, data);
 export const deleteSession = (id) => api.delete(`/sessions/${id}`);
-export const updateAttendance = (id, attendees) => api.put(`/sessions/${id}/attendance`, { attendees });
+export const updateAttendance = (id, attendees, guestAttendees = []) =>
+  api.put(`/sessions/${id}/attendance`, { attendees, guestAttendees });

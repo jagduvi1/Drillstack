@@ -492,6 +492,7 @@
     "players": "Spelare",
     "trainers": "Tränare",
     "check": "Kontrollera",
+    "checkFeasibility": "Kontrollera genomförbarhet",
     "equipment": "Utrustning",
     "perStation": "{{count}} per station",
     "extra": "({{count}} extra)",
@@ -515,7 +516,13 @@
     "strengthsPlaceholder": "Snabbhet, skott, passning...",
     "weaknessesPlaceholder": "Vänsterfot, nick...",
     "deleteConfirm": "Ta bort denna spelare?",
-    "attendance": "Närvaro"
+    "attendance": "Närvaro",
+    "selectAll": "Välj alla",
+    "deselectAll": "Avmarkera alla",
+    "guest": "Gäst",
+    "addGuest": "Lägg till gäst",
+    "guestName": "Gästnamn...",
+    "removeGuest": "Ta bort gäst"
   },
   "splits": {
     "title": "Dela in i grupper",

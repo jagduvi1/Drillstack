@@ -27,9 +27,9 @@ export default function TodayPage() {
   const [previewDrillId, setPreviewDrillId] = useState(null);
 
   // Per-session state keyed by session ID
-  const [attendance, setAttendance] = useState({}); // { [id]: { players, trainers } }
-  const [expanded, setExpanded] = useState({});     // { [id]: true }
-  const [feasibility, setFeasibility] = useState({});// { [id]: { loading, result } }
+  const [expanded, setExpanded] = useState({});
+  const [checkedIn, setCheckedIn] = useState({}); // { [id]: { playerCount, attendees, guestAttendees } }
+  const [feasibility, setFeasibility] = useState({});
 
   useEffect(() => {
     let mounted = true;
@@ -37,19 +37,20 @@ export default function TodayPage() {
       .then((res) => {
         if (!mounted) return;
         setEntries(res.data);
-        // Auto-expand if only one session
         if (res.data.length === 1) {
           setExpanded({ [res.data[0].session._id]: true });
         }
-        // Pre-fill attendance from session expected values
-        const att = {};
+        // Pre-fill check-in from saved attendance
+        const ci = {};
         for (const e of res.data) {
-          att[e.session._id] = {
-            players: e.session.expectedPlayers || "",
-            trainers: e.session.expectedTrainers || "",
+          const s = e.session;
+          ci[s._id] = {
+            playerCount: (s.attendees?.length || 0) + (s.guestAttendees?.length || 0),
+            attendees: (s.attendees || []).map((a) => a?._id || a),
+            guestAttendees: s.guestAttendees || [],
           };
         }
-        setAttendance(att);
+        setCheckedIn(ci);
       })
       .catch(() => {})
       .finally(() => { if (mounted) setLoading(false); });
@@ -60,23 +61,17 @@ export default function TodayPage() {
     setExpanded((prev) => ({ ...prev, [id]: !prev[id] }));
   };
 
-  const updateAttendance = (id, field, value) => {
-    setAttendance((prev) => ({
-      ...prev,
-      [id]: { ...prev[id], [field]: value },
-    }));
+  const handleAttendanceChange = (sessionId, data) => {
+    setCheckedIn((prev) => ({ ...prev, [sessionId]: data }));
   };
 
-  const handleCheckFeasibility = async (sessionId) => {
-    const att = attendance[sessionId];
-    if (!att?.players || !att?.trainers) return;
+  const handleCheckFeasibility = async (sessionId, sess) => {
+    const ci = checkedIn[sessionId];
+    const playerCount = ci?.playerCount || 0;
+    if (playerCount === 0) return;
     setFeasibility((prev) => ({ ...prev, [sessionId]: { loading: true, result: null } }));
     try {
-      const res = await checkSessionFeasibility(
-        sessionId,
-        parseInt(att.players, 10),
-        parseInt(att.trainers, 10)
-      );
+      const res = await checkSessionFeasibility(sessionId, playerCount, sess.expectedTrainers || 1);
       setFeasibility((prev) => ({ ...prev, [sessionId]: { loading: false, result: res.data } }));
     } catch {
       setFeasibility((prev) => ({
@@ -111,10 +106,10 @@ export default function TodayPage() {
         entries.map(({ session: sess, source, plan }) => {
           const id = sess._id;
           const isExpanded = expanded[id];
-          const att = attendance[id] || {};
-          const players = parseInt(att.players, 10) || 0;
-          const trainers = parseInt(att.trainers, 10) || 0;
+          const ci = checkedIn[id] || {};
+          const players = ci.playerCount || 0;
           const feas = feasibility[id];
+          const groupId = sess.group?._id || sess.group;
 
           return (
             <div key={id} className="today-session-card">
@@ -126,6 +121,7 @@ export default function TodayPage() {
                     {sess.sport && <span className="tag">{sess.sport}</span>}
                     <span className="tag">{sess.totalDuration || 0} min</span>
                     <span className="tag">{t("common.block", { count: (sess.blocks || []).length })}</span>
+                    {players > 0 && <span className="tag"><FiUsers style={{ fontSize: "0.7rem" }} /> {players}</span>}
                   </div>
                   {plan && (
                     <p className="text-sm" style={{ color: "var(--color-primary)", marginTop: "0.25rem" }}>
@@ -140,70 +136,55 @@ export default function TodayPage() {
 
               {isExpanded && (
                 <div className="today-session-body">
-                  {/* Attendance inputs */}
-                  <div className="today-attendance">
-                    <h3><FiUsers /> {t("today.attendance")}</h3>
-                    <div className="today-attendance-inputs">
-                      <div className="today-att-field">
-                        <label>{t("today.players")}</label>
-                        <input
-                          type="number"
-                          inputMode="numeric"
-                          min={0}
-                          value={att.players || ""}
-                          onChange={(e) => updateAttendance(id, "players", e.target.value)}
-                          placeholder={String(sess.expectedPlayers || 0)}
-                        />
-                      </div>
-                      <div className="today-att-field">
-                        <label>{t("today.trainers")}</label>
-                        <input
-                          type="number"
-                          inputMode="numeric"
-                          min={0}
-                          value={att.trainers || ""}
-                          onChange={(e) => updateAttendance(id, "trainers", e.target.value)}
-                          placeholder={String(sess.expectedTrainers || 0)}
-                        />
-                      </div>
-                      <button
-                        className="btn btn-primary today-check-btn"
-                        onClick={() => handleCheckFeasibility(id)}
-                        disabled={feas?.loading || !att.players || !att.trainers}
-                      >
-                        {feas?.loading ? <FiLoader className="spin" /> : <FiCheckCircle />} {t("today.check")}
-                      </button>
-                    </div>
+                  {/* Player check-in */}
+                  {groupId && (
+                    <AttendanceTracker
+                      sessionId={id}
+                      groupId={groupId}
+                      initialAttendees={sess.attendees}
+                      initialGuests={sess.guestAttendees}
+                      onAttendanceChange={(data) => handleAttendanceChange(id, data)}
+                    />
+                  )}
 
-                    {/* Feasibility result */}
-                    {feas?.result && (
-                      <div className={`today-feasibility ${feas.result.feasible ? "today-feas-ok" : "today-feas-warn"}`}>
-                        <div className="flex gap-sm" style={{ alignItems: "flex-start" }}>
-                          {feas.result.feasible
-                            ? <FiCheckCircle style={{ color: "var(--color-success)", flexShrink: 0, marginTop: 2 }} />
-                            : <FiAlertTriangle style={{ color: "var(--color-warning)", flexShrink: 0, marginTop: 2 }} />}
-                          <div>
-                            <strong className="text-sm">{feas.result.summary}</strong>
-                            {feas.result.issues?.map((issue, i) => (
-                              <div key={i} className="today-feas-issue">
-                                <span className="text-sm"><strong>{issue.blockLabel}:</strong> {issue.problem}</span>
-                                <span className="text-sm" style={{ color: "var(--color-primary)" }}>{issue.suggestion}</span>
-                              </div>
-                            ))}
+                  {/* Feasibility check */}
+                  {groupId && players > 0 && (
+                    <div className="today-feasibility-section">
+                      <button
+                        className="btn btn-secondary btn-sm"
+                        onClick={() => handleCheckFeasibility(id, sess)}
+                        disabled={feas?.loading}
+                      >
+                        {feas?.loading ? <FiLoader className="spin" /> : <FiCheckCircle />} {t("today.checkFeasibility")}
+                      </button>
+                      {feas?.result && (
+                        <div className={`today-feasibility ${feas.result.feasible ? "today-feas-ok" : "today-feas-warn"}`}>
+                          <div className="flex gap-sm" style={{ alignItems: "flex-start" }}>
+                            {feas.result.feasible
+                              ? <FiCheckCircle style={{ color: "var(--color-success)", flexShrink: 0, marginTop: 2 }} />
+                              : <FiAlertTriangle style={{ color: "var(--color-warning)", flexShrink: 0, marginTop: 2 }} />}
+                            <div>
+                              <strong className="text-sm">{feas.result.summary}</strong>
+                              {feas.result.issues?.map((issue, i) => (
+                                <div key={i} className="today-feas-issue">
+                                  <span className="text-sm"><strong>{issue.blockLabel}:</strong> {issue.problem}</span>
+                                  <span className="text-sm" style={{ color: "var(--color-primary)" }}>{issue.suggestion}</span>
+                                </div>
+                              ))}
+                            </div>
                           </div>
                         </div>
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Attendance */}
-                  {sess.group && (
-                    <AttendanceTracker sessionId={sess._id} groupId={sess.group._id || sess.group} initialAttendees={sess.attendees} />
+                      )}
+                    </div>
                   )}
 
                   {/* Team Splitter */}
-                  {sess.group && (
-                    <TeamSplitter groupId={sess.group._id || sess.group} attendees={sess.attendees} />
+                  {groupId && (
+                    <TeamSplitter
+                      groupId={groupId}
+                      attendees={ci.attendees}
+                      guestAttendees={ci.guestAttendees}
+                    />
                   )}
 
                   {/* Session Timer */}

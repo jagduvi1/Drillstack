@@ -4,7 +4,7 @@ import { getPlayers } from "../../api/players";
 import { splitSimple, splitSmart } from "../../api/splits";
 import { FiUsers, FiShuffle, FiCpu, FiLoader } from "react-icons/fi";
 
-export default function TeamSplitter({ groupId, attendees }) {
+export default function TeamSplitter({ groupId, attendees, guestAttendees = [] }) {
   const { t } = useTranslation();
   const [players, setPlayers] = useState([]);
   const [groupCount, setGroupCount] = useState(2);
@@ -17,21 +17,32 @@ export default function TeamSplitter({ groupId, attendees }) {
   useEffect(() => {
     if (!groupId) return;
     getPlayers(groupId).then((res) => {
-      // If we have attendees, only use those; otherwise use all active players
       const all = res.data || [];
+      let result;
       if (attendees?.length > 0) {
         const attendeeSet = new Set(attendees.map((a) => a?._id || a));
-        setPlayers(all.filter((p) => attendeeSet.has(p._id)));
+        result = all.filter((p) => attendeeSet.has(p._id));
       } else {
-        setPlayers(all);
+        result = all;
       }
+      // Add guest players with synthetic IDs
+      const guestPlayers = (guestAttendees || []).map((g, i) => ({
+        _id: `guest-${i}`,
+        name: g.name,
+        position: g.position || "",
+        isGuest: true,
+      }));
+      setPlayers([...result, ...guestPlayers]);
     }).catch(() => {});
-  }, [groupId, attendees]);
+  }, [groupId, attendees, guestAttendees]);
+
+  const realPlayers = players.filter((p) => !p.isGuest);
+  const guestPlayers = players.filter((p) => p.isGuest);
 
   const handleSimpleSplit = async () => {
     setLoading(true);
     try {
-      const res = await splitSimple(players.map((p) => p._id), groupCount);
+      const res = await splitSimple(realPlayers.map((p) => p._id), groupCount, guestPlayers.map((g) => ({ name: g.name, position: g.position })));
       setGroups(res.data.groups);
       setSummary("");
     } catch { /* ignore */ }
@@ -41,7 +52,7 @@ export default function TeamSplitter({ groupId, attendees }) {
   const handleSmartSplit = async () => {
     setLoading(true);
     try {
-      const res = await splitSmart(players.map((p) => p._id), groupCount, criteria);
+      const res = await splitSmart(realPlayers.map((p) => p._id), groupCount, criteria, guestPlayers.map((g) => ({ name: g.name, position: g.position })));
       setGroups(res.data.groups);
       setSummary(res.data.summary || "");
     } catch { /* ignore */ }

@@ -17,14 +17,22 @@ router.post(
   validate,
   async (req, res, next) => {
     try {
-      const { playerIds, groupCount } = req.body;
+      const { playerIds, groupCount, guestPlayers = [] } = req.body;
       const players = await Player.find({ _id: { $in: playerIds } }).select("name position number");
-      if (players.length < groupCount) {
+      // Add guest players with synthetic IDs
+      const guests = guestPlayers.slice(0, 20).map((g, i) => ({
+        _id: `guest-${i}`,
+        name: String(g.name || "Guest").slice(0, 100),
+        position: String(g.position || "").slice(0, 50),
+        isGuest: true,
+      }));
+      const allPlayers = [...players, ...guests];
+      if (allPlayers.length < groupCount) {
         return res.status(400).json({ error: "Not enough players for the requested number of groups" });
       }
 
       // Shuffle and distribute evenly
-      const shuffled = [...players].sort(() => Math.random() - 0.5);
+      const shuffled = [...allPlayers].sort(() => Math.random() - 0.5);
       const groups = Array.from({ length: groupCount }, () => []);
       shuffled.forEach((p, i) => groups[i % groupCount].push(p));
 
@@ -52,19 +60,30 @@ router.post(
   validate,
   async (req, res, next) => {
     try {
-      const { playerIds, groupCount, criteria } = req.body;
+      const { playerIds, groupCount, criteria, guestPlayers = [] } = req.body;
       const players = await Player.find({ _id: { $in: playerIds } })
         .select("name position strengths weaknesses notes");
-      if (players.length < groupCount) {
+      // Add guest players
+      const guests = guestPlayers.slice(0, 20).map((g, i) => ({
+        _id: `guest-${i}`,
+        name: String(g.name || "Guest").slice(0, 100),
+        position: String(g.position || "").slice(0, 50),
+        strengths: [],
+        weaknesses: [],
+        isGuest: true,
+      }));
+      const allPlayers = [...players, ...guests];
+      if (allPlayers.length < groupCount) {
         return res.status(400).json({ error: "Not enough players" });
       }
 
-      const playerList = players.map((p) => ({
+      const playerList = allPlayers.map((p) => ({
         id: p._id.toString(),
         name: p.name,
         position: p.position || "unknown",
         strengths: (p.strengths || []).join(", ") || "none listed",
         weaknesses: (p.weaknesses || []).join(", ") || "none listed",
+        ...(p.isGuest ? { note: "Guest player — no profile data available" } : {}),
       }));
 
       const systemPrompt = `You are a sports training assistant. Split players into balanced groups.
@@ -97,7 +116,7 @@ Return JSON in this exact format:
       }
 
       // Map player IDs back to full player objects
-      const playerMap = new Map(players.map((p) => [p._id.toString(), p]));
+      const playerMap = new Map(allPlayers.map((p) => [p._id.toString(), p]));
       const groups = parsed.groups.map((g) => ({
         name: g.name,
         reasoning: g.reasoning || "",

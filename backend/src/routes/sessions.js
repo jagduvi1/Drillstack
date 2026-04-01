@@ -112,7 +112,10 @@ router.get("/today", authenticate, resolveUserGroups, async (req, res, next) => 
     // 1) Sessions with today's date (own + group shared)
     const dateFilter = buildSessionFilter(req);
     dateFilter.date = { $gte: startOfDay, $lt: endOfDay };
-    const dateSessions = await TrainingSession.find(dateFilter).populate(POPULATE_BLOCKS);
+    const dateSessions = await TrainingSession.find(dateFilter)
+      .populate(POPULATE_BLOCKS)
+      .populate("group", "name sport")
+      .populate("attendees", "name position number");
 
     // 2) Plans (own + group shared)
     const planFilter = {
@@ -158,7 +161,10 @@ router.get("/today", authenticate, resolveUserGroups, async (req, res, next) => 
 
     // Fetch plan sessions with full drill population (plan populate doesn't go deep enough)
     const planSessions = planSessionIds.size > 0
-      ? await TrainingSession.find({ _id: { $in: [...planSessionIds] } }).populate(POPULATE_BLOCKS)
+      ? await TrainingSession.find({ _id: { $in: [...planSessionIds] } })
+          .populate(POPULATE_BLOCKS)
+          .populate("group", "name sport")
+          .populate("attendees", "name position number")
       : [];
 
     // Combine, avoiding duplicates
@@ -289,8 +295,14 @@ router.put("/:id/attendance", authenticate, resolveUserGroups, async (req, res, 
     if (!isOwner && !isGroupMember) return res.status(403).json({ error: "Not authorized" });
 
     session.attendees = req.body.attendees || [];
-    session.actualPlayers = session.attendees.length;
+    const guests = (req.body.guestAttendees || [])
+      .filter((g) => g?.name?.trim())
+      .slice(0, 20)
+      .map((g) => ({ name: String(g.name).trim().slice(0, 100), position: String(g.position || "").trim().slice(0, 50) }));
+    session.guestAttendees = guests;
+    session.actualPlayers = session.attendees.length + guests.length;
     await session.save();
+    await session.populate("attendees", "name position number");
     res.json(session);
   } catch (err) {
     next(err);
