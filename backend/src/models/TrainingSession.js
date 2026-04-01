@@ -70,6 +70,12 @@ const sessionSchema = new Schema(
     actualPlayers: { type: Number, default: null },
     actualTrainers: { type: Number, default: null },
     attendees: [{ type: Schema.Types.ObjectId, ref: "Player" }],
+    guestAttendees: [
+      {
+        name: { type: String, required: true, trim: true },
+        position: { type: String, default: "" },
+      },
+    ],
 
     totalDuration: { type: Number, default: 0 },
     equipmentSummary: [{ type: String }],

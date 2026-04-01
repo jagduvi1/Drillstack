@@ -492,6 +492,7 @@
     "players": "Players",
     "trainers": "Trainers",
     "check": "Check",
+    "checkFeasibility": "Check feasibility",
     "equipment": "Equipment",
     "perStation": "{{count}} per station",
     "extra": "({{count}} extra)",
@@ -515,7 +516,13 @@
     "strengthsPlaceholder": "Speed, shooting, passing...",
     "weaknessesPlaceholder": "Left foot, heading...",
     "deleteConfirm": "Remove this player?",
-    "attendance": "Attendance"
+    "attendance": "Attendance",
+    "selectAll": "Select all",
+    "deselectAll": "Deselect all",
+    "guest": "Guest",
+    "addGuest": "Add guest",
+    "guestName": "Guest name...",
+    "removeGuest": "Remove guest"
   },
   "splits": {
     "title": "Split into Groups",

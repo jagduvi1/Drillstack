@@ -49,6 +49,42 @@
   flex-shrink: 0;
 }
 
+/* ── Guest players ───────────────────────────────── */
+.attendance-guest {
+  border-style: dashed;
+  cursor: default;
+}
+.attendance-guest-remove {
+  background: none;
+  border: none;
+  color: var(--color-muted);
+  cursor: pointer;
+  padding: 0;
+  font-size: 0.85rem;
+  flex-shrink: 0;
+}
+.attendance-guest-remove:hover {
+  color: var(--color-danger, #ef4444);
+}
+.attendance-add-guest {
+  display: flex;
+  gap: 0.35rem;
+  margin-top: 0.5rem;
+  align-items: center;
+}
+.attendance-add-guest input {
+  flex: 1;
+  max-width: 200px;
+}
+
+/* ── Feasibility section ─────────────────────────── */
+.today-feasibility-section {
+  margin-bottom: 0.75rem;
+}
+.today-feasibility-section .today-feasibility {
+  margin-top: 0.5rem;
+}
+
 /* ── Team Splitter ────────────────────────────────── */
 .team-splitter {
   background: var(--color-card);
