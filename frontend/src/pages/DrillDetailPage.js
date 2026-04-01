@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect, useCallback, lazy, Suspense } from "react";
 const DrillSketchEditor = lazy(() => import("../components/drills/sketch3d/DrillSketchEditor"));
+import RichText from "../components/common/RichText";
 import { useParams, Link, useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import useFetch from "../hooks/useFetch";
@@ -451,7 +452,7 @@ export default function DrillDetailPage() {
         {/* Description & meta */}
         <div className="card mb-1">
           <h3>{t("drills.description")}</h3>
-          <p style={{ marginTop: "0.5rem" }}>{displayDrill.description}</p>
+          <RichText text={displayDrill.description} style={{ marginTop: "0.5rem" }} />
           <div className="flex gap-sm mt-1" style={{ flexWrap: "wrap" }}>
             {displayDrill.sport && <span className="tag">{displayDrill.sport}</span>}
             <span className={`tag tag-${displayDrill.intensity === "high" ? "danger" : displayDrill.intensity === "low" ? "" : "warning"}`}>{displayDrill.intensity}</span>
@@ -505,7 +506,7 @@ export default function DrillDetailPage() {
         {displayDrill.howItWorks && (
           <div className="card mb-1">
             <h3>{t("drills.howItWorks")}</h3>
-            <p style={{ marginTop: "0.5rem", whiteSpace: "pre-wrap" }}>{displayDrill.howItWorks}</p>
+            <RichText text={displayDrill.howItWorks} style={{ marginTop: "0.5rem" }} />
           </div>
         )}
 
@@ -514,7 +515,7 @@ export default function DrillDetailPage() {
           <div className="card mb-1">
             <h3>{t("drills.coachingPoints")}</h3>
             <ul style={{ paddingLeft: "1.25rem", marginTop: "0.5rem" }}>
-              {displayDrill.coachingPoints.map((p, i) => <li key={i}>{p}</li>)}
+              {displayDrill.coachingPoints.map((p, i) => <li key={i}><RichText text={p} /></li>)}
             </ul>
           </div>
         )}
@@ -524,7 +525,7 @@ export default function DrillDetailPage() {
           <div className="card mb-1">
             <h3>{t("drills.variations")}</h3>
             <ul style={{ paddingLeft: "1.25rem", marginTop: "0.5rem" }}>
-              {displayDrill.variations.map((v, i) => <li key={i}>{v}</li>)}
+              {displayDrill.variations.map((v, i) => <li key={i}><RichText text={v} /></li>)}
             </ul>
           </div>
         )}
@@ -534,7 +535,7 @@ export default function DrillDetailPage() {
           <div className="card mb-1">
             <h3>{t("drills.commonMistakes")}</h3>
             <ul style={{ paddingLeft: "1.25rem", marginTop: "0.5rem" }}>
-              {displayDrill.commonMistakes.map((m, i) => <li key={i}>{m}</li>)}
+              {displayDrill.commonMistakes.map((m, i) => <li key={i}><RichText text={m} /></li>)}
             </ul>
           </div>
         )}

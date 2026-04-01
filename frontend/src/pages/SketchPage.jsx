@@ -2,6 +2,7 @@ import { useState, useEffect, lazy, Suspense } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { getSketch, createSketch, updateSketch } from "../api/sketches";
+import { SPORT_GROUPS } from "../components/tactics/sportConfigs";
 import { FiArrowLeft, FiSave, FiBox } from "react-icons/fi";
 
 const DrillSketchEditor = lazy(() => import("../components/drills/sketch3d/DrillSketchEditor"));
@@ -69,13 +70,16 @@ export default function SketchPage() {
             placeholder={t("sketches.untitled")}
             style={{ width: 200, fontWeight: 600 }}
           />
-          <input
+          <select
             className="form-control form-control-sm"
             value={sport}
             onChange={(e) => setSport(e.target.value)}
-            placeholder={t("sessions.sportPlaceholder")}
-            style={{ width: 120 }}
-          />
+            style={{ width: 140 }}
+          >
+            {SPORT_GROUPS.map((g) => (
+              <option key={g.key} value={g.key}>{t(`tactics.sports.${g.key}`, g.label)}</option>
+            ))}
+          </select>
         </div>
         <div className="flex gap-sm" style={{ alignItems: "center" }}>
           {saveMsg && <span className="text-sm text-muted">{saveMsg}</span>}
