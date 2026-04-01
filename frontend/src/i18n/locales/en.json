@@ -568,6 +568,8 @@
     "overallRating": "Overall",
     "recentNotes": "Recent notes",
     "skillHistory": "Rating history",
+    "progressChart": "Progress over time",
+    "chartNeedsMoreData": "Change ratings at least twice to see the progress chart.",
     "certifications": "Certifications",
     "skillLevels": "Skill Levels",
     "skillRatings": "Skill Ratings",
