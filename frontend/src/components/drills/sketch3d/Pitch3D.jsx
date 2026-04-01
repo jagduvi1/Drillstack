@@ -1,5 +1,6 @@
-import { useMemo, useRef, useEffect } from "react";
+import { useMemo, useRef, useEffect, useState } from "react";
 import * as THREE from "three";
+import api from "../../../api/client";
 
 // Create a canvas texture with text — reliable alternative to drei Text
 function useTextTexture(text, bgColor, textColor, width = 512, height = 128) {
@@ -128,25 +129,55 @@ function AdPanel({ position, rotation, width, bgColor, textColor, text }) {
   );
 }
 
-function AdBoards({ hw, hh }) {
-  // Side boards — segmented panels along both sidelines
-  const sideAds = [
-    { x: -42, w: 16, bg: "#6366f1", text: "Cellarion.app" },
-    { x: -24, w: 14, bg: "#0ea5e9", text: "DrillStack" },
-    { x: -9,  w: 16, bg: "#6366f1", text: "Cellarion.app", tc: "#e0e7ff" },
-    { x: 7,   w: 14, bg: "#dc2626", text: "DrillStack" },
-    { x: 21,  w: 14, bg: "#16a34a", text: "Cellarion.app" },
-    { x: 35,  w: 16, bg: "#6366f1", text: "Your Wine Cellar" },
-    { x: 47,  w: 8,  bg: "#f59e0b", text: "DrillStack", tc: "#1a1a2e" },
-  ];
+const DEFAULT_SIDE_ADS = [
+  { text: "Cellarion.app", bgColor: "#6366f1", textColor: "#ffffff" },
+  { text: "DrillStack", bgColor: "#0ea5e9", textColor: "#ffffff" },
+  { text: "Cellarion.app", bgColor: "#6366f1", textColor: "#e0e7ff" },
+  { text: "DrillStack", bgColor: "#dc2626", textColor: "#ffffff" },
+  { text: "Cellarion.app", bgColor: "#16a34a", textColor: "#ffffff" },
+  { text: "Your Wine Cellar", bgColor: "#6366f1", textColor: "#ffffff" },
+  { text: "DrillStack", bgColor: "#f59e0b", textColor: "#1a1a2e" },
+];
 
-  // Behind-goal boards
-  const goalAds = [
-    { z: -18, w: 12, bg: "#6366f1", text: "Cellarion.app" },
-    { z: -5,  w: 12, bg: "#f59e0b", text: "DrillStack", tc: "#1a1a2e" },
-    { z: 7,   w: 14, bg: "#6366f1", text: "Cellarion.app", tc: "#e0e7ff" },
-    { z: 19,  w: 10, bg: "#0ea5e9", text: "DrillStack" },
-  ];
+const DEFAULT_GOAL_ADS = [
+  { text: "Cellarion.app", bgColor: "#6366f1", textColor: "#ffffff" },
+  { text: "DrillStack", bgColor: "#f59e0b", textColor: "#1a1a2e" },
+  { text: "Cellarion.app", bgColor: "#6366f1", textColor: "#e0e7ff" },
+  { text: "DrillStack", bgColor: "#0ea5e9", textColor: "#ffffff" },
+];
+
+function AdBoards({ hw, hh }) {
+  const [customAds, setCustomAds] = useState(null);
+
+  useEffect(() => {
+    api.get("/ad-boards")
+      .then((res) => { if (res.data?.length > 0) setCustomAds(res.data); })
+      .catch(() => {});
+  }, []);
+
+  // Build side and goal ads from custom config or defaults
+  const sideAdDefs = customAds
+    ? customAds.filter((a) => a.position === "side" || !a.position)
+    : DEFAULT_SIDE_ADS;
+  const goalAdDefs = customAds
+    ? customAds.filter((a) => a.position === "goal")
+    : DEFAULT_GOAL_ADS;
+
+  // Distribute side ads evenly along the pitch
+  const sideSpacing = (W - 4) / Math.max(sideAdDefs.length, 1);
+  const sideAds = sideAdDefs.map((ad, i) => ({
+    x: -hw + 2 + sideSpacing * (i + 0.5),
+    w: Math.min(sideSpacing - 1, 18),
+    ...ad,
+  }));
+
+  // Distribute goal ads evenly
+  const goalSpacing = (H - 4) / Math.max(goalAdDefs.length, 1);
+  const goalAds = goalAdDefs.map((ad, i) => ({
+    z: -hh + 2 + goalSpacing * (i + 0.5),
+    w: Math.min(goalSpacing - 1, 16),
+    ...ad,
+  }));
 
   return (
     <group>
@@ -158,8 +189,8 @@ function AdBoards({ hw, hh }) {
             position={[ad.x, 0, side * (hh + 1.2)]}
             rotation={[0, side > 0 ? 0 : Math.PI, 0]}
             width={ad.w}
-            bgColor={ad.bg}
-            textColor={ad.tc}
+            bgColor={ad.bgColor}
+            textColor={ad.textColor}
             text={ad.text}
           />
         ))
@@ -173,8 +204,8 @@ function AdBoards({ hw, hh }) {
             position={[side * (hw + 2), 0, ad.z]}
             rotation={[0, side > 0 ? -Math.PI / 2 : Math.PI / 2, 0]}
             width={ad.w}
-            bgColor={ad.bg}
-            textColor={ad.tc}
+            bgColor={ad.bgColor}
+            textColor={ad.textColor}
             text={ad.text}
           />
         ))
