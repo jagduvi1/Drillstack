@@ -275,8 +275,8 @@ export default function Pitch3D({ sport = "football" }) {
     <group>
       {renderSportPitch()}
 
-      {/* ── LED advertisement boards (realistic low boards) ──────────── */}
-      <AdBoards hw={hw} hh={hh} />
+      {/* ── LED advertisement boards (football only) ──────────────────── */}
+      {base === "football" && <AdBoards hw={hw} hh={hh} />}
 
       {/* Ground plane for shadows and raycasting */}
       <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.01, 0]} visible={false} name="groundPlane">
