@@ -14,7 +14,7 @@ export default function SketchPage() {
 
   const [title, setTitle] = useState("");
   const [sport, setSport] = useState("");
-  const [sketch, setSketch] = useState({ pieces: [], arrows: [] });
+  const [sketch, setSketch] = useState({ steps: [] });
   const [loading, setLoading] = useState(!isNew);
   const [saving, setSaving] = useState(false);
   const [saveMsg, setSaveMsg] = useState("");
@@ -27,7 +27,7 @@ export default function SketchPage() {
         const s = res.data;
         setTitle(s.title || "");
         setSport(s.sport || "");
-        setSketch({ pieces: s.pieces || [], arrows: s.arrows || [] });
+        setSketch({ steps: s.steps || [], pieces: s.pieces || [], arrows: s.arrows || [] });
       })
       .catch(() => navigate("/sketches"))
       .finally(() => setLoading(false));

@@ -29,12 +29,134 @@
   cursor: grabbing;
 }
 
+/* ── Step timeline ───────────────────────────────── */
+.sketch-timeline {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.4rem 0.6rem;
+  background: var(--color-card);
+  border-top: 1px solid var(--color-border);
+  overflow-x: auto;
+}
+.sketch-steps {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+.sketch-step {
+  position: relative;
+}
+.sketch-step-btn {
+  width: 28px;
+  height: 28px;
+  border: 2px solid var(--color-border);
+  border-radius: var(--radius);
+  background: var(--color-bg);
+  color: var(--color-text);
+  cursor: pointer;
+  font-weight: 600;
+  font-size: 0.75rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.sketch-step.active .sketch-step-btn {
+  border-color: var(--color-primary);
+  background: var(--color-primary);
+  color: #fff;
+}
+.sketch-step-delete {
+  position: absolute;
+  top: -6px;
+  right: -6px;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  border: none;
+  background: var(--color-danger, #ef4444);
+  color: #fff;
+  font-size: 0.6rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+}
+.sketch-step-add {
+  width: 28px;
+  height: 28px;
+  border: 2px dashed var(--color-border);
+  border-radius: var(--radius);
+  background: none;
+  color: var(--color-muted);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* ── Fullscreen ──────────────────────────────────── */
+.sketch-fullscreen {
+  position: fixed !important;
+  top: 0;
+  left: 0;
+  width: 100vw !important;
+  height: 100vh !important;
+  z-index: 9999;
+  border: none !important;
+  border-radius: 0 !important;
+  display: flex;
+  flex-direction: column;
+}
+.sketch-fullscreen .sketch-canvas-wrapper {
+  height: 100% !important;
+  flex: 1;
+}
+.sketch-fs-controls {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.5rem 0.75rem;
+  background: linear-gradient(transparent, rgba(0, 0, 0, 0.7));
+  z-index: 10;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+  pointer-events: none;
+}
+.sketch-fullscreen:hover .sketch-fs-controls {
+  opacity: 1;
+  pointer-events: auto;
+}
+.sketch-fs-controls .btn {
+  color: #fff;
+  border-color: rgba(255,255,255,0.3);
+}
+.sketch-fs-controls .btn:hover {
+  background: rgba(255,255,255,0.1);
+}
+
+/* Touch: always show controls */
+@media (hover: none) {
+  .sketch-fs-controls {
+    opacity: 1;
+    pointer-events: auto;
+  }
+}
+
 @media (max-width: 767px) {
   .sketch-canvas-wrapper {
     height: 280px;
   }
   .sketch-toolbar {
     gap: 0.2rem;
+    padding: 0.3rem 0.4rem;
+  }
+  .sketch-timeline {
     padding: 0.3rem 0.4rem;
   }
 }

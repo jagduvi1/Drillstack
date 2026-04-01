@@ -943,7 +943,8 @@
     "away": "Borta",
     "addBall": "Lägg till boll",
     "addCone": "Lägg till kon",
-    "clickEndpoint": "Klicka för att placera pilens slutpunkt..."
+    "clickEndpoint": "Klicka för att placera pilens slutpunkt...",
+    "fullscreen": "Helskärm"
   },
   "sketches": {
     "title": "3D Skisser",
