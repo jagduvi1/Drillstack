@@ -36,7 +36,7 @@ function hasRole(group, userId, minRole) {
 // ── Routes ───────────────────────────────────────────────────────────────────
 
 // GET /api/groups/admin/pending-clubs — list unverified clubs (system admin only)
-router.get("/admin/pending-clubs", authenticate, async (req, res, next) => {
+router.get("/admin/pending-clubs", standardLimiter, authenticate, async (req, res, next) => {
   try {
     const user = await User.findById(req.user._id);
     if (user.role !== "admin") {
