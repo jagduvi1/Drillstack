@@ -4,6 +4,7 @@ import { useTranslation } from "react-i18next";
 import { getPlayerOverview, updatePlayer } from "../api/players";
 import { getMetricsForSport } from "../constants/sportMetrics";
 import PlayerMetricsEditor from "../components/players/PlayerMetricsEditor";
+import PlayerSkillChart from "../components/players/PlayerSkillChart";
 import PlayerGoalsList from "../components/players/PlayerGoalsList";
 import PlayerNotesFeed from "../components/players/PlayerNotesFeed";
 import PlayerAttendanceHistory from "../components/players/PlayerAttendanceHistory";
@@ -256,7 +257,8 @@ export default function PlayerProfilePage() {
           />
           {history.length > 0 && (
             <div style={{ marginTop: "1rem" }}>
-              <h4 style={{ margin: "0 0 0.5rem" }}>{t("playerProfile.skillHistory")}</h4>
+              <PlayerSkillChart history={history} />
+              <h4 style={{ margin: "1rem 0 0.5rem" }}>{t("playerProfile.skillHistory")}</h4>
               <div className="skill-history-list">
                 {history.slice(0, 20).map((h) => (
                   <div key={h._id} className="text-sm" style={{ marginBottom: "0.25rem", display: "flex", gap: "0.5rem", alignItems: "center" }}>

@@ -568,6 +568,8 @@
     "overallRating": "Helhet",
     "recentNotes": "Senaste anteckningar",
     "skillHistory": "Betygshistorik",
+    "progressChart": "Utveckling över tid",
+    "chartNeedsMoreData": "Ändra betyg minst två gånger för att se utvecklingsdiagrammet.",
     "certifications": "Certifieringar",
     "skillLevels": "Färdighetsnivåer",
     "skillRatings": "Färdighetsbetyg",
