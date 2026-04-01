@@ -2,7 +2,7 @@ import { useTranslation } from "react-i18next";
 import {
   FiMousePointer, FiArrowRight, FiMoreHorizontal,
   FiTrash2, FiPlus, FiMinus,
-  FiCircle, FiTriangle, FiCpu, FiZoomIn, FiZoomOut,
+  FiCircle, FiTriangle, FiZoomIn, FiZoomOut,
 } from "react-icons/fi";
 import { SPORT_CONFIGS, SPORT_GROUPS, getSportGroup } from "./TacticCanvas";
 
@@ -43,7 +43,6 @@ export default function TacticToolbar({
   sportFormations, sportFieldViews,
   onAddPiece, onRemovePiece, onAddBall, onAddCone,
   onZoomChange, onSportChange, onFieldTypeChange, onFormationChange, onColorChange,
-  onShowAiModal,
 }) {
   const { t } = useTranslation();
   if (isFullscreen) return null;
@@ -108,11 +107,6 @@ export default function TacticToolbar({
           <button className="tactic-count-btn" onClick={() => onZoomChange(Math.min(3, +(zoom + 0.25).toFixed(2)))} disabled={zoom >= 3}><FiZoomIn /></button>
         </div>
 
-        {!coachMode && (
-          <button className="tactic-tool-btn tactic-ai-btn" onClick={onShowAiModal} title={t("tactics.ai.generate")}>
-            <FiCpu /> <span className="tactic-hide-xs">{t("tactics.ai.generate")}</span>
-          </button>
-        )}
       </div>
 
       {/* Row 2: sport, field type, formations, colors (edit mode only) */}

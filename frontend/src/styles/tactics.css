@@ -476,6 +476,7 @@
   width: 100vw;
   padding: 0 !important;
   position: relative;
+  touch-action: none;
 }
 .tactic-fullscreen .tactic-canvas-container {
   flex: 1;

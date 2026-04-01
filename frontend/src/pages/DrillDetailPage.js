@@ -16,7 +16,7 @@ import DrillEmbeddingStatus from "../components/drills/DrillEmbeddingStatus";
 import SimilarDrillsBanner from "../components/drills/SimilarDrillsBanner";
 import DrillChatPanel from "../components/drills/DrillChatPanel";
 import DrillContributions from "../components/drills/DrillContributions";
-import { FiEdit, FiTrash2, FiMessageCircle, FiLoader, FiAlertCircle, FiStar, FiCopy, FiGitBranch, FiUser, FiCode, FiTarget, FiPlus, FiSave } from "react-icons/fi";
+import { FiEdit, FiTrash2, FiMessageCircle, FiLoader, FiAlertCircle, FiStar, FiCopy, FiGitBranch, FiUser, FiCode, FiPlus, FiSave } from "react-icons/fi";
 
 export default function DrillDetailPage() {
   const { t } = useTranslation();
@@ -358,23 +358,6 @@ export default function DrillDetailPage() {
             {drill.isOwner && (
               <button className="btn btn-secondary" onClick={() => setShowChat(!showChat)}>
                 <FiMessageCircle /> {showChat ? t("drills.hideChat") : t("drills.refineWithAi")}
-              </button>
-            )}
-            {drill.isOwner && (
-              <button
-                className="btn btn-secondary"
-                onClick={() => {
-                  const desc = [drill.description, drill.howItWorks].filter(Boolean).join("\n\n");
-                  const params = new URLSearchParams({
-                    drillDescription: desc,
-                    drillTitle: drill.title || "",
-                    drillId: id,
-                  });
-                  navigate(`/tactics/new?${params.toString()}`);
-                }}
-                title={t("drills.generateTacticBoard")}
-              >
-                <FiTarget /> {t("drills.generateTacticBoard")}
               </button>
             )}
             {drill.isOwner ? (

@@ -7,6 +7,7 @@ const Drill = require("../../models/Drill");
 const User = require("../../models/User");
 const Notification = require("../../models/Notification");
 const aiService = require("../../services/ai");
+const { generateDiagram } = require("../../services/imageGen");
 const { indexDrill } = require("../../services/sync");
 const { createDrillSnapshot } = require("../../utils/drillSnapshot");
 const { sanitizeDebug, sanitizeAiInput } = require("./utils");
@@ -191,6 +192,31 @@ router.post(
         conversationHistory: updatedHistory,
         debug: sanitizeDebug(result.debug),
       });
+    } catch (err) {
+      next(err);
+    }
+  }
+);
+
+// POST /api/ai/generate-diagram/:id — generate a tactical diagram for a drill
+router.post(
+  "/generate-diagram/:id",
+  authenticate,
+  checkAiLimit,
+  async (req, res, next) => {
+    try {
+      const drill = await Drill.findById(req.params.id);
+      if (!drill) return res.status(404).json({ error: "Drill not found" });
+      if (drill.createdBy.toString() !== req.user._id.toString()) {
+        return res.status(403).json({ error: "Not authorized to generate diagrams for this drill" });
+      }
+
+      const { path: diagramPath, debug } = await generateDiagram(drill);
+
+      drill.diagrams.push(diagramPath);
+      await drill.save();
+
+      res.json({ diagram: diagramPath, drill, debug: sanitizeDebug(debug) });
     } catch (err) {
       next(err);
     }
