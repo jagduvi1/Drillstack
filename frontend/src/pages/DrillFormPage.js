@@ -482,6 +482,7 @@ export default function DrillFormPage() {
               <DrillSketchEditor
                 sketch={form.sketch}
                 onChange={(sketch) => { set("sketch", sketch); setDirty(true); }}
+                sport={form.sport || "football"}
               />
             </Suspense>
           </div>
