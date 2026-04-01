@@ -72,6 +72,14 @@ const drillSchema = new Schema(
     versionName: { type: String, default: "", trim: true },
     forkedBy: { type: Schema.Types.ObjectId, ref: "User", default: null },
 
+    // ── 3D Sketch ────────────────────────────────────────────────────────────
+    sketch: {
+      pieces: [{ type: Schema.Types.Mixed }],   // { id, type, team, label, x, z, color }
+      arrows: [{ type: Schema.Types.Mixed }],   // { id, fromX, fromZ, toX, toZ, color, style }
+      fieldType: { type: String, default: "full" },
+      sport: { type: String, default: "" },
+    },
+
     // ── Media & reflections ─────────────────────────────────────────────────
     diagrams: [{ type: String }],
     reflectionNotes: [reflectionSchema],

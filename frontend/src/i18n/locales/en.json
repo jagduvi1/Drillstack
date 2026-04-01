@@ -918,6 +918,19 @@
       "newGeneration": "Start new"
     }
   },
+  "sketch": {
+    "title": "3D Drill Sketch",
+    "hint": "Draw your drill setup in 3D. Drag to rotate the view, scroll to zoom.",
+    "select": "Select / Move",
+    "arrow": "Draw Arrow",
+    "addHomePlayer": "Add home player",
+    "addAwayPlayer": "Add away player",
+    "home": "Home",
+    "away": "Away",
+    "addBall": "Add ball",
+    "addCone": "Add cone",
+    "clickEndpoint": "Click to place arrow endpoint..."
+  },
   "equipment": {
     "mats": "Mats",
     "cones": "Cones",
