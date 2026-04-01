@@ -64,13 +64,30 @@ export const SPORT_METRICS = {
     { key: "digging", type: "rating" },
   ],
   padel: [
+    // General attributes
+    { key: "defence", type: "rating" },
+    { key: "offence", type: "rating" },
+    { key: "transition", type: "rating" },
+    { key: "mental", type: "rating" },
+    { key: "splitStep", type: "rating" },
+    // Strokes
     { key: "serving", type: "rating" },
+    { key: "returning", type: "rating" },
     { key: "forehand", type: "rating" },
     { key: "backhand", type: "rating" },
-    { key: "volley", type: "rating" },
+    { key: "forehandVolley", type: "rating" },
+    { key: "backhandVolley", type: "rating" },
+    { key: "blockVolley", type: "rating" },
+    { key: "lowVolley", type: "rating" },
+    { key: "dropshot", type: "rating" },
     { key: "lob", type: "rating" },
-    { key: "tactical", type: "rating" },
-    { key: "footwork", type: "rating" },
+    { key: "chiquita", type: "rating" },
+    { key: "vibora", type: "rating" },
+    { key: "bandeja", type: "rating" },
+    { key: "bajada", type: "rating" },
+    { key: "gancho", type: "rating" },
+    { key: "rulo", type: "rating" },
+    { key: "smash", type: "rating" },
   ],
   gymnastics: [
     // Levels & certifications
