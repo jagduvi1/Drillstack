@@ -1,11 +1,11 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from "react";
-import { useParams, useNavigate, useSearchParams, Link } from "react-router-dom";
+import { useParams, useNavigate, Link } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import useUnsavedChanges from "../hooks/useUnsavedChanges";
 import {
   FiArrowLeft, FiSave,
   FiTrash2, FiPlus, FiPlay, FiPause, FiSkipBack, FiSkipForward,
-  FiRepeat, FiCpu, FiZoomIn, FiZoomOut,
+  FiRepeat, FiZoomIn, FiZoomOut,
   FiMaximize, FiMinimize, FiTarget, FiEye, FiEdit3,
 } from "react-icons/fi";
 import TacticCanvas, {
@@ -13,10 +13,7 @@ import TacticCanvas, {
   SPORT_CONFIGS, SPORT_FORMATIONS, getFormations, getDefaultFormation, getPitch,
 } from "../components/tactics/TacticCanvas";
 import TacticToolbar from "../components/tactics/TacticToolbar";
-import TacticAiModal from "../components/tactics/TacticAiModal";
-import DebugPanel from "../components/common/DebugPanel";
-import useDebugPanel from "../hooks/useDebugPanel";
-import { getTactic, createTactic, updateTactic, generateTacticAnimation, generateTacticFromDrill, refineTacticAnimation } from "../api/tactics";
+import { getTactic, createTactic, updateTactic } from "../api/tactics";
 import { useAuth } from "../context/AuthContext";
 
 function easeInOutQuad(t) {
@@ -26,7 +23,6 @@ function easeInOutQuad(t) {
 export default function TacticBoardPage() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const [searchParams] = useSearchParams();
   const { t } = useTranslation();
   const { user } = useAuth();
   const isNew = !id;
@@ -91,17 +87,6 @@ export default function TacticBoardPage() {
       document.removeEventListener("webkitfullscreenchange", handler);
     };
   }, []);
-
-  // ── AI generation state ────────────────────────────────────────────────
-  const [showAiModal, setShowAiModal] = useState(false);
-  const [aiPrompt, setAiPrompt] = useState("");
-  const [aiLoading, setAiLoading] = useState(false);
-  const [aiError, setAiError] = useState("");
-  const { debugOpen, debugEntries, toggleDebug, addDebugEntry } = useDebugPanel();
-  const [aiChat, setAiChat] = useState([]);         // { role, content }
-  const [aiChatMsg, setAiChatMsg] = useState("");
-  const [aiHasGenerated, setAiHasGenerated] = useState(false);
-  const chatEndRef = useRef(null);
 
   // ── Playback state ──────────────────────────────────────────────────────
   const [isPlaying, setIsPlaying] = useState(false);
@@ -417,88 +402,6 @@ export default function TacticBoardPage() {
     }
   };
 
-  // ── AI generation ─────────────────────────────────────────────────────
-  const handleAiGenerate = async () => {
-    if (!aiPrompt.trim()) return;
-    setAiLoading(true);
-    setAiError("");
-    try {
-      const res = await generateTacticAnimation({
-        description: aiPrompt.trim(),
-        sport,
-        fieldType,
-        numHomePlayers: homePlayers.length,
-        numAwayPlayers: awayPlayers.length,
-        homeFormation,
-        awayFormation,
-      });
-      const { animation, debug } = res.data;
-      if (debug) {
-        addDebugEntry(`AI Tactic: ${aiPrompt.trim().slice(0, 60)}`, debug);
-      }
-      if (animation?.steps?.length) {
-        setSteps(animation.steps);
-        setCurrentStepIdx(0);
-        if (animation.title && !title) setTitle(animation.title);
-        setAiHasGenerated(true);
-        setAiChat([{ role: "user", content: aiPrompt.trim() }, { role: "assistant", content: t("tactics.ai.generated") }]);
-        setAiPrompt("");
-      } else {
-        setAiError(t("tactics.ai.generationFailed"));
-      }
-    } catch (err) {
-      const errDebug = err.response?.data?.debug;
-      if (errDebug) {
-        addDebugEntry(`AI Tactic (failed): ${aiPrompt.trim().slice(0, 60)}`, errDebug);
-      }
-      setAiError(err.response?.data?.error || t("tactics.ai.generationFailed"));
-    } finally {
-      setAiLoading(false);
-    }
-  };
-
-  // ── AI refine (chat) ───────────────────────────────────────────────────
-  const handleAiRefine = async () => {
-    if (!aiChatMsg.trim()) return;
-    const userMsg = aiChatMsg.trim();
-    setAiChat((prev) => [...prev, { role: "user", content: userMsg }]);
-    setAiChatMsg("");
-    setAiLoading(true);
-    setAiError("");
-    try {
-      const res = await refineTacticAnimation({
-        steps,
-        message: userMsg,
-        conversationHistory: aiChat,
-        sport,
-      });
-      const { steps: updated, message: aiMessage, debug } = res.data;
-      if (debug) {
-        addDebugEntry(`AI Refine: ${userMsg.slice(0, 60)}`, debug);
-      }
-      if (updated?.length) {
-        setSteps(updated);
-        setCurrentStepIdx(0);
-        setAiChat((prev) => [...prev, { role: "assistant", content: t("tactics.ai.refined") }]);
-      } else if (aiMessage) {
-        setAiChat((prev) => [...prev, { role: "assistant", content: aiMessage }]);
-      }
-    } catch (err) {
-      const errDebug = err.response?.data?.debug;
-      if (errDebug) {
-        addDebugEntry(`AI Refine (failed): ${userMsg.slice(0, 60)}`, errDebug);
-      }
-      setAiChat((prev) => [...prev, { role: "assistant", content: t("tactics.ai.generationFailed") }]);
-    } finally {
-      setAiLoading(false);
-    }
-  };
-
-  // Scroll chat to bottom
-  useEffect(() => {
-    chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [aiChat]);
-
   // ── Field type change (confirm + clear) ────────────────────────────────
   const handleFieldTypeChange = (newType) => {
     if (newType === fieldType) return;
@@ -509,56 +412,6 @@ export default function TacticBoardPage() {
     setCurrentStepIdx(0);
     setSelectedPieceId(null);
   };
-
-  // ── Auto-generate from drill (query param) ─────────────────────────────
-  const autoGenTriggered = useRef(false);
-  useEffect(() => {
-    if (autoGenTriggered.current || id) return;
-    const drillIdParam = searchParams.get("drillId");
-    const drillTitle_ = searchParams.get("drillTitle");
-    const drillDesc = searchParams.get("drillDescription");
-    if (!drillIdParam && !drillDesc) return;
-
-    autoGenTriggered.current = true;
-    if (drillTitle_) setTitle(drillTitle_);
-    if (drillIdParam) { setDrillId(drillIdParam); if (drillTitle_) setDrillTitle(drillTitle_); }
-
-    // If we have a drill ID, use the full-context endpoint (Opus) — auto-generate immediately
-    if (drillIdParam) {
-      setAiLoading(true);
-      setShowAiModal(true);
-      setAiChat([{ role: "assistant", content: t("tactics.ai.generatingFromDrill") }]);
-      setAiHasGenerated(true); // Show chat mode so user sees progress
-      generateTacticFromDrill(drillIdParam, {
-        sport, fieldType, numHomePlayers: homePlayers.length, numAwayPlayers: awayPlayers.length,
-        homeFormation, awayFormation,
-      })
-        .then((res) => {
-          const { animation, debug } = res.data;
-          if (debug) addDebugEntry(`AI Tactic from drill: ${drillTitle_}`, debug);
-          if (animation?.steps?.length) {
-            setSteps(animation.steps);
-            setCurrentStepIdx(0);
-            if (animation.title && !title) setTitle(animation.title);
-            setAiChat([
-              { role: "assistant", content: t("tactics.ai.generatedFromDrill") },
-            ]);
-          } else {
-            setAiChat([{ role: "assistant", content: t("tactics.ai.generationFailed") }]);
-          }
-        })
-        .catch((err) => {
-          const errDebug = err.response?.data?.debug;
-          if (errDebug) addDebugEntry(`AI Tactic from drill (failed)`, errDebug);
-          setAiChat([{ role: "assistant", content: err.response?.data?.error || t("tactics.ai.generationFailed") }]);
-        })
-        .finally(() => setAiLoading(false));
-    } else {
-      // Fallback: show the modal with the description pre-filled
-      setAiPrompt(drillDesc);
-      setShowAiModal(true);
-    }
-  }, [searchParams, id]);
 
   // ── Keyboard shortcuts ──────────────────────────────────────────────────
   useEffect(() => {
@@ -649,11 +502,6 @@ export default function TacticBoardPage() {
             )}
             <div className="tactic-header-actions">
               {saveMsg && <span className="text-sm text-muted">{saveMsg}</span>}
-              {debugEntries.length > 0 && (
-                <button className={`btn btn-sm ${debugOpen ? "btn-primary" : "btn-secondary"}`} onClick={toggleDebug}>
-                  <FiCpu /> <span className="tactic-hide-xs">Debug ({debugEntries.length})</span>
-                </button>
-              )}
               <button className="btn btn-secondary btn-sm" onClick={() => setCoachMode(true)} title={t("tactics.coachMode")}>
                 <FiEye /> <span className="tactic-hide-xs">{t("tactics.coachMode")}</span>
               </button>
@@ -685,7 +533,6 @@ export default function TacticBoardPage() {
         onFieldTypeChange={handleFieldTypeChange}
         onFormationChange={applyFormation}
         onColorChange={(team, color) => team === "home" ? setHomeColor(color) : setAwayColor(color)}
-        onShowAiModal={() => setShowAiModal(true)}
       />
 
       {/* Selected piece bar (edit mode only) */}
@@ -727,6 +574,7 @@ export default function TacticBoardPage() {
         selectedPieceId={selectedPieceId} onPieceSelect={setSelectedPieceId}
         homeColor={homeColor} awayColor={awayColor} fieldType={fieldType}
         zoom={zoom}
+        isRotated={shouldRotate}
       />
 
       {/* Timeline — hidden in fullscreen */}
@@ -773,20 +621,6 @@ export default function TacticBoardPage() {
       </div>
       )}
 
-      {/* AI Debug Panel (edit mode only) */}
-      {!isFullscreen && !coachMode && debugOpen && <DebugPanel entries={debugEntries} />}
-
-      {/* AI Generation / Chat Modal */}
-      <TacticAiModal
-        showAiModal={showAiModal}
-        aiPrompt={aiPrompt} aiLoading={aiLoading} aiError={aiError}
-        aiHasGenerated={aiHasGenerated} aiChat={aiChat} aiChatMsg={aiChatMsg}
-        onClose={() => setShowAiModal(false)}
-        onPromptChange={setAiPrompt} onGenerate={handleAiGenerate}
-        onChatMsgChange={setAiChatMsg} onRefine={handleAiRefine}
-        onNewGeneration={() => { setAiHasGenerated(false); setAiChat([]); }}
-        chatEndRef={chatEndRef}
-      />
     </div>
   );
 }
