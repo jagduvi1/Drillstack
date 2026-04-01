@@ -61,7 +61,19 @@ router.post(
       const result = await aiService.generateSessionPlan(
         req.body.description,
         drills,
-        { numPlayers: req.body.numPlayers, totalMinutes: req.body.totalMinutes, starredIds: [...starredIdSet], userSport: req.user.preferredSport }
+        {
+          numPlayers: req.body.numPlayers,
+          totalMinutes: req.body.totalMinutes,
+          starredIds: [...starredIdSet],
+          userSport: req.user.preferredSport,
+          sport: req.body.sport,
+          groupType: req.body.groupType,
+          ageRange: req.body.ageRange,
+          numCoaches: req.body.numCoaches,
+          spaceConstraint: req.body.spaceConstraint,
+          hasCertification: req.body.hasCertification,
+          unavailableEquipment: req.body.unavailableEquipment,
+        }
       );
 
       // Post-process: strip out any drill references that don't match existing drills

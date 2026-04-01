@@ -311,6 +311,28 @@
     "visibility": "Synlighet",
     "teamOnly": "Bara laget",
     "entireClub": "Hela klubben",
+    "advancedOptions": "Avancerade alternativ",
+    "groupType": "Grupptyp",
+    "groupTypes": {
+      "children": "Barn",
+      "team": "Lag",
+      "beginners": "Nybörjare",
+      "advanced": "Avancerade",
+      "competitive": "Tävling"
+    },
+    "ageRange": "Åldersgrupp",
+    "numberOfCoaches": "Antal tränare",
+    "spaceConstraint": "Utrymme",
+    "spaces": {
+      "fullHall": "Hel hall",
+      "halfHall": "Halv hall",
+      "quarterHall": "Kvarts hall",
+      "outdoor": "Utomhus",
+      "smallRoom": "Litet rum"
+    },
+    "hasCertification": "Voltcertifiering",
+    "equipmentAvailability": "Utrustning tillgänglig",
+    "equipmentHint": "Klicka för att markera utrustning som otillgänglig (genomstruken = ej tillgänglig).",
     "aiGenFailed": "AI-generering misslyckades. Kontrollera din AI-leverantörskonfiguration.",
     "notInSystem": "ej i systemet",
     "stationInfo": "{{count}} stationer, {{minutes}} min rotation",
@@ -864,5 +886,27 @@
     "none": "Ej valt",
     "name": "Visningsnamn",
     "saved": "Inställningar sparade"
+  },
+  "equipment": {
+    "mats": "Mattor",
+    "cones": "Koner",
+    "hoops": "Ringar",
+    "balls": "Bollar",
+    "ropes": "Rep",
+    "benches": "Bänkar",
+    "goals": "Mål",
+    "bibs": "Västar",
+    "ladders": "Stegar",
+    "hurdles": "Häckar",
+    "rings": "Ringar",
+    "balance_beam": "Bom",
+    "vault": "Hopp",
+    "trampoline": "Studsmatta",
+    "bars": "Barr",
+    "springboard": "Sviktbräda",
+    "crash_mats": "Tjockmattor",
+    "foam_pit": "Skumgrop",
+    "resistance_bands": "Gummiband",
+    "medicine_balls": "Medicinbollar"
   }
 }

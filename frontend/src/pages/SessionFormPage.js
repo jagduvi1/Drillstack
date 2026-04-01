@@ -39,6 +39,7 @@ export default function SessionFormPage() {
   const [aiPrompt, setAiPrompt] = useState("");
   const [aiNumPlayers, setAiNumPlayers] = useState("");
   const [aiTotalMinutes, setAiTotalMinutes] = useState("");
+  const [aiAdvanced, setAiAdvanced] = useState({});
   const [aiPreview, setAiPreview] = useState(null);
   const [aiDrills, setAiDrills] = useState([]);
   const [generating, setGenerating] = useState(false);
@@ -157,9 +158,15 @@ export default function SessionFormPage() {
     try {
       const res = await suggestSession({
         description: aiPrompt,
+        sport: form.sport || undefined,
         numPlayers: aiNumPlayers ? parseInt(aiNumPlayers, 10) : undefined,
         totalMinutes: aiTotalMinutes ? parseInt(aiTotalMinutes, 10) : undefined,
-        useAll: false,
+        ...(aiAdvanced.groupType && { groupType: aiAdvanced.groupType }),
+        ...(aiAdvanced.ageRange && { ageRange: aiAdvanced.ageRange }),
+        ...(aiAdvanced.numCoaches && { numCoaches: parseInt(aiAdvanced.numCoaches, 10) }),
+        ...(aiAdvanced.spaceConstraint && { spaceConstraint: aiAdvanced.spaceConstraint }),
+        ...(aiAdvanced.hasCertification !== undefined && { hasCertification: aiAdvanced.hasCertification }),
+        ...(aiAdvanced.unavailableEquipment?.length > 0 && { unavailableEquipment: aiAdvanced.unavailableEquipment }),
       });
       setAiPreview(res.data.suggestion);
       setAiDrills(res.data.availableDrills || []);
@@ -334,6 +341,8 @@ export default function SessionFormPage() {
           onAiNumPlayersChange={setAiNumPlayers}
           aiTotalMinutes={aiTotalMinutes}
           onAiTotalMinutesChange={setAiTotalMinutes}
+          aiAdvanced={aiAdvanced}
+          onAiAdvancedChange={setAiAdvanced}
           generating={generating}
           onGenerate={handleGenerate}
           onSwitchToManual={() => setMode("manual")}

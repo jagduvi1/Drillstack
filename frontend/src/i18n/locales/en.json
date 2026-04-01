@@ -311,6 +311,28 @@
     "visibility": "Visibility",
     "teamOnly": "Team only",
     "entireClub": "Entire club",
+    "advancedOptions": "Advanced options",
+    "groupType": "Group type",
+    "groupTypes": {
+      "children": "Children",
+      "team": "Team",
+      "beginners": "Beginners",
+      "advanced": "Advanced",
+      "competitive": "Competitive"
+    },
+    "ageRange": "Age range",
+    "numberOfCoaches": "Number of coaches",
+    "spaceConstraint": "Space",
+    "spaces": {
+      "fullHall": "Full hall",
+      "halfHall": "Half hall",
+      "quarterHall": "Quarter hall",
+      "outdoor": "Outdoor",
+      "smallRoom": "Small room"
+    },
+    "hasCertification": "Somersault/flip certification",
+    "equipmentAvailability": "Equipment availability",
+    "equipmentHint": "Click to mark equipment as unavailable (strikethrough = not available).",
     "aiGenFailed": "AI generation failed. Check your AI provider config.",
     "notInSystem": "not in system",
     "stationInfo": "{{count}} stations, {{minutes}} min rotation",
@@ -851,6 +873,28 @@
       "chatPlaceholder": "Ask AI to change the board, e.g. 'move the right winger higher' ...",
       "newGeneration": "Start new"
     }
+  },
+  "equipment": {
+    "mats": "Mats",
+    "cones": "Cones",
+    "hoops": "Hoops",
+    "balls": "Balls",
+    "ropes": "Ropes",
+    "benches": "Benches",
+    "goals": "Goals",
+    "bibs": "Bibs",
+    "ladders": "Ladders",
+    "hurdles": "Hurdles",
+    "rings": "Rings",
+    "balance_beam": "Balance beam",
+    "vault": "Vault",
+    "trampoline": "Trampoline",
+    "bars": "Bars",
+    "springboard": "Springboard",
+    "crash_mats": "Crash mats",
+    "foam_pit": "Foam pit",
+    "resistance_bands": "Resistance bands",
+    "medicine_balls": "Medicine balls"
   },
   "language": {
     "en": "English",
