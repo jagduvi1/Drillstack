@@ -170,7 +170,7 @@ router.get("/:groupId/:playerId/overview", async (req, res, next) => {
     ]);
 
     res.json({
-      player,
+      player: { ...player.toObject(), group: { _id: group._id, sport: group.sport } },
       metrics: metrics ? Object.fromEntries(metrics.ratings) : {},
       goals,
       recentNotes,

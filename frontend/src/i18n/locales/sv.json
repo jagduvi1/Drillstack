@@ -490,6 +490,7 @@
     "leaveClub": "Lämna klubb",
     "leaveClubConfirm": "Lämna denna klubb? Ditt lag blir fristående.",
     "yourRole": "Din roll: {{role}}",
+    "noSport": "Ingen sport angiven",
     "notFoundOrDenied": "Gruppen hittades inte eller åtkomst nekad",
     "failedToInvite": "Kunde inte bjuda in lag",
     "starredDrills": "Stjärnmärkta övningar ({{count}})",

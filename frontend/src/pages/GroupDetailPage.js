@@ -1,13 +1,14 @@
 import { useState, useEffect } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
 import { useTranslation } from "react-i18next";
-import { getGroup, deleteGroup, addMember, updateMemberRole, removeMember, createTeam, getTeams, regenerateInvite, inviteTeam, leaveClub, toggleGroupStar } from "../api/groups";
+import { getGroup, deleteGroup, updateGroup, addMember, updateMemberRole, removeMember, createTeam, getTeams, regenerateInvite, inviteTeam, leaveClub, toggleGroupStar } from "../api/groups";
 import { getDrills } from "../api/drills";
 import { useAuth } from "../context/AuthContext";
 import { useGroups } from "../context/GroupContext";
-import { FiTrash2, FiPlus, FiUsers, FiShield, FiUser, FiCopy, FiRefreshCw, FiLink, FiXCircle, FiStar, FiSearch, FiAlertCircle, FiCheck } from "react-icons/fi";
+import { FiTrash2, FiPlus, FiUsers, FiShield, FiUser, FiCopy, FiRefreshCw, FiLink, FiXCircle, FiStar, FiSearch, FiAlertCircle, FiCheck, FiEdit3 } from "react-icons/fi";
 import PlayerRoster from "../components/groups/PlayerRoster";
 import TrainerRoster from "../components/groups/TrainerRoster";
+import { SPORT_GROUPS } from "../components/tactics/sportConfigs";
 
 export default function GroupDetailPage() {
   const { t } = useTranslation();
@@ -34,6 +35,10 @@ export default function GroupDetailPage() {
   const [showInviteTeam, setShowInviteTeam] = useState(false);
   const [teamInviteCode, setTeamInviteCode] = useState("");
   const [inviteTeamError, setInviteTeamError] = useState("");
+
+  // Sport editing
+  const [editingSport, setEditingSport] = useState(false);
+  const [sportValue, setSportValue] = useState("");
 
   // Drill search for starring
   const [drillSearch, setDrillSearch] = useState("");
@@ -158,6 +163,18 @@ export default function GroupDetailPage() {
     } catch { /* ignore */ }
   };
 
+  const handleEditSport = () => {
+    setSportValue(group.sport || "");
+    setEditingSport(true);
+  };
+
+  const handleSaveSport = async () => {
+    await updateGroup(id, { sport: sportValue });
+    setGroup({ ...group, sport: sportValue });
+    setEditingSport(false);
+    refreshGroups();
+  };
+
   const handleCopyInvite = () => {
     navigator.clipboard.writeText(group.inviteCode);
   };
@@ -182,8 +199,29 @@ export default function GroupDetailPage() {
 
       {group.description && <p className="text-muted mb-1">{group.description}</p>}
 
-      <div className="flex gap-sm mb-1" style={{ flexWrap: "wrap" }}>
-        {group.sport && <span className="tag">{group.sport}</span>}
+      <div className="flex gap-sm mb-1" style={{ flexWrap: "wrap", alignItems: "center" }}>
+        {editingSport ? (
+          <div className="flex gap-sm" style={{ alignItems: "center" }}>
+            <select className="form-control form-control-sm" value={sportValue} onChange={(e) => setSportValue(e.target.value)} style={{ width: "auto" }}>
+              <option value="">{t("drills.sportEg")}</option>
+              {SPORT_GROUPS.map((s) => (
+                <option key={s.key} value={s.key}>{s.label}</option>
+              ))}
+            </select>
+            <button className="btn btn-primary btn-sm" onClick={handleSaveSport}><FiCheck /></button>
+            <button className="btn btn-secondary btn-sm" onClick={() => setEditingSport(false)}><FiXCircle /></button>
+          </div>
+        ) : (
+          <>
+            {group.sport
+              ? <span className="tag">{SPORT_GROUPS.find(s => s.key === group.sport)?.label || group.sport}</span>
+              : isAdmin && <span className="tag tag-warning">{t("groups.noSport")}</span>
+            }
+            {isAdmin && !editingSport && (
+              <button className="btn btn-secondary btn-sm" onClick={handleEditSport} style={{ padding: "0.15rem 0.5rem" }}><FiEdit3 /></button>
+            )}
+          </>
+        )}
         <span className="tag">{isClub ? t("groups.club") : t("groups.team")}</span>
         {group.parentClub && <span className="tag">{t("groups.club")}: {group.parentClub.name}</span>}
         <span className="tag">{t("groups.yourRole", { role: myRole })}</span>
