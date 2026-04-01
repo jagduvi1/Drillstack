@@ -198,6 +198,8 @@ export default function DrillSketchEditor({ sketch, onChange, readOnly = false, 
               isSelected: selectedId === p.id,
               onSelect: () => !readOnly && setSelectedId(p.id),
               enabled: !readOnly && tool === "select",
+              onDragStart: () => { if (controlsRef.current) controlsRef.current.enabled = false; },
+              onDragEnd: () => { if (controlsRef.current) controlsRef.current.enabled = true; },
             };
             if (p.type === "cone") return <Cone3D {...props} />;
             if (p.type === "ball") return <Ball3D {...props} />;

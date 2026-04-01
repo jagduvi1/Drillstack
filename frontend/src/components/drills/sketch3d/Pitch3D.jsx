@@ -103,6 +103,55 @@ export default function Pitch3D() {
         </group>
       ))}
 
+      {/* ── Advertisement boards ─────────────────────────────────────── */}
+      {/* Side boards (along the long edges) */}
+      {[-1, 1].map((side) => (
+        <group key={`side-${side}`} position={[0, 0, side * (hh + 0.8)]}>
+          {/* Board backing */}
+          <mesh position={[0, 0.6, 0]}>
+            <boxGeometry args={[W - 4, 1.2, 0.15]} />
+            <meshStandardMaterial color="#1a1a2e" />
+          </mesh>
+          {/* Ad panel - Cellarion */}
+          <mesh position={[0, 0.6, side * 0.08]}>
+            <planeGeometry args={[W - 4.5, 1]} />
+            <meshStandardMaterial color="#6366f1" />
+          </mesh>
+          {/* Ad text strip */}
+          <mesh position={[0, 0.6, side * 0.09]}>
+            <planeGeometry args={[24, 0.4]} />
+            <meshStandardMaterial color="white" />
+          </mesh>
+          {/* Cellarion.app repeated sections */}
+          {[-30, -10, 10, 30].map((xOff, i) => (
+            <mesh key={i} position={[xOff, 0.6, side * 0.09]}>
+              <planeGeometry args={[18, 0.35]} />
+              <meshStandardMaterial color="#4f46e5" />
+            </mesh>
+          ))}
+        </group>
+      ))}
+
+      {/* Behind-goal boards */}
+      {[-1, 1].map((side) => (
+        <group key={`goal-${side}`} position={[side * (hw + 1.5), 0, 0]}>
+          <mesh position={[0, 0.6, 0]} rotation={[0, Math.PI / 2, 0]}>
+            <boxGeometry args={[H - 4, 1.2, 0.15]} />
+            <meshStandardMaterial color="#1a1a2e" />
+          </mesh>
+          {/* Ad panel */}
+          <mesh position={[side * 0.08, 0.6, 0]} rotation={[0, Math.PI / 2, 0]}>
+            <planeGeometry args={[H - 4.5, 1]} />
+            <meshStandardMaterial color="#6366f1" />
+          </mesh>
+          {/* White text strip */}
+          <mesh position={[side * 0.09, 0.6, 0]} rotation={[0, Math.PI / 2, 0]}>
+            <planeGeometry args={[20, 0.35]} />
+            <meshStandardMaterial color="white" />
+          </mesh>
+        </group>
+      ))}
+
       {/* Ground plane for shadows and raycasting */}
       <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.01, 0]} visible={false} name="groundPlane">
         <planeGeometry args={[W + 20, H + 20]} />

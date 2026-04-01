@@ -5,7 +5,7 @@ import * as THREE from "three";
 
 const raycaster = new THREE.Raycaster();
 
-function DraggablePiece({ children, position, onMove, isSelected, onSelect, enabled }) {
+function DraggablePiece({ children, position, onMove, isSelected, onSelect, enabled, onDragStart, onDragEnd }) {
   const ref = useRef();
   const { camera, gl, scene } = useThree();
   const [dragging, setDragging] = useState(false);
@@ -28,6 +28,7 @@ function DraggablePiece({ children, position, onMove, isSelected, onSelect, enab
     e.stopPropagation();
     onSelect?.();
     setDragging(true);
+    onDragStart?.();
     gl.domElement.style.cursor = "grabbing";
     e.target.setPointerCapture(e.pointerId);
   };
@@ -41,6 +42,7 @@ function DraggablePiece({ children, position, onMove, isSelected, onSelect, enab
   const handlePointerUp = (e) => {
     if (!dragging) return;
     setDragging(false);
+    onDragEnd?.();
     gl.domElement.style.cursor = "auto";
     e.target.releasePointerCapture(e.pointerId);
   };
@@ -132,12 +134,13 @@ function LowPolyPlayer({ color, skinColor = "#f4c587" }) {
   );
 }
 
-export function Player3D({ piece, onMove, isSelected, onSelect, enabled }) {
+export function Player3D({ piece, onMove, isSelected, onSelect, enabled, onDragStart, onDragEnd }) {
   const color = piece.color || (piece.team === "home" ? "#2563eb" : "#ef4444");
   return (
     <DraggablePiece
       position={[piece.x, 0, piece.z]}
       onMove={onMove} isSelected={isSelected} onSelect={onSelect} enabled={enabled}
+      onDragStart={onDragStart} onDragEnd={onDragEnd}
     >
       <LowPolyPlayer color={color} />
       {/* Label sprite above head */}
@@ -150,11 +153,12 @@ export function Player3D({ piece, onMove, isSelected, onSelect, enabled }) {
   );
 }
 
-export function Cone3D({ piece, onMove, isSelected, onSelect, enabled }) {
+export function Cone3D({ piece, onMove, isSelected, onSelect, enabled, onDragStart, onDragEnd }) {
   return (
     <DraggablePiece
       position={[piece.x, 0, piece.z]}
       onMove={onMove} isSelected={isSelected} onSelect={onSelect} enabled={enabled}
+      onDragStart={onDragStart} onDragEnd={onDragEnd}
     >
       <mesh position={[0, 0.5, 0]} castShadow>
         <coneGeometry args={[0.5, 1, 16]} />
@@ -169,11 +173,12 @@ export function Cone3D({ piece, onMove, isSelected, onSelect, enabled }) {
   );
 }
 
-export function Ball3D({ piece, onMove, isSelected, onSelect, enabled }) {
+export function Ball3D({ piece, onMove, isSelected, onSelect, enabled, onDragStart, onDragEnd }) {
   return (
     <DraggablePiece
       position={[piece.x, 0, piece.z]}
       onMove={onMove} isSelected={isSelected} onSelect={onSelect} enabled={enabled}
+      onDragStart={onDragStart} onDragEnd={onDragEnd}
     >
       <mesh position={[0, 0.35, 0]} castShadow>
         <icosahedronGeometry args={[0.35, 1]} />
