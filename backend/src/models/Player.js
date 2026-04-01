@@ -1,5 +1,9 @@
 const mongoose = require("mongoose");
 const { Schema } = mongoose;
+const { createEncryptionHook, createDecryptionTransform } = require("../utils/encryption");
+
+const PII_STRING_FIELDS = ["notes", "photoUrl"];
+const PII_NUMBER_FIELDS = ["height", "weight"];
 
 const playerSchema = new Schema(
   {
@@ -11,10 +15,10 @@ const playerSchema = new Schema(
     weaknesses: [{ type: String, trim: true }],
     notes: { type: String, default: "" },
 
-    // Physical attributes
+    // Physical attributes (height/weight encrypted at rest)
     dateOfBirth: { type: Date, default: null },
-    height: { type: Number, default: null },          // cm
-    weight: { type: Number, default: null },          // kg
+    height: { type: Schema.Types.Mixed, default: null },  // cm — encrypted
+    weight: { type: Schema.Types.Mixed, default: null },  // kg — encrypted
     preferredFoot: { type: String, enum: ["left", "right", "both", ""], default: "" },
     preferredHand: { type: String, enum: ["left", "right", "both", ""], default: "" },
     photoUrl: { type: String, default: "" },
@@ -29,5 +33,12 @@ const playerSchema = new Schema(
 );
 
 playerSchema.index({ group: 1, active: 1 });
+
+// Encrypt PII fields before save
+playerSchema.pre("save", createEncryptionHook(PII_STRING_FIELDS, PII_NUMBER_FIELDS));
+
+// Decrypt PII fields when converting to JSON (API responses)
+playerSchema.set("toJSON", { transform: createDecryptionTransform(PII_STRING_FIELDS, PII_NUMBER_FIELDS) });
+playerSchema.set("toObject", { transform: createDecryptionTransform(PII_STRING_FIELDS, PII_NUMBER_FIELDS) });
 
 module.exports = mongoose.model("Player", playerSchema);
