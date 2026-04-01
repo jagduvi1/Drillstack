@@ -19,6 +19,7 @@ function coachPersona(sport) {
     floorball: "expert floorball coach",
     volleyball: "expert volleyball coach",
     gymnastics: "expert gymnastics coach",
+    padel: "expert padel coach",
   };
   return labels[sport] || `expert ${sport} coach`;
 }

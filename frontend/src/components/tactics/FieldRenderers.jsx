@@ -456,6 +456,47 @@ function VolleyballField({ sc, sportCfg }) {
 }
 
 
+// ── Padel Court ───────────────────────────────────────────────────────────
+function PadelField({ sc, sportCfg }) {
+  const w = sportCfg.width;  // 20m
+  const h = sportCfg.height; // 10m
+  const lw = 2;
+  const lc = sportCfg.lineColor;
+  const cx = w / 2; // 10m — net position
+
+  // Service line distance from back wall: 6.95m → at x=6.95 and x=20-6.95=13.05
+  const svc = 6.95;
+
+  return (
+    <Group listening={false}>
+      <Rect x={0} y={0} width={sc.canvasW} height={sc.canvasH} fill={sportCfg.bgColor} />
+      {/* Court surface — two halves */}
+      <Rect x={sc.x(0)} y={sc.y(0)} width={sc.s(cx)} height={sc.s(h)} fill={sportCfg.fieldColor1} />
+      <Rect x={sc.x(cx)} y={sc.y(0)} width={sc.s(cx)} height={sc.s(h)} fill={sportCfg.fieldColor2} />
+      {/* Court outline */}
+      <Rect x={sc.x(0)} y={sc.y(0)} width={sc.s(w)} height={sc.s(h)} stroke={lc} strokeWidth={lw} />
+
+      {/* Net (center line) */}
+      <Line points={[sc.x(cx), sc.y(0), sc.x(cx), sc.y(h)]} stroke={lc} strokeWidth={3} />
+
+      {/* Service lines */}
+      <Line points={[sc.x(svc), sc.y(0), sc.x(svc), sc.y(h)]} stroke={lc} strokeWidth={lw} />
+      <Line points={[sc.x(w - svc), sc.y(0), sc.x(w - svc), sc.y(h)]} stroke={lc} strokeWidth={lw} />
+
+      {/* Center service lines (divide service boxes) */}
+      <Line points={[sc.x(0), sc.y(h / 2), sc.x(svc), sc.y(h / 2)]} stroke={lc} strokeWidth={lw} />
+      <Line points={[sc.x(w - svc), sc.y(h / 2), sc.x(w), sc.y(h / 2)]} stroke={lc} strokeWidth={lw} />
+
+      {/* Back wall indicators (small marks at court edges) */}
+      <Line points={[sc.x(0), sc.y(0), sc.x(0), sc.y(h)]} stroke="rgba(255,255,255,0.5)" strokeWidth={4} />
+      <Line points={[sc.x(w), sc.y(0), sc.x(w), sc.y(h)]} stroke="rgba(255,255,255,0.5)" strokeWidth={4} />
+      {/* Side wall indicators */}
+      <Line points={[sc.x(0), sc.y(0), sc.x(w), sc.y(0)]} stroke="rgba(255,255,255,0.5)" strokeWidth={4} />
+      <Line points={[sc.x(0), sc.y(h), sc.x(w), sc.y(h)]} stroke="rgba(255,255,255,0.5)" strokeWidth={4} />
+    </Group>
+  );
+}
+
 // ── Sport field dispatcher ──────────────────────────────────────────────────
 function SportField({ sc, sport, fieldType }) {
   const sportCfg = SPORT_CONFIGS[sport] || SPORT_CONFIGS.football;
@@ -472,6 +513,7 @@ function SportField({ sc, sport, fieldType }) {
     case "futsal": return <FutsalField sc={sc} sportCfg={sportCfg} />;
     case "floorball": return <FloorballField sc={sc} sportCfg={sportCfg} />;
     case "volleyball": return <VolleyballField sc={sc} sportCfg={sportCfg} />;
+    case "padel": return <PadelField sc={sc} sportCfg={sportCfg} />;
     default: return <FootballField sc={sc} sportCfg={sportCfg} />;
   }
 }
