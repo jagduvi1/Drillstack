@@ -7,6 +7,7 @@ import TabDatabase from "./TabDatabase";
 import TabUsers from "./TabUsers";
 import TabAudit from "./TabAudit";
 import TabAI from "./TabAI";
+import TabAds from "./TabAds";
 import "./SuperAdmin.css";
 
 const TABS = [
@@ -16,6 +17,7 @@ const TABS = [
   { id: "users",     label: "Users" },
   { id: "audit",     label: "Audit Log" },
   { id: "ai",        label: "AI & Embeddings" },
+  { id: "ads",       label: "Ad Boards" },
 ];
 
 export default function SuperAdmin() {
@@ -91,6 +93,7 @@ export default function SuperAdmin() {
         {tab === "users"    && <TabUsers />}
         {tab === "audit"    && <TabAudit />}
         {tab === "ai"       && <TabAI />}
+        {tab === "ads"      && <TabAds />}
       </div>
 
       {/* Footer */}

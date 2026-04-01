@@ -325,4 +325,33 @@ router.get("/audit", async (req, res, next) => {
   }
 });
 
+// ── Ad Board Configuration ──────────────────────────────────────────────────
+
+// GET /api/superadmin/ad-boards — get current ad config
+router.get("/ad-boards", async (req, res, next) => {
+  try {
+    const ads = await SiteConfig.getValue("adBoards", []);
+    res.json(ads);
+  } catch (err) {
+    next(err);
+  }
+});
+
+// PUT /api/superadmin/ad-boards — save ad config
+router.put("/ad-boards", async (req, res, next) => {
+  try {
+    const ads = (req.body.ads || []).slice(0, 30).map((ad) => ({
+      text: String(ad.text || "").slice(0, 50),
+      bgColor: String(ad.bgColor || "#6366f1").slice(0, 20),
+      textColor: String(ad.textColor || "#ffffff").slice(0, 20),
+      position: ad.position || "side", // "side" or "goal"
+    }));
+    await SiteConfig.setValue("adBoards", ads, req.user._id, "3D pitch advertisement boards");
+    logAudit("superadmin.adBoards.update", { userId: req.user._id, email: req.user.email });
+    res.json(ads);
+  } catch (err) {
+    next(err);
+  }
+});
+
 module.exports = router;
