@@ -10,6 +10,7 @@ const playerSchema = new Schema(
     name: { type: String, required: true, trim: true },
     group: { type: Schema.Types.ObjectId, ref: "Group", required: true, index: true },
     position: { type: String, default: "", trim: true },
+    defencePosition: { type: String, default: "", trim: true },
     number: { type: Number, default: null },
     strengths: [{ type: String, trim: true }],
     weaknesses: [{ type: String, trim: true }],
@@ -19,8 +20,8 @@ const playerSchema = new Schema(
     dateOfBirth: { type: Date, default: null },
     height: { type: Schema.Types.Mixed, default: null },  // cm — encrypted
     weight: { type: Schema.Types.Mixed, default: null },  // kg — encrypted
-    preferredFoot: { type: String, enum: ["left", "right", "both", ""], default: "" },
-    preferredHand: { type: String, enum: ["left", "right", "both", ""], default: "" },
+    preferredFoot: { type: String, enum: ["left", "right", "ambidextrous", ""], default: "" },
+    preferredHand: { type: String, enum: ["left", "right", "ambidextrous", ""], default: "" },
     photoUrl: { type: String, default: "" },
 
     // Overall skill rating (0-100)

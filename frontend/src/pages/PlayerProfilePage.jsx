@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { useParams, Link } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { getPlayerOverview, updatePlayer } from "../api/players";
-import { getMetricsForSport } from "../constants/sportMetrics";
+import { getMetricsForSport, getPositionsForSport, getDualPositions, hasDualPositions, SPORTS_WITH_NUMBERS, SPORTS_WITH_FOOT, SPORTS_WITH_HAND } from "../constants/sportMetrics";
 import PlayerMetricsEditor from "../components/players/PlayerMetricsEditor";
 import PlayerSkillChart from "../components/players/PlayerSkillChart";
 import PlayerGoalsList from "../components/players/PlayerGoalsList";
@@ -36,6 +36,19 @@ export default function PlayerProfilePage() {
   const sport = player.group?.sport || "";
   const metricDefs = getMetricsForSport(sport);
   const metricKeys = metricDefs.filter((d) => d.type === "rating").map((d) => d.key);
+
+  const positions = getPositionsForSport(sport);
+  const dual = getDualPositions(sport);
+  const isDual = hasDualPositions(sport);
+  const hasNumbers = SPORTS_WITH_NUMBERS.includes(sport?.split("-")[0]);
+  const sportBase = sport?.split("-")[0] || "";
+  const showFoot = SPORTS_WITH_FOOT.includes(sportBase);
+  const showHand = SPORTS_WITH_HAND.includes(sportBase);
+
+  // Compute average skill from numeric rating metrics
+  const ratingValues = metricKeys.map((k) => metrics[k]).filter((v) => typeof v === "number");
+  const avgSkill = ratingValues.length > 0 ? Math.round(ratingValues.reduce((a, b) => a + b, 0) / ratingValues.length) : null;
+
   const age = player.dateOfBirth
     ? Math.floor((Date.now() - new Date(player.dateOfBirth).getTime()) / (365.25 * 24 * 60 * 60 * 1000))
     : null;
@@ -56,6 +69,7 @@ export default function PlayerProfilePage() {
       preferredFoot: player.preferredFoot || "",
       preferredHand: player.preferredHand || "",
       position: player.position || "",
+      defencePosition: player.defencePosition || "",
       number: player.number || "",
     });
     setEditing(true);
@@ -84,11 +98,12 @@ export default function PlayerProfilePage() {
             </h1>
             <div className="flex gap-sm" style={{ marginTop: "0.35rem", flexWrap: "wrap" }}>
               {player.position && <span className="tag">{player.position}</span>}
+              {player.defencePosition && <span className="tag">{player.defencePosition}</span>}
               {age !== null && <span className="tag">{t("playerProfile.age", { age })}</span>}
               {player.height && <span className="tag">{player.height} cm</span>}
               {player.weight && <span className="tag">{player.weight} kg</span>}
-              {player.preferredFoot && <span className="tag">{t(`playerProfile.foot.${player.preferredFoot}`)}</span>}
-              {player.preferredHand && <span className="tag">{t(`playerProfile.hand.${player.preferredHand}`)}</span>}
+              {showFoot && player.preferredFoot && <span className="tag">{t(`playerProfile.foot.${player.preferredFoot}`)}</span>}
+              {showHand && player.preferredHand && <span className="tag">{t(`playerProfile.hand.${player.preferredHand}`)}</span>}
               {player.skillRating !== null && (
                 <span className="tag" style={{ background: "var(--color-primary)", color: "#fff" }}>
                   {player.skillRating}/100
@@ -103,16 +118,48 @@ export default function PlayerProfilePage() {
 
         {editing && (
           <div className="edit-profile-form" style={{ marginTop: "0.75rem", display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0.5rem" }}>
-            <div>
-              <label className="text-xs">{t("playerProfile.position")}</label>
-              <input className="form-control form-control-sm" value={editForm.position}
-                onChange={(e) => setEditForm({ ...editForm, position: e.target.value })} />
-            </div>
-            <div>
-              <label className="text-xs">{t("players.number")}</label>
-              <input type="number" className="form-control form-control-sm" value={editForm.number}
-                onChange={(e) => setEditForm({ ...editForm, number: e.target.value })} />
-            </div>
+            {isDual ? (
+              <>
+                <div>
+                  <label className="text-xs">{t("players.offencePosition", "Offence position")}</label>
+                  <select className="form-control form-control-sm" value={editForm.position}
+                    onChange={(e) => setEditForm({ ...editForm, position: e.target.value })}>
+                    <option value="">--</option>
+                    {dual.offence.map((pos) => <option key={pos} value={pos}>{pos}</option>)}
+                  </select>
+                </div>
+                <div>
+                  <label className="text-xs">{t("players.defencePosition", "Defence position")}</label>
+                  <select className="form-control form-control-sm" value={editForm.defencePosition}
+                    onChange={(e) => setEditForm({ ...editForm, defencePosition: e.target.value })}>
+                    <option value="">--</option>
+                    {dual.defence.map((pos) => <option key={pos} value={pos}>{pos}</option>)}
+                  </select>
+                </div>
+              </>
+            ) : positions.length > 0 ? (
+              <div>
+                <label className="text-xs">{t("playerProfile.position")}</label>
+                <select className="form-control form-control-sm" value={editForm.position}
+                  onChange={(e) => setEditForm({ ...editForm, position: e.target.value })}>
+                  <option value="">--</option>
+                  {positions.map((pos) => <option key={pos} value={pos}>{pos}</option>)}
+                </select>
+              </div>
+            ) : (
+              <div>
+                <label className="text-xs">{t("playerProfile.position")}</label>
+                <input className="form-control form-control-sm" value={editForm.position}
+                  onChange={(e) => setEditForm({ ...editForm, position: e.target.value })} />
+              </div>
+            )}
+            {hasNumbers && (
+              <div>
+                <label className="text-xs">{t("players.number")}</label>
+                <input type="number" className="form-control form-control-sm" value={editForm.number}
+                  onChange={(e) => setEditForm({ ...editForm, number: e.target.value })} />
+              </div>
+            )}
             <div>
               <label className="text-xs">{t("playerProfile.dateOfBirth")}</label>
               <input type="date" className="form-control form-control-sm" value={editForm.dateOfBirth}
@@ -128,16 +175,30 @@ export default function PlayerProfilePage() {
               <input type="number" className="form-control form-control-sm" value={editForm.weight} placeholder="kg"
                 onChange={(e) => setEditForm({ ...editForm, weight: e.target.value })} />
             </div>
-            <div>
-              <label className="text-xs">{t("playerProfile.preferredFoot")}</label>
-              <select className="form-control form-control-sm" value={editForm.preferredFoot}
-                onChange={(e) => setEditForm({ ...editForm, preferredFoot: e.target.value })}>
-                <option value="">—</option>
-                <option value="left">{t("playerProfile.foot.left")}</option>
-                <option value="right">{t("playerProfile.foot.right")}</option>
-                <option value="both">{t("playerProfile.foot.both")}</option>
-              </select>
-            </div>
+            {showFoot && (
+              <div>
+                <label className="text-xs">{t("playerProfile.preferredFoot")}</label>
+                <select className="form-control form-control-sm" value={editForm.preferredFoot}
+                  onChange={(e) => setEditForm({ ...editForm, preferredFoot: e.target.value })}>
+                  <option value="">--</option>
+                  <option value="left">{t("playerProfile.foot.left")}</option>
+                  <option value="right">{t("playerProfile.foot.right")}</option>
+                  <option value="ambidextrous">{t("playerProfile.foot.ambidextrous")}</option>
+                </select>
+              </div>
+            )}
+            {showHand && (
+              <div>
+                <label className="text-xs">{t("playerProfile.preferredHand", "Preferred hand")}</label>
+                <select className="form-control form-control-sm" value={editForm.preferredHand}
+                  onChange={(e) => setEditForm({ ...editForm, preferredHand: e.target.value })}>
+                  <option value="">--</option>
+                  <option value="left">{t("playerProfile.hand.left")}</option>
+                  <option value="right">{t("playerProfile.hand.right")}</option>
+                  <option value="ambidextrous">{t("playerProfile.hand.ambidextrous")}</option>
+                </select>
+              </div>
+            )}
           </div>
         )}
       </div>
@@ -167,10 +228,10 @@ export default function PlayerProfilePage() {
               <span className="stat-value">{goals.length}</span>
               <span className="stat-label">{t("playerProfile.activeGoals")}</span>
             </div>
-            {player.skillRating !== null && (
+            {avgSkill !== null && (
               <div className="stat-card">
-                <span className="stat-value">{player.skillRating}</span>
-                <span className="stat-label">{t("playerProfile.overallRating")}</span>
+                <span className="stat-value">{avgSkill}</span>
+                <span className="stat-label">{t("playerProfile.avgSkill", "Avg skill")}</span>
               </div>
             )}
           </div>

@@ -540,6 +540,8 @@
     "notes": "Notes",
     "strengthsPlaceholder": "Speed, shooting, passing...",
     "weaknessesPlaceholder": "Left foot, heading...",
+    "offencePosition": "Offence position",
+    "defencePosition": "Defence position",
     "deleteConfirm": "Remove this player?",
     "attendance": "Attendance",
     "selectAll": "Select all",
@@ -559,14 +561,16 @@
     "height": "Height",
     "weight": "Weight",
     "preferredFoot": "Preferred foot",
-    "foot": { "left": "Left foot", "right": "Right foot", "both": "Both feet" },
-    "hand": { "left": "Left hand", "right": "Right hand", "both": "Both hands" },
+    "preferredHand": "Preferred hand",
+    "foot": { "left": "Left foot", "right": "Right foot", "ambidextrous": "Ambidextrous" },
+    "hand": { "left": "Left hand", "right": "Right hand", "ambidextrous": "Ambidextrous" },
     "tabs": { "overview": "Overview", "skills": "Skills", "goals": "Goals", "notes": "Notes", "attendance": "Attendance" },
     "attendanceRate": "Attendance",
     "last90Days": "Last 90 days",
     "totalSessions": "Total sessions",
     "activeGoals": "Active goals",
     "overallRating": "Overall",
+    "avgSkill": "Avg skill",
     "recentNotes": "Recent notes",
     "skillHistory": "Rating history",
     "progressChart": "Progress over time",
@@ -614,7 +618,8 @@
     "floorExercise": "Floor exercise",
     "vaultSkill": "Vault skill",
     "barsSkill": "Bars skill",
-    "beamSkill": "Beam skill"
+    "beamSkill": "Beam skill",
+    "slice": "Slice"
   },
   "skillLevels": {
     "beginner": "Beginner",
@@ -864,7 +869,9 @@
       "futsal": "Futsal",
       "floorball": "Floorball",
       "volleyball": "Volleyball",
-      "padel": "Padel"
+      "padel": "Padel",
+      "tennis": "Tennis",
+      "tennis-doubles": "Tennis Doubles"
     },
     "fieldTypes": {
       "full": "Full court",

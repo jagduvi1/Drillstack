@@ -540,6 +540,8 @@
     "notes": "Anteckningar",
     "strengthsPlaceholder": "Snabbhet, skott, passning...",
     "weaknessesPlaceholder": "Vänsterfot, nick...",
+    "offencePosition": "Anfallsposition",
+    "defencePosition": "Försvarsposition",
     "deleteConfirm": "Ta bort denna spelare?",
     "attendance": "Närvaro",
     "selectAll": "Välj alla",
@@ -559,14 +561,16 @@
     "height": "Längd",
     "weight": "Vikt",
     "preferredFoot": "Föredragen fot",
-    "foot": { "left": "Vänsterfot", "right": "Högerfot", "both": "Båda fötter" },
-    "hand": { "left": "Vänsterhand", "right": "Högerhand", "both": "Båda händer" },
+    "preferredHand": "Föredragen hand",
+    "foot": { "left": "Vänsterfot", "right": "Högerfot", "ambidextrous": "Tvåfotad" },
+    "hand": { "left": "Vänsterhand", "right": "Högerhand", "ambidextrous": "Tvåhänt" },
     "tabs": { "overview": "Översikt", "skills": "Färdigheter", "goals": "Mål", "notes": "Anteckningar", "attendance": "Närvaro" },
     "attendanceRate": "Närvaro",
     "last90Days": "Senaste 90 dagarna",
     "totalSessions": "Totalt pass",
     "activeGoals": "Aktiva mål",
     "overallRating": "Helhet",
+    "avgSkill": "Snittbetyg",
     "recentNotes": "Senaste anteckningar",
     "skillHistory": "Betygshistorik",
     "progressChart": "Utveckling över tid",
@@ -614,7 +618,8 @@
     "floorExercise": "Golvprogram",
     "vaultSkill": "Hoppfärdighet",
     "barsSkill": "Barrfärdighet",
-    "beamSkill": "Bomfärdighet"
+    "beamSkill": "Bomfärdighet",
+    "slice": "Slice"
   },
   "skillLevels": {
     "beginner": "Nybörjare",
@@ -864,7 +869,9 @@
       "futsal": "Futsal",
       "floorball": "Innebandy",
       "volleyball": "Volleyboll",
-      "padel": "Padel"
+      "padel": "Padel",
+      "tennis": "Tennis",
+      "tennis-doubles": "Tennis Dubbel"
     },
     "fieldTypes": {
       "full": "Hela planen",

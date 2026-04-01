@@ -329,7 +329,7 @@ export default function GroupDetailPage() {
       <TrainerRoster groupId={id} canEdit={isAdmin} />
 
       {/* Player Roster */}
-      <PlayerRoster groupId={id} canEdit={isTrainer} />
+      <PlayerRoster groupId={id} canEdit={isTrainer} sport={group.sport} />
 
       {/* Starred Drills */}
       {isTrainer && (

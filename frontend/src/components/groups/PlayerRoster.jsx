@@ -2,17 +2,24 @@ import { useState, useEffect, memo } from "react";
 import { Link } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { getPlayers, addPlayer, updatePlayer, deletePlayer } from "../../api/players";
+import { getPositionsForSport, getDualPositions, hasDualPositions, SPORTS_WITH_NUMBERS } from "../../constants/sportMetrics";
 import { FiPlus, FiTrash2, FiEdit, FiChevronDown, FiChevronUp, FiUser } from "react-icons/fi";
 
-export default memo(function PlayerRoster({ groupId, canEdit }) {
+export default memo(function PlayerRoster({ groupId, canEdit, sport }) {
   const { t } = useTranslation();
   const [players, setPlayers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showAdd, setShowAdd] = useState(false);
   const [newName, setNewName] = useState("");
   const [newPosition, setNewPosition] = useState("");
+  const [newDefencePosition, setNewDefencePosition] = useState("");
   const [expandedId, setExpandedId] = useState(null);
   const [editData, setEditData] = useState({});
+
+  const positions = getPositionsForSport(sport);
+  const dual = getDualPositions(sport);
+  const isDual = hasDualPositions(sport);
+  const hasNumbers = SPORTS_WITH_NUMBERS.includes(sport?.split("-")[0]);
 
   const fetchPlayers = () => {
     getPlayers(groupId)
@@ -26,9 +33,10 @@ export default memo(function PlayerRoster({ groupId, canEdit }) {
   const handleAdd = async (e) => {
     e.preventDefault();
     if (!newName.trim()) return;
-    await addPlayer(groupId, { name: newName.trim(), position: newPosition.trim() });
+    await addPlayer(groupId, { name: newName.trim(), position: newPosition.trim(), defencePosition: newDefencePosition.trim() });
     setNewName("");
     setNewPosition("");
+    setNewDefencePosition("");
     setShowAdd(false);
     fetchPlayers();
   };
@@ -54,6 +62,7 @@ export default memo(function PlayerRoster({ groupId, canEdit }) {
       setEditData({
         name: player.name,
         position: player.position || "",
+        defencePosition: player.defencePosition || "",
         number: player.number || "",
         birthYear: player.birthYear || "",
         strengths: player.strengths || [],
@@ -78,9 +87,27 @@ export default memo(function PlayerRoster({ groupId, canEdit }) {
 
       {/* Add player form */}
       {showAdd && canEdit && (
-        <form onSubmit={handleAdd} className="flex gap-sm mb-1">
-          <input className="form-control" placeholder={t("players.namePlaceholder")} value={newName} onChange={(e) => setNewName(e.target.value)} required style={{ flex: 1 }} />
-          <input className="form-control" placeholder={t("players.positionPlaceholder")} value={newPosition} onChange={(e) => setNewPosition(e.target.value)} style={{ width: 120 }} />
+        <form onSubmit={handleAdd} className="flex gap-sm mb-1" style={{ flexWrap: "wrap" }}>
+          <input className="form-control" placeholder={t("players.namePlaceholder")} value={newName} onChange={(e) => setNewName(e.target.value)} required style={{ flex: 1, minWidth: 120 }} />
+          {isDual ? (
+            <>
+              <select className="form-control" value={newPosition} onChange={(e) => setNewPosition(e.target.value)} style={{ width: 150 }}>
+                <option value="">{t("players.offencePosition", "Offence position")}</option>
+                {dual.offence.map((p) => <option key={p} value={p}>{p}</option>)}
+              </select>
+              <select className="form-control" value={newDefencePosition} onChange={(e) => setNewDefencePosition(e.target.value)} style={{ width: 150 }}>
+                <option value="">{t("players.defencePosition", "Defence position")}</option>
+                {dual.defence.map((p) => <option key={p} value={p}>{p}</option>)}
+              </select>
+            </>
+          ) : positions.length > 0 ? (
+            <select className="form-control" value={newPosition} onChange={(e) => setNewPosition(e.target.value)} style={{ width: 150 }}>
+              <option value="">{t("players.positionPlaceholder")}</option>
+              {positions.map((p) => <option key={p} value={p}>{p}</option>)}
+            </select>
+          ) : (
+            <input className="form-control" placeholder={t("players.positionPlaceholder")} value={newPosition} onChange={(e) => setNewPosition(e.target.value)} style={{ width: 120 }} />
+          )}
           <button type="submit" className="btn btn-primary btn-sm"><FiPlus /></button>
         </form>
       )}
@@ -105,6 +132,7 @@ export default memo(function PlayerRoster({ groupId, canEdit }) {
                     {p.name}
                   </Link>
                   {p.position && <span className="text-sm text-muted">{p.position}</span>}
+                  {p.defencePosition && <span className="text-sm text-muted">/ {p.defencePosition}</span>}
                 </div>
                 <div className="flex gap-sm" style={{ alignItems: "center" }}>
                   {p.skillRating !== null && p.skillRating !== undefined && (
@@ -118,10 +146,30 @@ export default memo(function PlayerRoster({ groupId, canEdit }) {
               {/* Expanded edit view */}
               {expandedId === p._id && canEdit && (
                 <div style={{ background: "var(--color-bg)", borderRadius: "0 0 var(--radius) var(--radius)", padding: "0.75rem", marginTop: -2 }}>
-                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "0.5rem", marginBottom: "0.5rem" }}>
+                  <div style={{ display: "grid", gridTemplateColumns: isDual ? "1fr 1fr" : hasNumbers ? "1fr 1fr 1fr" : "1fr 1fr", gap: "0.5rem", marginBottom: "0.5rem" }}>
                     <input className="form-control form-control-sm" placeholder={t("players.name")} value={editData.name || ""} onChange={(e) => setEditData({ ...editData, name: e.target.value })} />
-                    <input className="form-control form-control-sm" placeholder={t("players.position")} value={editData.position || ""} onChange={(e) => setEditData({ ...editData, position: e.target.value })} />
-                    <input className="form-control form-control-sm" type="number" placeholder={t("players.number")} value={editData.number || ""} onChange={(e) => setEditData({ ...editData, number: e.target.value })} />
+                    {isDual ? (
+                      <>
+                        <select className="form-control form-control-sm" value={editData.position || ""} onChange={(e) => setEditData({ ...editData, position: e.target.value })}>
+                          <option value="">{t("players.offencePosition", "Offence position")}</option>
+                          {dual.offence.map((pos) => <option key={pos} value={pos}>{pos}</option>)}
+                        </select>
+                        <select className="form-control form-control-sm" value={editData.defencePosition || ""} onChange={(e) => setEditData({ ...editData, defencePosition: e.target.value })}>
+                          <option value="">{t("players.defencePosition", "Defence position")}</option>
+                          {dual.defence.map((pos) => <option key={pos} value={pos}>{pos}</option>)}
+                        </select>
+                      </>
+                    ) : positions.length > 0 ? (
+                      <select className="form-control form-control-sm" value={editData.position || ""} onChange={(e) => setEditData({ ...editData, position: e.target.value })}>
+                        <option value="">{t("players.positionPlaceholder")}</option>
+                        {positions.map((pos) => <option key={pos} value={pos}>{pos}</option>)}
+                      </select>
+                    ) : (
+                      <input className="form-control form-control-sm" placeholder={t("players.position")} value={editData.position || ""} onChange={(e) => setEditData({ ...editData, position: e.target.value })} />
+                    )}
+                    {hasNumbers && (
+                      <input className="form-control form-control-sm" type="number" placeholder={t("players.number")} value={editData.number || ""} onChange={(e) => setEditData({ ...editData, number: e.target.value })} />
+                    )}
                   </div>
                   <div className="form-group" style={{ marginBottom: "0.5rem" }}>
                     <label className="text-sm">{t("players.strengths")}</label>

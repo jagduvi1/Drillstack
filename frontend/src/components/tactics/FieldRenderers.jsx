@@ -497,6 +497,54 @@ function PadelField({ sc, sportCfg }) {
   );
 }
 
+// ── Tennis Court ───────────────────────────────────────────────────────────
+function TennisField({ sc, sportCfg }) {
+  const w = sportCfg.width;  // 23.77m
+  const h = sportCfg.height; // 10.97m
+  const lw = 2;
+  const lc = sportCfg.lineColor;
+  const cx = w / 2; // 11.885m — net position
+
+  // Doubles court full width = 10.97m, singles sidelines 1.37m inset from each side
+  const singlesInset = 1.37;
+  // Service line is 6.40m from the net
+  const svcDist = 6.40;
+  const svcLeft = cx - svcDist;    // service line left side
+  const svcRight = cx + svcDist;   // service line right side
+  // Center mark length
+  const centerMarkLen = 0.1;
+
+  return (
+    <Group listening={false}>
+      <Rect x={0} y={0} width={sc.canvasW} height={sc.canvasH} fill={sportCfg.bgColor} />
+      {/* Court surface — two halves */}
+      <Rect x={sc.x(0)} y={sc.y(0)} width={sc.s(cx)} height={sc.s(h)} fill={sportCfg.fieldColor1} />
+      <Rect x={sc.x(cx)} y={sc.y(0)} width={sc.s(cx)} height={sc.s(h)} fill={sportCfg.fieldColor2} />
+      {/* Doubles court outline */}
+      <Rect x={sc.x(0)} y={sc.y(0)} width={sc.s(w)} height={sc.s(h)} stroke={lc} strokeWidth={lw} />
+
+      {/* Singles sidelines */}
+      <Line points={[sc.x(0), sc.y(singlesInset), sc.x(w), sc.y(singlesInset)]} stroke={lc} strokeWidth={lw} />
+      <Line points={[sc.x(0), sc.y(h - singlesInset), sc.x(w), sc.y(h - singlesInset)]} stroke={lc} strokeWidth={lw} />
+
+      {/* Net (center line) */}
+      <Line points={[sc.x(cx), sc.y(0), sc.x(cx), sc.y(h)]} stroke={lc} strokeWidth={3} />
+
+      {/* Service lines */}
+      <Line points={[sc.x(svcLeft), sc.y(singlesInset), sc.x(svcLeft), sc.y(h - singlesInset)]} stroke={lc} strokeWidth={lw} />
+      <Line points={[sc.x(svcRight), sc.y(singlesInset), sc.x(svcRight), sc.y(h - singlesInset)]} stroke={lc} strokeWidth={lw} />
+
+      {/* T-lines (center service lines) */}
+      <Line points={[sc.x(svcLeft), sc.y(h / 2), sc.x(cx), sc.y(h / 2)]} stroke={lc} strokeWidth={lw} />
+      <Line points={[sc.x(cx), sc.y(h / 2), sc.x(svcRight), sc.y(h / 2)]} stroke={lc} strokeWidth={lw} />
+
+      {/* Center marks on baselines */}
+      <Line points={[sc.x(0), sc.y(h / 2 - centerMarkLen), sc.x(0), sc.y(h / 2 + centerMarkLen)]} stroke={lc} strokeWidth={3} />
+      <Line points={[sc.x(w), sc.y(h / 2 - centerMarkLen), sc.x(w), sc.y(h / 2 + centerMarkLen)]} stroke={lc} strokeWidth={3} />
+    </Group>
+  );
+}
+
 // ── Sport field dispatcher ──────────────────────────────────────────────────
 function SportField({ sc, sport, fieldType }) {
   const sportCfg = SPORT_CONFIGS[sport] || SPORT_CONFIGS.football;
@@ -514,6 +562,7 @@ function SportField({ sc, sport, fieldType }) {
     case "floorball": return <FloorballField sc={sc} sportCfg={sportCfg} />;
     case "volleyball": return <VolleyballField sc={sc} sportCfg={sportCfg} />;
     case "padel": return <PadelField sc={sc} sportCfg={sportCfg} />;
+    case "tennis": return <TennisField sc={sc} sportCfg={sportCfg} />;
     default: return <FootballField sc={sc} sportCfg={sportCfg} />;
   }
 }

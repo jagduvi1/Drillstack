@@ -89,6 +89,25 @@ export const SPORT_METRICS = {
     { key: "rulo", type: "rating" },
     { key: "smash", type: "rating" },
   ],
+  tennis: [
+    // General attributes
+    { key: "defence", type: "rating" },
+    { key: "offence", type: "rating" },
+    { key: "transition", type: "rating" },
+    { key: "mental", type: "rating" },
+    { key: "splitStep", type: "rating" },
+    // Strokes
+    { key: "serving", type: "rating" },
+    { key: "returning", type: "rating" },
+    { key: "forehand", type: "rating" },
+    { key: "backhand", type: "rating" },
+    { key: "forehandVolley", type: "rating" },
+    { key: "backhandVolley", type: "rating" },
+    { key: "dropshot", type: "rating" },
+    { key: "lob", type: "rating" },
+    { key: "smash", type: "rating" },
+    { key: "slice", type: "rating" },
+  ],
   gymnastics: [
     // Levels & certifications
     { key: "gymnasticsLevel", type: "level" },
@@ -113,6 +132,65 @@ export const SPORT_METRICS = {
 };
 
 export const SKILL_LEVELS = LEVELS;
+
+// Sports where a jersey number makes sense
+export const SPORTS_WITH_NUMBERS = ["football", "futsal", "handball", "hockey", "basketball", "floorball", "volleyball"];
+
+// Preferred foot vs preferred hand by sport
+export const SPORTS_WITH_FOOT = ["football", "futsal"];
+export const SPORTS_WITH_HAND = ["handball", "tennis", "padel", "basketball", "volleyball", "floorball", "hockey"];
+
+// Sport-specific position lists
+// Most sports: flat array of strings
+// Handball: { offence: [...], defence: [...] } — players can hold both
+export const SPORT_POSITIONS = {
+  football:   ["Goalkeeper", "Right Back", "Centre Back", "Left Back", "Defensive Midfielder", "Central Midfielder", "Attacking Midfielder", "Right Winger", "Left Winger", "Striker"],
+  futsal:     ["Goalkeeper", "Fixo", "Ala", "Pivô"],
+  handball:   {
+    offence: ["Goalkeeper", "Left Back", "Center Back", "Right Back", "Left Wing", "Right Wing", "Pivot"],
+    defence: [
+      "Goalkeeper",
+      // 6-0 defence
+      "Left Wing Defender", "Left Back Defender", "Center Left Defender",
+      "Center Right Defender", "Right Back Defender", "Right Wing Defender",
+      // 5-1 / 3-2-1 roles
+      "Front Defender", "Left Half Defender", "Right Half Defender",
+    ],
+  },
+  hockey:     ["Goalkeeper", "Defenceman", "Centre", "Left Wing", "Right Wing"],
+  basketball: ["Point Guard", "Shooting Guard", "Small Forward", "Power Forward", "Center"],
+  floorball:  ["Goalkeeper", "Defender", "Midfielder", "Forward"],
+  volleyball: ["Setter", "Libero", "Outside Hitter", "Opposite Hitter", "Middle Blocker", "Defensive Specialist"],
+  padel:      ["Right Side (Forehand)", "Left Side (Backhand)"],
+  tennis:     [],
+  gymnastics: [],
+};
+
+// Returns true if the sport uses dual positions (offence + defence)
+export function hasDualPositions(sport) {
+  if (!sport) return false;
+  const base = sport.split("-")[0];
+  const cfg = SPORT_POSITIONS[base] || SPORT_POSITIONS[sport];
+  return cfg && !Array.isArray(cfg);
+}
+
+// Returns a flat array of positions (for single-position sports) or empty if dual
+export function getPositionsForSport(sport) {
+  if (!sport) return [];
+  const base = sport.split("-")[0];
+  const cfg = SPORT_POSITIONS[base] || SPORT_POSITIONS[sport];
+  if (!cfg) return [];
+  return Array.isArray(cfg) ? cfg : [];
+}
+
+// Returns { offence: [...], defence: [...] } for dual-position sports
+export function getDualPositions(sport) {
+  if (!sport) return null;
+  const base = sport.split("-")[0];
+  const cfg = SPORT_POSITIONS[base] || SPORT_POSITIONS[sport];
+  if (!cfg || Array.isArray(cfg)) return null;
+  return cfg;
+}
 
 const DEFAULT_METRICS = [
   { key: "speed", type: "rating" },
