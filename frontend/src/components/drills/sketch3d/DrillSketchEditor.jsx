@@ -20,6 +20,21 @@ function NativeOrbitControls({ controlsRef, maxPolarAngle, minDistance, maxDista
     controls.current.maxPolarAngle = maxPolarAngle || Math.PI / 2.1;
     controls.current.minDistance = minDistance || 15;
     controls.current.maxDistance = maxDistance || 120;
+    // Pan: right-click drag on PC, two-finger drag on touch
+    controls.current.enablePan = true;
+    controls.current.panSpeed = 1.5;
+    controls.current.screenSpacePanning = false; // pan parallel to ground
+    // Mouse: left=rotate, right=pan, scroll=zoom
+    controls.current.mouseButtons = {
+      LEFT: THREE.MOUSE.ROTATE,
+      MIDDLE: THREE.MOUSE.DOLLY,
+      RIGHT: THREE.MOUSE.PAN,
+    };
+    // Touch: one-finger=rotate, two-finger=pan+zoom
+    controls.current.touches = {
+      ONE: THREE.TOUCH.ROTATE,
+      TWO: THREE.TOUCH.DOLLY_PAN,
+    };
     if (controlsRef) controlsRef.current = controls.current;
     return () => controls.current.dispose();
   }, [camera, gl, controlsRef, maxPolarAngle, minDistance, maxDistance]);
