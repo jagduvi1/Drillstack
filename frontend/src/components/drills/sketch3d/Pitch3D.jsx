@@ -100,8 +100,8 @@ function FieldLines() {
 
 // ── LED-style ad board segment with readable text ───────────────────────────
 function AdPanel({ position, rotation, width, bgColor, textColor, text }) {
-  const boardH = 0.9;
-  const tilt = 0.15;
+  const boardH = 1.1;
+  const tilt = 0.12;
   const texture = useTextTexture(text, bgColor, textColor || "#ffffff", 512, 128);
 
   return (
@@ -109,18 +109,28 @@ function AdPanel({ position, rotation, width, bgColor, textColor, text }) {
       <group rotation={[-tilt, 0, 0]}>
         {/* Board frame */}
         <mesh position={[0, boardH / 2 + 0.05, 0]}>
-          <boxGeometry args={[width, boardH + 0.1, 0.12]} />
+          <boxGeometry args={[width, boardH + 0.1, 0.15]} />
           <meshStandardMaterial color="#111" />
         </mesh>
-        {/* LED panel face with text texture */}
-        <mesh position={[0, boardH / 2 + 0.05, 0.07]}>
+        {/* Front face (pitch-facing) */}
+        <mesh position={[0, boardH / 2 + 0.05, 0.08]}>
           <planeGeometry args={[width - 0.2, boardH - 0.1]} />
           <meshStandardMaterial map={texture} emissive="#ffffff" emissiveIntensity={0.15} />
         </mesh>
+        {/* Back face (audience-facing) */}
+        <mesh position={[0, boardH / 2 + 0.05, -0.08]} rotation={[0, Math.PI, 0]}>
+          <planeGeometry args={[width - 0.2, boardH - 0.1]} />
+          <meshStandardMaterial map={texture} emissive="#ffffff" emissiveIntensity={0.15} />
+        </mesh>
+        {/* Top edge strip */}
+        <mesh position={[0, boardH + 0.1, 0]}>
+          <boxGeometry args={[width, 0.06, 0.18]} />
+          <meshStandardMaterial color="#222" />
+        </mesh>
         {/* Support legs */}
-        {[-1, 1].map((s) => (
-          <mesh key={s} position={[s * (width / 2 - 0.4), -0.02, -0.06]}>
-            <boxGeometry args={[0.1, 0.15, 0.22]} />
+        {[-1, 0, 1].map((s) => (
+          <mesh key={s} position={[s * (width / 3), -0.02, -0.06]}>
+            <boxGeometry args={[0.1, 0.15, 0.25]} />
             <meshStandardMaterial color="#222" />
           </mesh>
         ))}
@@ -134,16 +144,11 @@ const DEFAULT_SIDE_ADS = [
   { text: "DrillStack", bgColor: "#0ea5e9", textColor: "#ffffff" },
   { text: "Cellarion.app", bgColor: "#6366f1", textColor: "#e0e7ff" },
   { text: "DrillStack", bgColor: "#dc2626", textColor: "#ffffff" },
-  { text: "Cellarion.app", bgColor: "#16a34a", textColor: "#ffffff" },
-  { text: "Your Wine Cellar", bgColor: "#6366f1", textColor: "#ffffff" },
-  { text: "DrillStack", bgColor: "#f59e0b", textColor: "#1a1a2e" },
 ];
 
 const DEFAULT_GOAL_ADS = [
   { text: "Cellarion.app", bgColor: "#6366f1", textColor: "#ffffff" },
   { text: "DrillStack", bgColor: "#f59e0b", textColor: "#1a1a2e" },
-  { text: "Cellarion.app", bgColor: "#6366f1", textColor: "#e0e7ff" },
-  { text: "DrillStack", bgColor: "#0ea5e9", textColor: "#ffffff" },
 ];
 
 function AdBoards({ hw, hh }) {
