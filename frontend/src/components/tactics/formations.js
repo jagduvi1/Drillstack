@@ -184,6 +184,18 @@ export const SPORT_FORMATIONS = {
       { role: "M", x: 13, y: 5 }, { role: "M", x: 13, y: 15 }, { role: "F", x: 18, y: 10 },
     ],
   },
+  padel: {
+    // 2v2 — 20×10
+    "doubles": [
+      { role: "1", x: 3, y: 3 }, { role: "2", x: 3, y: 7 },
+    ],
+    "both-net": [
+      { role: "1", x: 7, y: 3 }, { role: "2", x: 7, y: 7 },
+    ],
+    "one-up-one-back": [
+      { role: "1", x: 3, y: 5 }, { role: "2", x: 7, y: 5 },
+    ],
+  },
   gymnastics: {
     "solo": [{ role: "G", x: 15, y: 10 }],
     "with-coach": [{ role: "G", x: 15, y: 10 }, { role: "C", x: 5, y: 16 }],

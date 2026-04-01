@@ -739,7 +739,16 @@
       "basketball": "Basketball",
       "futsal": "Futsal",
       "floorball": "Floorball",
-      "volleyball": "Volleyball"
+      "volleyball": "Volleyball",
+      "padel": "Padel"
+    },
+    "fieldTypes": {
+      "full": "Full court",
+      "half": "Half court",
+      "third": "Third",
+      "halfLong": "Half (longways)",
+      "halfSide": "Half (sideways)",
+      "blank": "Blank"
     },
     "confirmSportChange": "Changing sport will clear the board. Continue?",
     "confirmFieldChange": "Changing field type will clear the board. Continue?",

@@ -84,7 +84,7 @@ export default function PlanDetailPage() {
           {w.sessions?.length > 0 && (
             <div style={{ marginTop: "0.75rem", display: "grid", gap: "0.5rem" }}>
               {w.sessions.map((entry, si) => {
-                const sess = entry.session;
+                const sess = entry.linkedSession;
                 return (
                   <div key={si} style={{ background: "var(--color-bg)", borderRadius: "var(--radius)", padding: "0.75rem" }}>
                     <div className="flex-between" style={{ marginBottom: "0.25rem" }}>

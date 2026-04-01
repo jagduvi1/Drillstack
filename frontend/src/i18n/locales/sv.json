@@ -739,7 +739,16 @@
       "basketball": "Basket",
       "futsal": "Futsal",
       "floorball": "Innebandy",
-      "volleyball": "Volleyboll"
+      "volleyball": "Volleyboll",
+      "padel": "Padel"
+    },
+    "fieldTypes": {
+      "full": "Hela planen",
+      "half": "Halva planen",
+      "third": "Tredjedel",
+      "halfLong": "Halva (långsida)",
+      "halfSide": "Halva (kortsida)",
+      "blank": "Tom"
     },
     "confirmSportChange": "Att byta sport rensar tavlan. Fortsätta?",
     "confirmFieldChange": "Att byta plantyp rensar tavlan. Fortsätta?",

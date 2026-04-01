@@ -100,6 +100,20 @@ export const SPORT_CONFIGS = {
       blank: { x: 0, y: 0, w: 15, h: 15 },
     },
   },
+  // ── Padel ───────────────────────────────────────────────────────────────
+  padel: {
+    label: "Padel",
+    width: 20, height: 10,
+    defaultHomePlayers: 2, defaultAwayPlayers: 2,
+    bgColor: "#0a2a4a", fieldColor1: "#1a6a9a", fieldColor2: "#1872a4",
+    lineColor: "rgba(255,255,255,0.85)",
+    fieldViews: {
+      full:  { x: 0, y: 0, w: 20, h: 10 },
+      halfLong:  { x: 10, y: 0, w: 10, h: 10 },
+      halfSide:  { x: 0, y: 0, w: 20, h: 5 },
+      blank: { x: 0, y: 0, w: 15, h: 15 },
+    },
+  },
   // ── Gymnastics ───────────────────────────────────────────────────────────
   gymnastics: {
     label: "Gymnastics",
@@ -130,6 +144,7 @@ export const SPORT_GROUPS = [
   { key: "hockey", label: "Ice Hockey", variants: [] },
   { key: "floorball", label: "Floorball", variants: [] },
   { key: "volleyball", label: "Volleyball", variants: [] },
+  { key: "padel", label: "Padel", variants: [] },
   { key: "gymnastics", label: "Gymnastics", variants: [] },
 ];
 
