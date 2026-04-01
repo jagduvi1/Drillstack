@@ -36,6 +36,10 @@ export default function GroupDetailPage() {
   const [teamInviteCode, setTeamInviteCode] = useState("");
   const [inviteTeamError, setInviteTeamError] = useState("");
 
+  // Name editing
+  const [editingName, setEditingName] = useState(false);
+  const [nameValue, setNameValue] = useState("");
+
   // Sport editing
   const [editingSport, setEditingSport] = useState(false);
   const [sportValue, setSportValue] = useState("");
@@ -163,6 +167,19 @@ export default function GroupDetailPage() {
     } catch { /* ignore */ }
   };
 
+  const handleEditName = () => {
+    setNameValue(group.name || "");
+    setEditingName(true);
+  };
+
+  const handleSaveName = async () => {
+    if (!nameValue.trim()) return;
+    await updateGroup(id, { name: nameValue.trim() });
+    setGroup({ ...group, name: nameValue.trim() });
+    setEditingName(false);
+    refreshGroups();
+  };
+
   const handleEditSport = () => {
     setSportValue(group.sport || "");
     setEditingSport(true);
@@ -187,9 +204,22 @@ export default function GroupDetailPage() {
   return (
     <div>
       <div className="flex-between mb-1">
-        <h1 style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
-          {isClub ? <FiShield /> : <FiUsers />} {group.name}
-        </h1>
+        {editingName ? (
+          <div className="flex gap-sm" style={{ alignItems: "center", flex: 1 }}>
+            <input className="form-control" value={nameValue} onChange={(e) => setNameValue(e.target.value)}
+              onKeyDown={(e) => e.key === "Enter" && handleSaveName()}
+              autoFocus style={{ fontSize: "1.25rem", fontWeight: 700 }} />
+            <button className="btn btn-primary btn-sm" onClick={handleSaveName}><FiCheck /></button>
+            <button className="btn btn-secondary btn-sm" onClick={() => setEditingName(false)}><FiXCircle /></button>
+          </div>
+        ) : (
+          <h1 style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
+            {isClub ? <FiShield /> : <FiUsers />} {group.name}
+            {isAdmin && (
+              <button className="btn btn-secondary btn-sm" onClick={handleEditName} style={{ padding: "0.15rem 0.5rem", marginLeft: "0.25rem" }}><FiEdit3 /></button>
+            )}
+          </h1>
+        )}
         <div className="flex gap-sm">
           {isOwner && (
             <button className="btn btn-danger" onClick={handleDelete}><FiTrash2 /> {t("common.delete")}</button>
@@ -329,7 +359,7 @@ export default function GroupDetailPage() {
       <TrainerRoster groupId={id} canEdit={isAdmin} />
 
       {/* Player Roster */}
-      <PlayerRoster groupId={id} canEdit={isTrainer} />
+      <PlayerRoster groupId={id} canEdit={isTrainer} sport={group.sport} />
 
       {/* Starred Drills */}
       {isTrainer && (

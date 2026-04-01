@@ -196,6 +196,15 @@ export const SPORT_FORMATIONS = {
       { role: "1", x: 3, y: 5 }, { role: "2", x: 7, y: 5 },
     ],
   },
+  tennis: {
+    "baseline": [{ role: "1", x: 3, y: 5.485 }],
+    "serve-volley": [{ role: "1", x: 8, y: 5.485 }],
+  },
+  "tennis-doubles": {
+    "both-back": [{ role: "1", x: 3, y: 3.5 }, { role: "2", x: 3, y: 7.5 }],
+    "one-up-one-back": [{ role: "1", x: 3, y: 5.485 }, { role: "2", x: 8, y: 5.485 }],
+    "both-net": [{ role: "1", x: 8, y: 3.5 }, { role: "2", x: 8, y: 7.5 }],
+  },
   gymnastics: {
     "solo": [{ role: "G", x: 15, y: 10 }],
     "with-coach": [{ role: "G", x: 15, y: 10 }, { role: "C", x: 5, y: 16 }],

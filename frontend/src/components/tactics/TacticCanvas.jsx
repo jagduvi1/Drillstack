@@ -101,7 +101,7 @@ function PlayerPiece({ piece, x, y, sc, draggable, isGhost, isSelected, homeColo
   const lastPointer = useRef(null);
 
   const getColor = () => {
-    if (piece.type === "ball") return sport === "padel" ? "#e8d44d" : "#ffffff";
+    if (piece.type === "ball") return (sport === "padel" || sport?.startsWith("tennis")) ? "#e8d44d" : "#ffffff";
     if (piece.type === "cone") return "#ff8c00";
     if (piece.isGK) return piece.team === "home" ? "#eab308" : "#f97316";
     return piece.team === "home" ? (homeColor || "#2563eb") : (awayColor || "#ef4444");
@@ -109,7 +109,7 @@ function PlayerPiece({ piece, x, y, sc, draggable, isGhost, isSelected, homeColo
 
   const isBall = piece.type === "ball";
   const isCone = piece.type === "cone";
-  const r = isBall ? radius * (sport === "padel" ? 0.5 : 0.65) : isCone ? radius * 0.55 : radius;
+  const r = isBall ? radius * ((sport === "padel" || sport?.startsWith("tennis")) ? 0.5 : 0.65) : isCone ? radius * 0.55 : radius;
 
   return (
     <Group

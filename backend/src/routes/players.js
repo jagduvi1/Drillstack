@@ -63,6 +63,7 @@ router.post(
         name: req.body.name,
         group: req.params.groupId,
         position: req.body.position || "",
+        defencePosition: req.body.defencePosition || "",
         number: req.body.number || null,
         strengths: req.body.strengths || [],
         weaknesses: req.body.weaknesses || [],
@@ -85,7 +86,7 @@ router.put("/:groupId/:playerId", async (req, res, next) => {
       return res.status(403).json({ error: "Trainer access required" });
     }
     const allowed = [
-      "name", "position", "number", "strengths", "weaknesses", "notes", "active",
+      "name", "position", "defencePosition", "number", "strengths", "weaknesses", "notes", "active",
       "dateOfBirth", "height", "weight", "preferredFoot", "preferredHand", "photoUrl", "skillRating",
     ];
     const update = {};

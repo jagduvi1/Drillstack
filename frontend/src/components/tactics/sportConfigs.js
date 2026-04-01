@@ -114,6 +114,34 @@ export const SPORT_CONFIGS = {
       blank: { x: 0, y: 0, w: 15, h: 15 },
     },
   },
+  // ── Tennis ──────────────────────────────────────────────────────────────
+  tennis: {
+    label: "Tennis",
+    width: 23.77, height: 10.97,
+    defaultHomePlayers: 1, defaultAwayPlayers: 1,
+    bgColor: "#1a4a2a", fieldColor1: "#2a7a4a", fieldColor2: "#267542",
+    lineColor: "rgba(255,255,255,0.9)",
+    fieldViews: {
+      full:  { x: 0, y: 0, w: 23.77, h: 10.97 },
+      halfLong:  { x: 11.885, y: 0, w: 11.885, h: 10.97 },
+      halfSide:  { x: 0, y: 0, w: 23.77, h: 5.485 },
+      blank: { x: 0, y: 0, w: 15, h: 15 },
+    },
+  },
+  "tennis-doubles": {
+    label: "Tennis Doubles",
+    renderer: "tennis",
+    width: 23.77, height: 10.97,
+    defaultHomePlayers: 2, defaultAwayPlayers: 2,
+    bgColor: "#1a4a2a", fieldColor1: "#2a7a4a", fieldColor2: "#267542",
+    lineColor: "rgba(255,255,255,0.9)",
+    fieldViews: {
+      full:  { x: 0, y: 0, w: 23.77, h: 10.97 },
+      halfLong:  { x: 11.885, y: 0, w: 11.885, h: 10.97 },
+      halfSide:  { x: 0, y: 0, w: 23.77, h: 5.485 },
+      blank: { x: 0, y: 0, w: 15, h: 15 },
+    },
+  },
   // ── Gymnastics ───────────────────────────────────────────────────────────
   gymnastics: {
     label: "Gymnastics",
@@ -145,6 +173,10 @@ export const SPORT_GROUPS = [
   { key: "floorball", label: "Floorball", variants: [] },
   { key: "volleyball", label: "Volleyball", variants: [] },
   { key: "padel", label: "Padel", variants: [] },
+  { key: "tennis", label: "Tennis", variants: [
+    { key: "tennis", label: "Singles" },
+    { key: "tennis-doubles", label: "Doubles" },
+  ]},
   { key: "gymnastics", label: "Gymnastics", variants: [] },
 ];
 
