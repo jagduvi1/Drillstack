@@ -10,6 +10,18 @@ const playerSchema = new Schema(
     strengths: [{ type: String, trim: true }],
     weaknesses: [{ type: String, trim: true }],
     notes: { type: String, default: "" },
+
+    // Physical attributes
+    dateOfBirth: { type: Date, default: null },
+    height: { type: Number, default: null },          // cm
+    weight: { type: Number, default: null },          // kg
+    preferredFoot: { type: String, enum: ["left", "right", "both", ""], default: "" },
+    preferredHand: { type: String, enum: ["left", "right", "both", ""], default: "" },
+    photoUrl: { type: String, default: "" },
+
+    // Overall skill rating (0-100)
+    skillRating: { type: Number, default: null, min: 0, max: 100 },
+
     active: { type: Boolean, default: true },
     createdBy: { type: Schema.Types.ObjectId, ref: "User", required: true },
   },
