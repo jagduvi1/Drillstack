@@ -90,7 +90,7 @@ function wavyLinePoints(x1, y1, x2, y2, amplitude = 6, waves = 6) {
 import SportField from "./FieldRenderers";
 
 // ── Player / Ball / Cone Piece ──────────────────────────────────────────────
-function PlayerPiece({ piece, x, y, sc, draggable, isGhost, isSelected, homeColor, awayColor, onDragEnd, onSelect, pitchBounds }) {
+function PlayerPiece({ piece, x, y, sc, draggable, isGhost, isSelected, homeColor, awayColor, onDragEnd, onSelect, pitchBounds, isRotated, stageHeight }) {
   // Scale player radius relative to field size (1.8m on 105m = ~1.7% — keep that ratio)
   const fieldDiag = Math.sqrt(sc.cfg.w * sc.cfg.w + sc.cfg.h * sc.cfg.h);
   const baseRadius = Math.max(0.8, Math.min(1.8, fieldDiag * 0.014));
@@ -98,6 +98,7 @@ function PlayerPiece({ piece, x, y, sc, draggable, isGhost, isSelected, homeColo
   const px = sc.x(x);
   const py = sc.y(y);
   const bounds = pitchBounds || { width: 105, height: 68 };
+  const lastPointer = useRef(null);
 
   const getColor = () => {
     if (piece.type === "ball") return "#ffffff";
@@ -115,8 +116,36 @@ function PlayerPiece({ piece, x, y, sc, draggable, isGhost, isSelected, homeColo
       x={px} y={py}
       draggable={draggable && !isGhost}
       opacity={isGhost ? 0.3 : 1}
+      onDragStart={() => {
+        if (isRotated) {
+          // Store starting position for corrected drag calculation
+          lastPointer.current = { nodeX: px, nodeY: py };
+        }
+      }}
+      onDragMove={(e) => {
+        if (!isRotated) return;
+        // Konva applies wrong deltas due to CSS rotation. Undo Konva's move
+        // and apply corrected delta based on raw pointer position.
+        const pos = e.target.getStage().getPointerPosition();
+        if (!pos || !lastPointer.current) return;
+        // Un-rotate pointer: CSS rotate(90deg) CW → canvas (posY, stageH - posX)
+        const correctedX = pos.y;
+        const correctedY = stageHeight - pos.x;
+        // On first move, capture the corrected start position
+        if (lastPointer.current.correctedStartX == null) {
+          lastPointer.current.correctedStartX = correctedX;
+          lastPointer.current.correctedStartY = correctedY;
+        }
+        // Set position based on total corrected delta from drag start
+        const dx = correctedX - lastPointer.current.correctedStartX;
+        const dy = correctedY - lastPointer.current.correctedStartY;
+        e.target.x(lastPointer.current.nodeX + dx);
+        e.target.y(lastPointer.current.nodeY + dy);
+      }}
       onDragEnd={(e) => {
-        const [mx, my] = sc.inv(e.target.x(), e.target.y());
+        const nodeX = e.target.x();
+        const nodeY = e.target.y();
+        const [mx, my] = sc.inv(nodeX, nodeY);
         onDragEnd?.(piece.id, Math.max(-3, Math.min(bounds.width + 3, mx)), Math.max(-3, Math.min(bounds.height + 3, my)));
       }}
       onClick={() => onSelect?.(piece.id)}
@@ -198,11 +227,13 @@ export default function TacticCanvas({
   selectedPieceId, onPieceSelect,
   homeColor, awayColor, fieldType, zoom = 1,
   sport = "football",
+  isRotated = false,
 }) {
   const sportCfg = SPORT_CONFIGS[sport] || SPORT_CONFIGS.football;
   const sportPitch = { width: sportCfg.width, height: sportCfg.height };
   const sportFieldConfigs = sportCfg.fieldViews;
   const containerRef = useRef(null);
+  const stageRef = useRef(null);
   const [dims, setDims] = useState({ width: 900, height: 600 });
   const [drawingArrow, setDrawingArrow] = useState(null);
   const [panOffset, setPanOffset] = useState({ x: 0, y: 0 });
@@ -245,23 +276,36 @@ export default function TacticCanvas({
     return { x: Math.abs(fw - stageW) / 2, y: Math.abs(fh - stageH) / 2 };
   })();
 
+  // Get corrected pointer position accounting for CSS rotation
+  const getCorrectedPointer = useCallback((stage) => {
+    const pos = stage.getPointerPosition();
+    if (!isRotated || !pos) return pos;
+    // CSS rotate(90deg) CW: Konva reports pointer in the rotated visual space.
+    // After rotation, bounding rect ≈ (stageH × stageW) swapped.
+    // Visual (sx, sy) → Canvas (sy, stageH - sx)
+    return { x: pos.y, y: stageH - pos.x };
+  }, [isRotated, stageH]);
+
   // Convert pointer position to field meters
   const pointerToField = useCallback((e) => {
     const stage = e.target.getStage();
-    const pos = stage.getPointerPosition();
+    const pos = getCorrectedPointer(stage);
     return sc.inv(pos.x, pos.y);
-  }, [sc]);
+  }, [sc, getCorrectedPointer]);
 
   // ── Pan helper (shared by Stage events and window events) ──────────
   const applyPan = useCallback((clientX, clientY) => {
     if (!panState.current) return;
-    const dx = clientX - panState.current.startX;
-    const dy = clientY - panState.current.startY;
+    const rawDx = clientX - panState.current.startX;
+    const rawDy = clientY - panState.current.startY;
+    // When CSS-rotated 90deg CW: screen right = canvas down, screen down = canvas left
+    const dx = isRotated ? -rawDy : rawDx;
+    const dy = isRotated ? rawDx : rawDy;
     setPanOffset({
       x: Math.max(-panLimits.x, Math.min(panLimits.x, panState.current.origX + dx)),
       y: Math.max(-panLimits.y, Math.min(panLimits.y, panState.current.origY + dy)),
     });
-  }, [panLimits]);
+  }, [panLimits, isRotated]);
 
   const endPan = useCallback(() => {
     if (!panState.current) return;
@@ -380,6 +424,7 @@ export default function TacticCanvas({
       onContextMenu={canPan ? (e) => e.preventDefault() : undefined}
     >
       <Stage
+        ref={stageRef}
         width={stageW} height={stageH}
         onMouseDown={handleStageMouseDown} onMouseMove={handleStageMouseMove} onMouseUp={handleStageMouseUp}
         onTouchStart={handleStageMouseDown} onTouchMove={handleStageMouseMove} onTouchEnd={handleStageMouseUp}
@@ -437,7 +482,8 @@ export default function TacticCanvas({
               sc={sc} draggable={!isPlaying && tool === "select"} isGhost={false}
               isSelected={selectedPieceId === piece.id}
               homeColor={homeColor} awayColor={awayColor}
-              onDragEnd={onPieceMove} onSelect={onPieceSelect} pitchBounds={sportPitch} />
+              onDragEnd={onPieceMove} onSelect={onPieceSelect} pitchBounds={sportPitch}
+              isRotated={isRotated} stageHeight={stageH} />
           ))}
         </Layer>
       </Stage>
