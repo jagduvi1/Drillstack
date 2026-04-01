@@ -931,6 +931,19 @@
     "name": "Visningsnamn",
     "saved": "Inställningar sparade"
   },
+  "sketch": {
+    "title": "3D Övningsskiss",
+    "hint": "Rita din övningsuppställning i 3D. Dra för att rotera vyn, scrolla för att zooma.",
+    "select": "Välj / Flytta",
+    "arrow": "Rita pil",
+    "addHomePlayer": "Lägg till hemmaspelare",
+    "addAwayPlayer": "Lägg till bortaspelare",
+    "home": "Hemma",
+    "away": "Borta",
+    "addBall": "Lägg till boll",
+    "addCone": "Lägg till kon",
+    "clickEndpoint": "Klicka för att placera pilens slutpunkt..."
+  },
   "equipment": {
     "mats": "Mattor",
     "cones": "Koner",

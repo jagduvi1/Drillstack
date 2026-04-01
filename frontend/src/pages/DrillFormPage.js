@@ -10,6 +10,8 @@ import useDebugPanel from "../hooks/useDebugPanel";
 import useFormState from "../hooks/useFormState";
 import { FiZap, FiSave, FiX, FiPlus, FiTrash2, FiAlertCircle, FiCode, FiMessageCircle, FiTarget } from "react-icons/fi";
 import DrillFormAiChat from "../components/drills/DrillFormAiChat";
+import { lazy, Suspense } from "react";
+const DrillSketchEditor = lazy(() => import("../components/drills/sketch3d/DrillSketchEditor"));
 
 const EMPTY_DRILL = {
   title: "",
@@ -25,6 +27,7 @@ const EMPTY_DRILL = {
   skillLevel: "",
   prerequisites: [],
   safetyNotes: "",
+  sketch: null,
 };
 
 export default function DrillFormPage() {
@@ -76,6 +79,7 @@ export default function DrillFormPage() {
           skillLevel: d.skillLevel || "",
           prerequisites: d.prerequisites || [],
           safetyNotes: d.safetyNotes || "",
+          sketch: d.sketch || null,
         });
         setDiagrams(d.diagrams || []);
         setGenerated(true);
@@ -469,6 +473,18 @@ export default function DrillFormPage() {
               </div>
             </div>
           )}
+
+          {/* 3D Drill Sketch */}
+          <div className="card mb-1">
+            <h3 style={{ marginBottom: "0.75rem" }}>{t("sketch.title")}</h3>
+            <p className="text-sm text-muted" style={{ marginBottom: "0.5rem" }}>{t("sketch.hint")}</p>
+            <Suspense fallback={<div className="text-sm text-muted">{t("common.loading")}</div>}>
+              <DrillSketchEditor
+                sketch={form.sketch}
+                onChange={(sketch) => { set("sketch", sketch); setDirty(true); }}
+              />
+            </Suspense>
+          </div>
 
           {/* Linked Tactic Boards (edit mode only) */}
           {isEdit && (

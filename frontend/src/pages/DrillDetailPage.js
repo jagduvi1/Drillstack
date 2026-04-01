@@ -1,4 +1,5 @@
-import { useState, useRef, useEffect, useCallback } from "react";
+import { useState, useRef, useEffect, useCallback, lazy, Suspense } from "react";
+const DrillSketchEditor = lazy(() => import("../components/drills/sketch3d/DrillSketchEditor"));
 import { useParams, Link, useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import useFetch from "../hooks/useFetch";
@@ -535,6 +536,16 @@ export default function DrillDetailPage() {
             <ul style={{ paddingLeft: "1.25rem", marginTop: "0.5rem" }}>
               {displayDrill.commonMistakes.map((m, i) => <li key={i}>{m}</li>)}
             </ul>
+          </div>
+        )}
+
+        {/* 3D Sketch */}
+        {displayDrill.sketch?.pieces?.length > 0 && (
+          <div className="card mb-1">
+            <h3>{t("sketch.title")}</h3>
+            <Suspense fallback={<div className="text-sm text-muted">{t("common.loading")}</div>}>
+              <DrillSketchEditor sketch={displayDrill.sketch} readOnly />
+            </Suspense>
           </div>
         )}
 
