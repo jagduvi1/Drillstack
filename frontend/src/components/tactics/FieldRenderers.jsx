@@ -464,8 +464,8 @@ function PadelField({ sc, sportCfg }) {
   const lc = sportCfg.lineColor;
   const cx = w / 2; // 10m — net position
 
-  // Service line distance from back wall: 6.95m → at x=6.95 and x=20-6.95=13.05
-  const svc = 6.95;
+  // Service line is 6.95m from the net → at x = 10-6.95 = 3.05 and x = 10+6.95 = 16.95
+  const svc = cx - 6.95; // 3.05m from each back wall
 
   return (
     <Group listening={false}>
@@ -483,9 +483,9 @@ function PadelField({ sc, sportCfg }) {
       <Line points={[sc.x(svc), sc.y(0), sc.x(svc), sc.y(h)]} stroke={lc} strokeWidth={lw} />
       <Line points={[sc.x(w - svc), sc.y(0), sc.x(w - svc), sc.y(h)]} stroke={lc} strokeWidth={lw} />
 
-      {/* Center service lines (divide service boxes) */}
-      <Line points={[sc.x(0), sc.y(h / 2), sc.x(svc), sc.y(h / 2)]} stroke={lc} strokeWidth={lw} />
-      <Line points={[sc.x(w - svc), sc.y(h / 2), sc.x(w), sc.y(h / 2)]} stroke={lc} strokeWidth={lw} />
+      {/* Center service lines (T-lines: run from service line to net through each service box) */}
+      <Line points={[sc.x(svc), sc.y(h / 2), sc.x(cx), sc.y(h / 2)]} stroke={lc} strokeWidth={lw} />
+      <Line points={[sc.x(cx), sc.y(h / 2), sc.x(w - svc), sc.y(h / 2)]} stroke={lc} strokeWidth={lw} />
 
       {/* Back wall indicators (small marks at court edges) */}
       <Line points={[sc.x(0), sc.y(0), sc.x(0), sc.y(h)]} stroke="rgba(255,255,255,0.5)" strokeWidth={4} />

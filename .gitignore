@@ -8,3 +8,5 @@ uploads/
 Thumbs.db
 coverage/
 .nyc_output/
+CLAUDE.md
+.claude/
