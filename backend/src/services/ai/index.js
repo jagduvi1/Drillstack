@@ -88,9 +88,21 @@ How it works: ${editedData.howItWorks || originalDrill.howItWorks || ""}`;
 // ── Session ──────────────────────────────────────────────────────────────────
 
 async function generateSessionPlan(description, availableDrills, opts = {}) {
-  const { numPlayers, totalMinutes, starredIds, userSport } = opts;
+  const { numPlayers, totalMinutes, starredIds, userSport, sport,
+    groupType, ageRange, numCoaches, spaceConstraint, hasCertification, unavailableEquipment } = opts;
   const playerInfo = numPlayers ? `Number of players: ${numPlayers}.` : "";
   const timeInfo = totalMinutes ? `Target total session time: ~${totalMinutes} minutes.` : "";
+
+  // Build constraints string from advanced options
+  const constraints = [];
+  if (groupType) constraints.push(`Group type: ${groupType}`);
+  if (ageRange) constraints.push(`Age range: ${ageRange}`);
+  if (numCoaches) constraints.push(`Number of coaches: ${numCoaches}`);
+  if (spaceConstraint) constraints.push(`Space: ${spaceConstraint.replace(/_/g, " ")}`);
+  if (hasCertification === false) constraints.push("Coach does NOT have somersault/flip certification — do NOT include any somersault, flip, or inversion elements");
+  if (hasCertification === true) constraints.push("Coach has somersault/flip certification — may include somersault and inversion elements if appropriate");
+  if (unavailableEquipment?.length > 0) constraints.push(`Unavailable equipment (do NOT use): ${unavailableEquipment.join(", ")}`);
+  const constraintInfo = constraints.length > 0 ? `\n\nCONSTRAINTS:\n${constraints.join("\n")}` : "";
 
   const starredSet = new Set((starredIds || []).map((id) => id.toString()));
   const drillList = availableDrills.map((d) => {
@@ -98,8 +110,8 @@ async function generateSessionPlan(description, availableDrills, opts = {}) {
     return `- "${d.title}"${star} (${d.intensity}, ${d.setup?.duration || "?"}, ${d.sport || "general"})`;
   }).join("\n");
 
-  const system = buildSessionGenerationPrompt(playerInfo, timeInfo, drillList, userSport);
-  const { content: raw, debug } = await completeWithDebug(system, description);
+  const system = buildSessionGenerationPrompt(playerInfo, timeInfo, drillList, userSport || sport);
+  const { content: raw, debug } = await completeWithDebug(system, description + constraintInfo);
   try {
     return { plan: parseJSON(raw), debug };
   } catch {

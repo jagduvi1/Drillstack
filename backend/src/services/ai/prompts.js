@@ -269,6 +269,17 @@ Return JSON:
   ]
 }
 
+ADAPTATION RULES (apply when CONSTRAINTS section is present in the user message):
+- Group type "children" → simpler exercises, more playful warm-ups, shorter blocks. Structure: warm-up → obstacle course/stations → cool-down.
+- Group type "team" → more technique, strength, and coordination. Structure: warm-up → strength/coordination → stations → cool-down → wrap-up.
+- Lower age → simpler exercises, more games and play elements.
+- Higher age → more focus on technique, strength, and coordination.
+- Few coaches + many players → fewer stations and simpler organization.
+- More coaches → more stations and greater individual adaptation.
+- "half hall" or "quarter hall" → plan stations to fit in a small area, avoid exercises needing a full hall.
+- If somersault/flip certification is absent → absolutely NO somersault, flip, or inversion exercises.
+- If equipment is listed as unavailable → do NOT select drills that require that equipment. Choose alternatives.
+
 CRITICAL: Every drillTitle MUST be an EXACT copy from the available drills list — no extra text, no descriptions appended. Do NOT invent any drill or activity names anywhere in the response. Return valid JSON only.`;
 }
 
