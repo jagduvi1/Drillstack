@@ -21,6 +21,7 @@ export default function PlayerProfilePage() {
   const [tab, setTab] = useState("overview");
   const [editing, setEditing] = useState(false);
   const [editForm, setEditForm] = useState({});
+  const [autoSkills, setAutoSkills] = useState(true);
 
   useEffect(() => {
     getPlayerOverview(groupId, playerId)
@@ -49,13 +50,26 @@ export default function PlayerProfilePage() {
   const ratingValues = metricKeys.map((k) => metrics[k]).filter((v) => typeof v === "number");
   const avgSkill = ratingValues.length > 0 ? Math.round(ratingValues.reduce((a, b) => a + b, 0) / ratingValues.length) : null;
 
+  // Auto-generate strengths/weaknesses from top/bottom 3 rated metrics
+  const ratedMetrics = metricKeys
+    .filter((k) => typeof metrics[k] === "number")
+    .map((k) => ({ key: k, value: metrics[k] }))
+    .sort((a, b) => b.value - a.value);
+  const autoStrengths = ratedMetrics.slice(0, 3).map((m) => t(`metrics.${m.key}`, m.key));
+  const autoWeaknesses = ratedMetrics.length > 3
+    ? ratedMetrics.slice(-3).reverse().map((m) => t(`metrics.${m.key}`, m.key))
+    : [];
+
   const age = player.dateOfBirth
     ? Math.floor((Date.now() - new Date(player.dateOfBirth).getTime()) / (365.25 * 24 * 60 * 60 * 1000))
     : null;
 
   const handleSaveProfile = async () => {
     try {
-      const res = await updatePlayer(groupId, playerId, editForm);
+      const saveData = autoSkills
+        ? { ...editForm, strengths: autoStrengths, weaknesses: autoWeaknesses }
+        : editForm;
+      const res = await updatePlayer(groupId, playerId, saveData);
       setData((prev) => ({ ...prev, player: res.data }));
       setEditing(false);
     } catch { /* ignore */ }
@@ -72,6 +86,9 @@ export default function PlayerProfilePage() {
       position: player.position || "",
       defencePosition: player.defencePosition || "",
       number: player.number || "",
+      strengths: player.strengths || [],
+      weaknesses: player.weaknesses || [],
+      notes: player.notes || "",
     });
     setEditing(true);
   };
@@ -205,6 +222,61 @@ export default function PlayerProfilePage() {
                 </select>
               </div>
             )}
+            <div style={{ gridColumn: "1 / -1", display: "flex", alignItems: "center", gap: "0.5rem", marginTop: "0.25rem" }}>
+              <label className="text-xs" style={{ margin: 0, cursor: "pointer" }} onClick={() => setAutoSkills(!autoSkills)}>
+                {t("playerProfile.autoSkills")}
+              </label>
+              <button type="button" onClick={() => setAutoSkills(!autoSkills)}
+                style={{
+                  width: 40, height: 22, borderRadius: 11, border: "none", cursor: "pointer", position: "relative",
+                  background: autoSkills ? "var(--color-primary)" : "#ccc", transition: "background 0.2s",
+                }}>
+                <span style={{
+                  width: 18, height: 18, borderRadius: "50%", background: "#fff", position: "absolute", top: 2,
+                  left: autoSkills ? 20 : 2, transition: "left 0.2s",
+                }} />
+              </button>
+            </div>
+            {autoSkills ? (
+              <>
+                <div style={{ gridColumn: "1 / -1" }}>
+                  <label className="text-xs">{t("players.strengths")}</label>
+                  <div className="flex gap-sm" style={{ flexWrap: "wrap" }}>
+                    {autoStrengths.length > 0
+                      ? autoStrengths.map((s) => <span key={s} className="tag tag-success" style={{ fontSize: "0.75rem" }}>{s}</span>)
+                      : <span className="text-sm text-muted">{t("playerProfile.noMetricsYet")}</span>}
+                  </div>
+                </div>
+                <div style={{ gridColumn: "1 / -1" }}>
+                  <label className="text-xs">{t("players.weaknesses")}</label>
+                  <div className="flex gap-sm" style={{ flexWrap: "wrap" }}>
+                    {autoWeaknesses.length > 0
+                      ? autoWeaknesses.map((s) => <span key={s} className="tag" style={{ fontSize: "0.75rem", background: "#fee2e2", color: "#991b1b" }}>{s}</span>)
+                      : <span className="text-sm text-muted">{t("playerProfile.noMetricsYet")}</span>}
+                  </div>
+                </div>
+              </>
+            ) : (
+              <>
+                <div style={{ gridColumn: "1 / -1" }}>
+                  <label className="text-xs">{t("players.strengths")}</label>
+                  <input className="form-control form-control-sm" placeholder={t("players.strengthsPlaceholder")}
+                    value={(editForm.strengths || []).join(", ")}
+                    onChange={(e) => setEditForm({ ...editForm, strengths: e.target.value.split(",").map((s) => s.trim()).filter(Boolean) })} />
+                </div>
+                <div style={{ gridColumn: "1 / -1" }}>
+                  <label className="text-xs">{t("players.weaknesses")}</label>
+                  <input className="form-control form-control-sm" placeholder={t("players.weaknessesPlaceholder")}
+                    value={(editForm.weaknesses || []).join(", ")}
+                    onChange={(e) => setEditForm({ ...editForm, weaknesses: e.target.value.split(",").map((s) => s.trim()).filter(Boolean) })} />
+                </div>
+              </>
+            )}
+            <div style={{ gridColumn: "1 / -1" }}>
+              <label className="text-xs">{t("players.notes")}</label>
+              <textarea className="form-control form-control-sm" value={editForm.notes || ""}
+                onChange={(e) => setEditForm({ ...editForm, notes: e.target.value })} style={{ minHeight: 50 }} />
+            </div>
           </div>
         )}
       </div>

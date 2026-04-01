@@ -571,6 +571,8 @@
     "activeGoals": "Active goals",
     "overallRating": "Overall",
     "avgSkill": "Avg skill",
+    "autoSkills": "Auto from metrics",
+    "noMetricsYet": "Rate skills first",
     "recentNotes": "Recent notes",
     "skillHistory": "Rating history",
     "progressChart": "Progress over time",

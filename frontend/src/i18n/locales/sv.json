@@ -571,6 +571,8 @@
     "activeGoals": "Aktiva mål",
     "overallRating": "Helhet",
     "avgSkill": "Snittbetyg",
+    "autoSkills": "Auto från betyg",
+    "noMetricsYet": "Betygsätt färdigheter först",
     "recentNotes": "Senaste anteckningar",
     "skillHistory": "Betygshistorik",
     "progressChart": "Utveckling över tid",
