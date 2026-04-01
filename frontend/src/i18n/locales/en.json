@@ -515,6 +515,8 @@
     "trainers": "Trainers",
     "check": "Check",
     "checkFeasibility": "Check feasibility",
+    "noGroupHint": "This session is not linked to a group. Link it to see the player and trainer check-in.",
+    "assignGroup": "Edit session to assign a group",
     "equipment": "Equipment",
     "perStation": "{{count}} per station",
     "extra": "({{count}} extra)",

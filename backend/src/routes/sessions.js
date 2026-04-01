@@ -150,6 +150,7 @@ router.get("/today", authenticate, resolveUserGroups, async (req, res, next) => 
             planEntries.push({
               planTitle: plan.title,
               planId: plan._id,
+              planGroup: plan.group || null,
               weekNum,
               dayOfWeek: entry.dayOfWeek,
               notes: entry.notes,

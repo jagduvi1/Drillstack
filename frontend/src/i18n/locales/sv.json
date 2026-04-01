@@ -515,6 +515,8 @@
     "trainers": "Tränare",
     "check": "Kontrollera",
     "checkFeasibility": "Kontrollera genomförbarhet",
+    "noGroupHint": "Denna session är inte kopplad till en grupp. Koppla den för att se spelar- och tränarnärvaro.",
+    "assignGroup": "Redigera session för att tilldela en grupp",
     "equipment": "Utrustning",
     "perStation": "{{count}} per station",
     "extra": "({{count}} extra)",

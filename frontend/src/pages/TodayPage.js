@@ -109,7 +109,7 @@ export default function TodayPage() {
           const ci = checkedIn[id] || {};
           const players = ci.playerCount || 0;
           const feas = feasibility[id];
-          const groupId = sess.group?._id || sess.group;
+          const groupId = sess.group?._id || sess.group || plan?.planGroup;
 
           return (
             <div key={id} className="today-session-card">
@@ -136,8 +136,8 @@ export default function TodayPage() {
 
               {isExpanded && (
                 <div className="today-session-body">
-                  {/* Player check-in */}
-                  {groupId && (
+                  {/* Player & trainer check-in */}
+                  {groupId ? (
                     <AttendanceTracker
                       sessionId={id}
                       groupId={groupId}
@@ -147,6 +147,14 @@ export default function TodayPage() {
                       initialGuestTrainers={sess.guestTrainers}
                       onAttendanceChange={(data) => handleAttendanceChange(id, data)}
                     />
+                  ) : (
+                    <div className="card" style={{ padding: "0.75rem", marginBottom: "0.75rem" }}>
+                      <p className="text-sm text-muted" style={{ margin: 0 }}>
+                        <FiUsers style={{ marginRight: "0.3rem" }} />
+                        {t("today.noGroupHint")}{" "}
+                        <Link to={`/sessions/${id}/edit`}>{t("today.assignGroup")}</Link>
+                      </p>
+                    </div>
                   )}
 
                   {/* Feasibility check */}
