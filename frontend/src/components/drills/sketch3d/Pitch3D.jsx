@@ -28,7 +28,13 @@ function useTextTexture(text, bgColor, textColor, width = 512, height = 128) {
   return texture;
 }
 
-// Standard pitch: 105m x 68m, centered at origin, lying on XZ plane (Y is up)
+import {
+  FootballLines3D, HandballPitch3D, HockeyPitch3D, BasketballPitch3D,
+  FutsalPitch3D, FloorballPitch3D, VolleyballPitch3D, PadelPitch3D, TennisPitch3D,
+  SPORT_DIMS_3D,
+} from "./SportPitches3D";
+
+// Default pitch: football
 const W = 105;
 const H = 68;
 
@@ -219,37 +225,55 @@ function AdBoards({ hw, hh }) {
   );
 }
 
-export default function Pitch3D() {
-  const hw = W / 2, hh = H / 2;
+export default function Pitch3D({ sport = "football" }) {
+  const dims = SPORT_DIMS_3D[sport] || SPORT_DIMS_3D.football;
+  const pitchW = dims.w;
+  const pitchH = dims.h;
+  const hw = pitchW / 2, hh = pitchH / 2;
+
+  // Determine which sport renderer to use
+  const base = sport.startsWith("football") ? "football" : sport;
+  const renderSportPitch = () => {
+    switch (base) {
+      case "handball": return <HandballPitch3D />;
+      case "hockey": return <HockeyPitch3D />;
+      case "basketball": return <BasketballPitch3D />;
+      case "futsal": return <FutsalPitch3D />;
+      case "floorball": return <FloorballPitch3D />;
+      case "volleyball": return <VolleyballPitch3D />;
+      case "padel": return <PadelPitch3D />;
+      case "tennis": return <TennisPitch3D />;
+      default:
+        // Football (all variants)
+        return (
+          <group>
+            <mesh rotation={[-Math.PI / 2, 0, 0]} receiveShadow>
+              <planeGeometry args={[pitchW, pitchH]} />
+              <meshStandardMaterial color="#2d8a4e" />
+            </mesh>
+            {Array.from({ length: 10 }, (_, i) => (
+              <mesh key={i} rotation={[-Math.PI / 2, 0, 0]} position={[-hw + (i * 2 + 1) * (pitchW / 20), 0.001, 0]}>
+                <planeGeometry args={[pitchW / 10, pitchH]} />
+                <meshStandardMaterial color="#339956" transparent opacity={0.3} />
+              </mesh>
+            ))}
+            <FootballLines3D w={pitchW} h={pitchH} />
+            {[-1, 1].map((side) => (
+              <group key={side} position={[side * hw, 1.22, 0]}>
+                <mesh>
+                  <boxGeometry args={[0.12, 2.44, 7.32 * (pitchW / 105)]} />
+                  <meshStandardMaterial color="white" transparent opacity={0.6} wireframe />
+                </mesh>
+              </group>
+            ))}
+          </group>
+        );
+    }
+  };
 
   return (
     <group>
-      {/* Grass surface */}
-      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0, 0]} receiveShadow>
-        <planeGeometry args={[W, H]} />
-        <meshStandardMaterial color="#2d8a4e" />
-      </mesh>
-
-      {/* Grass stripes (alternating) */}
-      {Array.from({ length: 10 }, (_, i) => (
-        <mesh key={i} rotation={[-Math.PI / 2, 0, 0]} position={[-hw + (i * 2 + 1) * (W / 20), 0.001, 0]}>
-          <planeGeometry args={[W / 10, H]} />
-          <meshStandardMaterial color="#339956" transparent opacity={0.3} />
-        </mesh>
-      ))}
-
-      {/* Field lines */}
-      <FieldLines />
-
-      {/* Goals (simple wireframe boxes) */}
-      {[-1, 1].map((side) => (
-        <group key={side} position={[side * hw, 1.22, 0]}>
-          <mesh>
-            <boxGeometry args={[0.12, 2.44, 7.32]} />
-            <meshStandardMaterial color="white" transparent opacity={0.6} wireframe />
-          </mesh>
-        </group>
-      ))}
+      {renderSportPitch()}
 
       {/* ── LED advertisement boards (realistic low boards) ──────────── */}
       <AdBoards hw={hw} hh={hh} />
@@ -263,4 +287,4 @@ export default function Pitch3D() {
   );
 }
 
-export { W as PITCH_W, H as PITCH_H };
+export { W as PITCH_W, H as PITCH_H, SPORT_DIMS_3D };

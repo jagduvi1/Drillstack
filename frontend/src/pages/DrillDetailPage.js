@@ -544,7 +544,7 @@ export default function DrillDetailPage() {
           <div className="card mb-1">
             <h3>{t("sketch.title")}</h3>
             <Suspense fallback={<div className="text-sm text-muted">{t("common.loading")}</div>}>
-              <DrillSketchEditor sketch={displayDrill.sketch} readOnly />
+              <DrillSketchEditor sketch={displayDrill.sketch} readOnly sport={displayDrill.sport || "football"} />
             </Suspense>
           </div>
         )}

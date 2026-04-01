@@ -1,7 +1,7 @@
 import { useState, useCallback, useRef, useEffect, useMemo } from "react";
 import { Canvas, useThree, useFrame } from "@react-three/fiber";
 import { useTranslation } from "react-i18next";
-import Pitch3D, { PITCH_W, PITCH_H } from "./Pitch3D";
+import Pitch3D, { PITCH_W, PITCH_H, SPORT_DIMS_3D } from "./Pitch3D";
 import { Player3D, Cone3D, Ball3D, Arrow3D } from "./Pieces3D";
 import {
   FiPlus, FiTrash2, FiCircle, FiTriangle, FiMousePointer, FiArrowRight,
@@ -61,7 +61,7 @@ function migrateSketch(sketch) {
 }
 
 // ── Main Component ──────────────────────────────────────────────────────────
-export default function DrillSketchEditor({ sketch, onChange, readOnly = false, fullHeight = false }) {
+export default function DrillSketchEditor({ sketch, onChange, readOnly = false, fullHeight = false, sport = "football" }) {
   const { t } = useTranslation();
   const controlsRef = useRef();
 
@@ -323,10 +323,10 @@ export default function DrillSketchEditor({ sketch, onChange, readOnly = false, 
             shadow-camera-far={150} shadow-camera-left={-60} shadow-camera-right={60}
             shadow-camera-top={40} shadow-camera-bottom={-40} />
 
-          <Pitch3D />
+          <Pitch3D sport={sport} />
 
           <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.01, 0]} visible={false} onClick={handleGroundClick} name="groundPlane">
-            <planeGeometry args={[PITCH_W + 20, PITCH_H + 20]} />
+            <planeGeometry args={[(SPORT_DIMS_3D[sport]?.w || PITCH_W) + 20, (SPORT_DIMS_3D[sport]?.h || PITCH_H) + 20]} />
             <meshBasicMaterial />
           </mesh>
 

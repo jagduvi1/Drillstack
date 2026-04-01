@@ -93,6 +93,7 @@ export default function SketchPage() {
               sketch={sketch}
               onChange={setSketch}
               fullHeight
+              sport={sport}
             />
           </div>
         </Suspense>
