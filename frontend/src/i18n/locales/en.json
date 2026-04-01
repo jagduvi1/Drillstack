@@ -489,6 +489,7 @@
     "leaveClub": "Leave Club",
     "leaveClubConfirm": "Leave this club? Your team will become standalone.",
     "yourRole": "Your role: {{role}}",
+    "noSport": "No sport set",
     "notFoundOrDenied": "Group not found or access denied",
     "failedToInvite": "Failed to invite team",
     "starredDrills": "Starred Drills ({{count}})",

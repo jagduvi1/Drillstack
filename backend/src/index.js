@@ -10,6 +10,9 @@ const errorHandler = require("./middleware/errorHandler");
 
 const app = express();
 
+// Trust the nginx reverse proxy (needed for express-rate-limit behind Docker/nginx)
+app.set("trust proxy", 1);
+
 // ── Security headers ────────────────────────────────────────────────────────
 app.use(helmet({
   crossOriginResourcePolicy: { policy: "cross-origin" }, // Allow uploads to load cross-origin
