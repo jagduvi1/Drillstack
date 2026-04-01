@@ -311,3 +311,15 @@ th {
 .spin {
   animation: spin 1s linear infinite;
 }
+
+/* ── Rich Text (Markdown) ────────────────────────── */
+.rich-text p { margin: 0.4rem 0; }
+.rich-text h1, .rich-text h2, .rich-text h3, .rich-text h4 { margin: 0.75rem 0 0.35rem; }
+.rich-text ul, .rich-text ol { margin: 0.35rem 0; padding-left: 1.5rem; }
+.rich-text li { margin: 0.15rem 0; }
+.rich-text strong { font-weight: 700; }
+.rich-text em { font-style: italic; }
+.rich-text code { background: var(--color-bg); padding: 0.1rem 0.35rem; border-radius: 3px; font-size: 0.85em; }
+.rich-text blockquote { border-left: 3px solid var(--color-primary); padding-left: 0.75rem; margin: 0.5rem 0; color: var(--color-muted); }
+.rich-text a { color: var(--color-primary); }
+.rich-text img { max-width: 100%; border-radius: var(--radius); }
