@@ -90,7 +90,7 @@ function wavyLinePoints(x1, y1, x2, y2, amplitude = 6, waves = 6) {
 import SportField from "./FieldRenderers";
 
 // ── Player / Ball / Cone Piece ──────────────────────────────────────────────
-function PlayerPiece({ piece, x, y, sc, draggable, isGhost, isSelected, homeColor, awayColor, onDragEnd, onSelect, pitchBounds, isRotated, stageHeight }) {
+function PlayerPiece({ piece, x, y, sc, draggable, isGhost, isSelected, homeColor, awayColor, onDragEnd, onSelect, pitchBounds, isRotated, stageHeight, sport }) {
   // Scale player radius relative to field size (1.8m on 105m = ~1.7% — keep that ratio)
   const fieldDiag = Math.sqrt(sc.cfg.w * sc.cfg.w + sc.cfg.h * sc.cfg.h);
   const baseRadius = Math.max(0.8, Math.min(1.8, fieldDiag * 0.014));
@@ -101,7 +101,7 @@ function PlayerPiece({ piece, x, y, sc, draggable, isGhost, isSelected, homeColo
   const lastPointer = useRef(null);
 
   const getColor = () => {
-    if (piece.type === "ball") return "#ffffff";
+    if (piece.type === "ball") return sport === "padel" ? "#e8d44d" : "#ffffff";
     if (piece.type === "cone") return "#ff8c00";
     if (piece.isGK) return piece.team === "home" ? "#eab308" : "#f97316";
     return piece.team === "home" ? (homeColor || "#2563eb") : (awayColor || "#ef4444");
@@ -109,7 +109,7 @@ function PlayerPiece({ piece, x, y, sc, draggable, isGhost, isSelected, homeColo
 
   const isBall = piece.type === "ball";
   const isCone = piece.type === "cone";
-  const r = isBall ? radius * 0.65 : isCone ? radius * 0.55 : radius;
+  const r = isBall ? radius * (sport === "padel" ? 0.5 : 0.65) : isCone ? radius * 0.55 : radius;
 
   return (
     <Group
@@ -470,7 +470,7 @@ export default function TacticCanvas({
             if (Math.sqrt(dx * dx + dy * dy) < 1) return null;
             return (
               <PlayerPiece key={`g-${ghost.id}`} piece={ghost} x={ghost.x} y={ghost.y}
-                sc={sc} draggable={false} isGhost={true} homeColor={homeColor} awayColor={awayColor} pitchBounds={sportPitch} />
+                sc={sc} draggable={false} isGhost={true} homeColor={homeColor} awayColor={awayColor} pitchBounds={sportPitch} sport={sport} />
             );
           })}
         </Layer>
@@ -483,7 +483,7 @@ export default function TacticCanvas({
               isSelected={selectedPieceId === piece.id}
               homeColor={homeColor} awayColor={awayColor}
               onDragEnd={onPieceMove} onSelect={onPieceSelect} pitchBounds={sportPitch}
-              isRotated={isRotated} stageHeight={stageH} />
+              isRotated={isRotated} stageHeight={stageH} sport={sport} />
           ))}
         </Layer>
       </Stage>
