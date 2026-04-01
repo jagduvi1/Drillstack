@@ -568,6 +568,9 @@
     "overallRating": "Helhet",
     "recentNotes": "Senaste anteckningar",
     "skillHistory": "Betygshistorik",
+    "certifications": "Certifieringar",
+    "skillLevels": "Färdighetsnivåer",
+    "skillRatings": "Färdighetsbetyg",
     "assessmentNote": "Bedömningsanteckning (valfritt)",
     "goals": "Mål",
     "addGoal": "Lägg till mål",
@@ -590,7 +593,26 @@
     "volley": "Volley", "lob": "Lob", "footwork": "Fotarbete",
     "setting": "Uppspel", "attacking": "Anfall", "blocking": "Block", "digging": "Grävning",
     "flexibility": "Rörlighet", "strength": "Styrka", "balance": "Balans",
-    "coordination": "Koordination", "expression": "Uttryck"
+    "coordination": "Koordination", "expression": "Uttryck",
+    "gymnasticsLevel": "Gymnastiknivå",
+    "certBackflip": "Bakåtvolt godkänd",
+    "certFrontflip": "Framåtvolt godkänd",
+    "certAerial": "Aerial godkänd",
+    "certVault": "Hopp godkänd",
+    "certBars": "Barr godkänd",
+    "certBeam": "Bom godkänd",
+    "certTrampoline": "Studsmatta godkänd",
+    "floorExercise": "Golvprogram",
+    "vaultSkill": "Hoppfärdighet",
+    "barsSkill": "Barrfärdighet",
+    "beamSkill": "Bomfärdighet"
+  },
+  "skillLevels": {
+    "beginner": "Nybörjare",
+    "intermediate": "Medel",
+    "advanced": "Avancerad",
+    "competitive": "Tävling",
+    "elite": "Elit"
   },
   "splits": {
     "title": "Dela in i grupper",

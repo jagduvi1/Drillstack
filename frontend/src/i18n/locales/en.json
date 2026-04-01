@@ -568,6 +568,9 @@
     "overallRating": "Overall",
     "recentNotes": "Recent notes",
     "skillHistory": "Rating history",
+    "certifications": "Certifications",
+    "skillLevels": "Skill Levels",
+    "skillRatings": "Skill Ratings",
     "assessmentNote": "Assessment note (optional)",
     "goals": "Goals",
     "addGoal": "Add goal",
@@ -590,7 +593,26 @@
     "volley": "Volley", "lob": "Lob", "footwork": "Footwork",
     "setting": "Setting", "attacking": "Attacking", "blocking": "Blocking", "digging": "Digging",
     "flexibility": "Flexibility", "strength": "Strength", "balance": "Balance",
-    "coordination": "Coordination", "expression": "Expression"
+    "coordination": "Coordination", "expression": "Expression",
+    "gymnasticsLevel": "Gymnastics level",
+    "certBackflip": "Backflip certified",
+    "certFrontflip": "Frontflip certified",
+    "certAerial": "Aerial certified",
+    "certVault": "Vault certified",
+    "certBars": "Bars certified",
+    "certBeam": "Beam certified",
+    "certTrampoline": "Trampoline certified",
+    "floorExercise": "Floor exercise",
+    "vaultSkill": "Vault skill",
+    "barsSkill": "Bars skill",
+    "beamSkill": "Beam skill"
+  },
+  "skillLevels": {
+    "beginner": "Beginner",
+    "intermediate": "Intermediate",
+    "advanced": "Advanced",
+    "competitive": "Competitive",
+    "elite": "Elite"
   },
   "splits": {
     "title": "Split into Groups",
