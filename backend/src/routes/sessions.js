@@ -125,7 +125,7 @@ router.get("/today", authenticate, resolveUserGroups, async (req, res, next) => 
       startDate: { $lte: endOfDay },
       endDate: { $gte: startOfDay },
     };
-    const plans = await PeriodPlan.find(planFilter).populate("weeklyPlans.sessions.session");
+    const plans = await PeriodPlan.find(planFilter).populate("weeklyPlans.sessions.linkedSession");
 
     const planSessionIds = new Set();
     const planEntries = [];
@@ -139,8 +139,8 @@ router.get("/today", authenticate, resolveUserGroups, async (req, res, next) => 
       if (!week) continue;
       for (const entry of week.sessions || []) {
         // Show session if dayOfWeek matches today, or if no day was set (show every day)
-        if ((entry.dayOfWeek === dayName || !entry.dayOfWeek) && entry.session) {
-          const sid = entry.session._id?.toString() || entry.session.toString();
+        if ((entry.dayOfWeek === dayName || !entry.dayOfWeek) && entry.linkedSession) {
+          const sid = entry.linkedSession._id?.toString() || entry.linkedSession.toString();
           if (!planSessionIds.has(sid)) {
             planSessionIds.add(sid);
             planEntries.push({
