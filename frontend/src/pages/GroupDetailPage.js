@@ -7,6 +7,7 @@ import { useAuth } from "../context/AuthContext";
 import { useGroups } from "../context/GroupContext";
 import { FiTrash2, FiPlus, FiUsers, FiShield, FiUser, FiCopy, FiRefreshCw, FiLink, FiXCircle, FiStar, FiSearch, FiAlertCircle, FiCheck } from "react-icons/fi";
 import PlayerRoster from "../components/groups/PlayerRoster";
+import TrainerRoster from "../components/groups/TrainerRoster";
 
 export default function GroupDetailPage() {
   const { t } = useTranslation();
@@ -285,6 +286,9 @@ export default function GroupDetailPage() {
           </form>
         )}
       </div>
+
+      {/* Trainer Roster */}
+      <TrainerRoster groupId={id} canEdit={isAdmin} />
 
       {/* Player Roster */}
       <PlayerRoster groupId={id} canEdit={isTrainer} />

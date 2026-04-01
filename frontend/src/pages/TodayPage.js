@@ -143,6 +143,8 @@ export default function TodayPage() {
                       groupId={groupId}
                       initialAttendees={sess.attendees}
                       initialGuests={sess.guestAttendees}
+                      initialTrainerAttendees={sess.trainerAttendees}
+                      initialGuestTrainers={sess.guestTrainers}
                       onAttendanceChange={(data) => handleAttendanceChange(id, data)}
                     />
                   )}

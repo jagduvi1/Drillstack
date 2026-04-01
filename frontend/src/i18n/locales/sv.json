@@ -602,6 +602,24 @@
     "reshuffle": "Blanda om",
     "reset": "Återställ"
   },
+  "trainers": {
+    "title": "Tränare ({{count}})",
+    "trainers": "Tränare",
+    "addTrainer": "Lägg till tränare",
+    "namePlaceholder": "Tränarnamn...",
+    "rolePlaceholder": "Roll (t.ex. huvudtränare, assistent)...",
+    "noTrainers": "Inga tränare tillagda ännu.",
+    "name": "Namn",
+    "specialization": "Specialisering",
+    "phone": "Telefon",
+    "email": "E-post",
+    "notes": "Anteckningar",
+    "certs": "certifieringar",
+    "certPlaceholder": "Certifieringar (kommaseparerade)...",
+    "deleteConfirm": "Ta bort denna tränare?",
+    "guestTrainerName": "Gästtränarnamn...",
+    "addGuestTrainer": "Lägg till gästtränare"
+  },
   "search": {
     "title": "Sök",
     "description": "Beskriv vad du letar efter — AI:n hittar matchande övningar med semantisk sökning.",
