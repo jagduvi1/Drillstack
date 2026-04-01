@@ -3,6 +3,7 @@ const { body } = require("express-validator");
 const validate = require("../middleware/validate");
 const { authenticate } = require("../middleware/auth");
 const { resolveUserGroups } = require("../middleware/groupAuth");
+const mongoose = require("mongoose");
 const { standardLimiter } = require("../utils/rateLimiters");
 const Sketch = require("../models/Sketch");
 
@@ -27,12 +28,17 @@ router.get("/", resolveUserGroups, async (req, res, next) => {
 });
 
 // GET /api/sketches/:id
-router.get("/:id", async (req, res, next) => {
+router.get("/:id", resolveUserGroups, async (req, res, next) => {
   try {
     const sketch = await Sketch.findById(req.params.id)
       .populate("drill", "title")
       .populate("createdBy", "name");
     if (!sketch) return res.status(404).json({ error: "Sketch not found" });
+    // Check ownership or group access
+    const isOwner = sketch.createdBy?._id?.toString() === req.user._id.toString();
+    const isGroupShared = sketch.visibility === "group" && sketch.group &&
+      req.userTrainerGroupIds?.some((gid) => gid.toString() === sketch.group.toString());
+    if (!isOwner && !isGroupShared) return res.status(403).json({ error: "Not authorized" });
     res.json(sketch);
   } catch (err) {
     next(err);

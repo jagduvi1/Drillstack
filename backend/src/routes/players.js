@@ -12,6 +12,13 @@ const PlayerMetrics = require("../models/PlayerMetrics");
 const TrainingSession = require("../models/TrainingSession");
 const { encrypt, encryptNumber } = require("../utils/encryption");
 
+// Safe date parser — returns null for invalid dates
+function safeDate(str) {
+  if (!str) return null;
+  const d = new Date(str);
+  return isNaN(d.getTime()) ? null : d;
+}
+
 router.use(standardLimiter);
 router.use(authenticate);
 
@@ -279,8 +286,10 @@ router.get("/:groupId/:playerId/history", async (req, res, next) => {
     if (req.query.metric) filter.metric = req.query.metric;
     if (req.query.from || req.query.to) {
       filter.createdAt = {};
-      if (req.query.from) filter.createdAt.$gte = new Date(req.query.from);
-      if (req.query.to) filter.createdAt.$lte = new Date(req.query.to);
+      const from = safeDate(req.query.from);
+      const to = safeDate(req.query.to);
+      if (from) filter.createdAt.$gte = from;
+      if (to) filter.createdAt.$lte = to;
     }
     const history = await PlayerSkillHistory.find(filter)
       .sort({ createdAt: -1 })
@@ -446,8 +455,10 @@ router.get("/:groupId/:playerId/attendance", async (req, res, next) => {
     const filter = { group: req.params.groupId };
     if (req.query.from || req.query.to) {
       filter.date = {};
-      if (req.query.from) filter.date.$gte = new Date(req.query.from);
-      if (req.query.to) filter.date.$lte = new Date(req.query.to);
+      const from = safeDate(req.query.from);
+      const to = safeDate(req.query.to);
+      if (from) filter.date.$gte = from;
+      if (to) filter.date.$lte = to;
     }
 
     const sessions = await TrainingSession.find(filter)

@@ -296,7 +296,10 @@ router.put("/:id/attendance", authenticate, resolveUserGroups, async (req, res, 
     );
     if (!isOwner && !isGroupMember) return res.status(403).json({ error: "Not authorized" });
 
-    session.attendees = req.body.attendees || [];
+    // Validate attendee IDs are valid ObjectIds and cap at 100
+    const mongoose = require("mongoose");
+    const isValidId = (id) => mongoose.Types.ObjectId.isValid(id);
+    session.attendees = (req.body.attendees || []).filter(isValidId).slice(0, 100);
     const guests = (req.body.guestAttendees || [])
       .filter((g) => g?.name?.trim())
       .slice(0, 20)
@@ -304,8 +307,8 @@ router.put("/:id/attendance", authenticate, resolveUserGroups, async (req, res, 
     session.guestAttendees = guests;
     session.actualPlayers = session.attendees.length + guests.length;
 
-    // Trainer attendance
-    session.trainerAttendees = req.body.trainerAttendees || [];
+    // Trainer attendance — validate IDs
+    session.trainerAttendees = (req.body.trainerAttendees || []).filter(isValidId).slice(0, 50);
     const guestTrainers = (req.body.guestTrainers || [])
       .filter((g) => g?.name?.trim())
       .slice(0, 10)

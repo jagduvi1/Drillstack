@@ -55,7 +55,8 @@ app.use("/api/trainers", require("./routes/trainers"));
 app.use("/api/sketches", require("./routes/sketches"));
 
 // Public: ad boards config (no auth needed — used by 3D pitch)
-app.get("/api/ad-boards", async (_req, res) => {
+const { standardLimiter: adBoardsLimiter } = require("./utils/rateLimiters");
+app.get("/api/ad-boards", adBoardsLimiter, async (_req, res) => {
   const SiteConfig = require("./models/SiteConfig");
   const ads = await SiteConfig.getValue("adBoards", []);
   res.json(ads);
