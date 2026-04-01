@@ -1,5 +1,31 @@
-import { useMemo } from "react";
+import { useMemo, useRef, useEffect } from "react";
 import * as THREE from "three";
+
+// Create a canvas texture with text — reliable alternative to drei Text
+function useTextTexture(text, bgColor, textColor, width = 512, height = 128) {
+  const texture = useMemo(() => {
+    const canvas = document.createElement("canvas");
+    canvas.width = width;
+    canvas.height = height;
+    const ctx = canvas.getContext("2d");
+
+    // Background
+    ctx.fillStyle = bgColor;
+    ctx.fillRect(0, 0, width, height);
+
+    // Text
+    ctx.fillStyle = textColor;
+    ctx.font = `bold ${Math.floor(height * 0.55)}px Arial, sans-serif`;
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.fillText(text, width / 2, height / 2);
+
+    const tex = new THREE.CanvasTexture(canvas);
+    tex.needsUpdate = true;
+    return tex;
+  }, [text, bgColor, textColor, width, height]);
+  return texture;
+}
 
 // Standard pitch: 105m x 68m, centered at origin, lying on XZ plane (Y is up)
 const W = 105;
@@ -71,6 +97,92 @@ function FieldLines() {
   );
 }
 
+// ── LED-style ad board segment with readable text ───────────────────────────
+function AdPanel({ position, rotation, width, bgColor, textColor, text }) {
+  const boardH = 0.9;
+  const tilt = 0.15;
+  const texture = useTextTexture(text, bgColor, textColor || "#ffffff", 512, 128);
+
+  return (
+    <group position={position} rotation={rotation || [0, 0, 0]}>
+      <group rotation={[-tilt, 0, 0]}>
+        {/* Board frame */}
+        <mesh position={[0, boardH / 2 + 0.05, 0]}>
+          <boxGeometry args={[width, boardH + 0.1, 0.12]} />
+          <meshStandardMaterial color="#111" />
+        </mesh>
+        {/* LED panel face with text texture */}
+        <mesh position={[0, boardH / 2 + 0.05, 0.07]}>
+          <planeGeometry args={[width - 0.2, boardH - 0.1]} />
+          <meshStandardMaterial map={texture} emissive="#ffffff" emissiveIntensity={0.15} />
+        </mesh>
+        {/* Support legs */}
+        {[-1, 1].map((s) => (
+          <mesh key={s} position={[s * (width / 2 - 0.4), -0.02, -0.06]}>
+            <boxGeometry args={[0.1, 0.15, 0.22]} />
+            <meshStandardMaterial color="#222" />
+          </mesh>
+        ))}
+      </group>
+    </group>
+  );
+}
+
+function AdBoards({ hw, hh }) {
+  // Side boards — segmented panels along both sidelines
+  const sideAds = [
+    { x: -42, w: 16, bg: "#6366f1", text: "Cellarion.app" },
+    { x: -24, w: 14, bg: "#0ea5e9", text: "DrillStack" },
+    { x: -9,  w: 16, bg: "#6366f1", text: "Cellarion.app", tc: "#e0e7ff" },
+    { x: 7,   w: 14, bg: "#dc2626", text: "DrillStack" },
+    { x: 21,  w: 14, bg: "#16a34a", text: "Cellarion.app" },
+    { x: 35,  w: 16, bg: "#6366f1", text: "Your Wine Cellar" },
+    { x: 47,  w: 8,  bg: "#f59e0b", text: "DrillStack", tc: "#1a1a2e" },
+  ];
+
+  // Behind-goal boards
+  const goalAds = [
+    { z: -18, w: 12, bg: "#6366f1", text: "Cellarion.app" },
+    { z: -5,  w: 12, bg: "#f59e0b", text: "DrillStack", tc: "#1a1a2e" },
+    { z: 7,   w: 14, bg: "#6366f1", text: "Cellarion.app", tc: "#e0e7ff" },
+    { z: 19,  w: 10, bg: "#0ea5e9", text: "DrillStack" },
+  ];
+
+  return (
+    <group>
+      {/* Side boards — both long edges */}
+      {[-1, 1].map((side) =>
+        sideAds.map((ad, i) => (
+          <AdPanel
+            key={`side-${side}-${i}`}
+            position={[ad.x, 0, side * (hh + 1.2)]}
+            rotation={[0, side > 0 ? 0 : Math.PI, 0]}
+            width={ad.w}
+            bgColor={ad.bg}
+            textColor={ad.tc}
+            text={ad.text}
+          />
+        ))
+      )}
+
+      {/* Behind-goal boards — both ends */}
+      {[-1, 1].map((side) =>
+        goalAds.map((ad, i) => (
+          <AdPanel
+            key={`goal-${side}-${i}`}
+            position={[side * (hw + 2), 0, ad.z]}
+            rotation={[0, side > 0 ? -Math.PI / 2 : Math.PI / 2, 0]}
+            width={ad.w}
+            bgColor={ad.bg}
+            textColor={ad.tc}
+            text={ad.text}
+          />
+        ))
+      )}
+    </group>
+  );
+}
+
 export default function Pitch3D() {
   const hw = W / 2, hh = H / 2;
 
@@ -103,54 +215,8 @@ export default function Pitch3D() {
         </group>
       ))}
 
-      {/* ── Advertisement boards ─────────────────────────────────────── */}
-      {/* Side boards (along the long edges) */}
-      {[-1, 1].map((side) => (
-        <group key={`side-${side}`} position={[0, 0, side * (hh + 0.8)]}>
-          {/* Board backing */}
-          <mesh position={[0, 0.6, 0]}>
-            <boxGeometry args={[W - 4, 1.2, 0.15]} />
-            <meshStandardMaterial color="#1a1a2e" />
-          </mesh>
-          {/* Ad panel - Cellarion */}
-          <mesh position={[0, 0.6, side * 0.08]}>
-            <planeGeometry args={[W - 4.5, 1]} />
-            <meshStandardMaterial color="#6366f1" />
-          </mesh>
-          {/* Ad text strip */}
-          <mesh position={[0, 0.6, side * 0.09]}>
-            <planeGeometry args={[24, 0.4]} />
-            <meshStandardMaterial color="white" />
-          </mesh>
-          {/* Cellarion.app repeated sections */}
-          {[-30, -10, 10, 30].map((xOff, i) => (
-            <mesh key={i} position={[xOff, 0.6, side * 0.09]}>
-              <planeGeometry args={[18, 0.35]} />
-              <meshStandardMaterial color="#4f46e5" />
-            </mesh>
-          ))}
-        </group>
-      ))}
-
-      {/* Behind-goal boards */}
-      {[-1, 1].map((side) => (
-        <group key={`goal-${side}`} position={[side * (hw + 1.5), 0, 0]}>
-          <mesh position={[0, 0.6, 0]} rotation={[0, Math.PI / 2, 0]}>
-            <boxGeometry args={[H - 4, 1.2, 0.15]} />
-            <meshStandardMaterial color="#1a1a2e" />
-          </mesh>
-          {/* Ad panel */}
-          <mesh position={[side * 0.08, 0.6, 0]} rotation={[0, Math.PI / 2, 0]}>
-            <planeGeometry args={[H - 4.5, 1]} />
-            <meshStandardMaterial color="#6366f1" />
-          </mesh>
-          {/* White text strip */}
-          <mesh position={[side * 0.09, 0.6, 0]} rotation={[0, Math.PI / 2, 0]}>
-            <planeGeometry args={[20, 0.35]} />
-            <meshStandardMaterial color="white" />
-          </mesh>
-        </group>
-      ))}
+      {/* ── LED advertisement boards (realistic low boards) ──────────── */}
+      <AdBoards hw={hw} hh={hh} />
 
       {/* Ground plane for shadows and raycasting */}
       <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.01, 0]} visible={false} name="groundPlane">
