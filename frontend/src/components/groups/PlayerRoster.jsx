@@ -1,7 +1,8 @@
 import { useState, useEffect, memo } from "react";
+import { Link } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { getPlayers, addPlayer, updatePlayer, deletePlayer } from "../../api/players";
-import { FiPlus, FiTrash2, FiEdit, FiChevronDown, FiChevronUp, FiUser } from "react-icons/fi";
+import { FiPlus, FiTrash2, FiEdit, FiChevronDown, FiChevronUp, FiUser, FiExternalLink } from "react-icons/fi";
 
 export default memo(function PlayerRoster({ groupId, canEdit }) {
   const { t } = useTranslation();
@@ -102,7 +103,14 @@ export default memo(function PlayerRoster({ groupId, canEdit }) {
                   {p.position && <span className="text-sm text-muted">{p.position}</span>}
                 </div>
                 <div className="flex gap-sm" style={{ alignItems: "center" }}>
+                  {p.skillRating !== null && p.skillRating !== undefined && (
+                    <span className="tag" style={{ fontSize: "0.65rem", background: "var(--color-primary)", color: "#fff" }}>{p.skillRating}</span>
+                  )}
                   {p.strengths?.length > 0 && <span className="tag tag-success" style={{ fontSize: "0.65rem" }}>{p.strengths.length} {t("players.strengths")}</span>}
+                  <Link to={`/groups/${groupId}/players/${p._id}`} className="btn btn-sm" style={{ padding: "0.15rem 0.35rem", fontSize: "0.7rem" }}
+                    onClick={(e) => e.stopPropagation()} title={t("playerProfile.viewProfile")}>
+                    <FiExternalLink />
+                  </Link>
                   {canEdit && (expandedId === p._id ? <FiChevronUp /> : <FiChevronDown />)}
                 </div>
               </div>

@@ -1,0 +1,157 @@
+/* ── Player Profile ──────────────────────────────── */
+.stat-card {
+  background: var(--color-card);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  padding: 0.5rem 0.75rem;
+  text-align: center;
+  min-width: 80px;
+}
+.stat-value {
+  display: block;
+  font-size: 1.5rem;
+  font-weight: 700;
+  line-height: 1.2;
+}
+.stat-label {
+  display: block;
+  font-size: 0.7rem;
+  color: var(--color-muted);
+}
+
+/* ── Metrics ────────────────────────────────────── */
+.metrics-grid {
+  display: grid;
+  gap: 0.5rem;
+}
+.metric-row {
+  display: grid;
+  grid-template-columns: 100px 1fr 36px;
+  align-items: center;
+  gap: 0.5rem;
+}
+.metric-label {
+  font-size: 0.8rem;
+  font-weight: 500;
+  text-transform: capitalize;
+}
+.metric-slider {
+  width: 100%;
+  accent-color: var(--color-primary);
+}
+.metric-value {
+  font-size: 0.85rem;
+  font-weight: 700;
+  text-align: right;
+}
+
+/* Metrics summary (overview tab) */
+.metrics-summary-grid {
+  display: grid;
+  gap: 0.35rem;
+}
+.metric-summary-item {
+  display: grid;
+  grid-template-columns: 80px 1fr 30px;
+  align-items: center;
+  gap: 0.4rem;
+}
+.metric-bar {
+  height: 8px;
+  background: var(--color-border);
+  border-radius: 4px;
+  overflow: hidden;
+}
+.metric-bar-fill {
+  height: 100%;
+  background: var(--color-primary);
+  border-radius: 4px;
+  transition: width 0.3s;
+}
+
+/* ── Goals ───────────────────────────────────────── */
+.goals-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+.goal-item {
+  background: var(--color-bg);
+  border-radius: var(--radius);
+  padding: 0.5rem 0.75rem;
+  border: 1px solid var(--color-border);
+}
+.goal-item.goal-done {
+  opacity: 0.6;
+}
+.goal-progress {
+  margin-top: 0.35rem;
+  height: 6px;
+  background: var(--color-border);
+  border-radius: 3px;
+  overflow: hidden;
+  position: relative;
+}
+.goal-progress-bar {
+  height: 100%;
+  background: var(--color-success, #22c55e);
+  border-radius: 3px;
+  transition: width 0.3s;
+}
+.goal-progress-text {
+  position: absolute;
+  right: 4px;
+  top: -14px;
+  font-size: 0.6rem;
+  color: var(--color-muted);
+}
+.tag-danger {
+  background: rgba(239, 68, 68, 0.15);
+  color: #ef4444;
+}
+
+/* ── Notes ───────────────────────────────────────── */
+.notes-feed {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+.note-item {
+  background: var(--color-bg);
+  border-radius: var(--radius);
+  padding: 0.5rem 0.75rem;
+  border: 1px solid var(--color-border);
+}
+.tag-training { background: rgba(34, 197, 94, 0.15); color: #22c55e; }
+.tag-match { background: rgba(59, 130, 246, 0.15); color: #3b82f6; }
+.tag-injury { background: rgba(239, 68, 68, 0.15); color: #ef4444; }
+.tag-behavior { background: rgba(234, 179, 8, 0.15); color: #eab308; }
+.tag-general { background: rgba(107, 114, 128, 0.15); color: #6b7280; }
+
+/* ── Attendance history ─────────────────────────── */
+.attendance-history-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+.attendance-history-item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.35rem 0;
+  border-bottom: 1px solid var(--color-border);
+}
+.attendance-status {
+  flex-shrink: 0;
+  font-size: 0.85rem;
+}
+.status-present { color: var(--color-success, #22c55e); }
+.status-absent { color: var(--color-muted); }
+
+/* ── Responsive ─────────────────────────────────── */
+@media (max-width: 767px) {
+  .metric-row { grid-template-columns: 80px 1fr 30px; }
+  .metric-summary-item { grid-template-columns: 70px 1fr 28px; }
+  .stat-card { min-width: 70px; padding: 0.4rem 0.5rem; }
+  .stat-value { font-size: 1.2rem; }
+}
