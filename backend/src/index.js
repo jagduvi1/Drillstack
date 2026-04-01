@@ -49,6 +49,7 @@ app.use("/api/contributions", require("./routes/contributions"));
 app.use("/api/reports", require("./routes/reports"));
 app.use("/api/players", require("./routes/players"));
 app.use("/api/trainers", require("./routes/trainers"));
+app.use("/api/sketches", require("./routes/sketches"));
 
 // Health check
 app.get("/api/health", (_req, res) => res.json({ status: "ok" }));

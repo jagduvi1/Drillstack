@@ -47,7 +47,8 @@
     "superAdmin": "Super Admin",
     "logout": "Logout",
     "tactics": "Tactics",
-    "settings": "Settings"
+    "settings": "Settings",
+    "sketches": "3D Sketches"
   },
   "auth": {
     "trainingBank": "Training Bank",
@@ -930,6 +931,15 @@
     "addBall": "Add ball",
     "addCone": "Add cone",
     "clickEndpoint": "Click to place arrow endpoint..."
+  },
+  "sketches": {
+    "title": "3D Sketches",
+    "newSketch": "New Sketch",
+    "noSketches": "No sketches yet. Create your first 3D drill sketch.",
+    "untitled": "Untitled Sketch",
+    "deleteConfirm": "Delete this sketch?",
+    "pieces": "pieces",
+    "arrows": "arrows"
   },
   "equipment": {
     "mats": "Mats",

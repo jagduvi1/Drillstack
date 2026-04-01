@@ -47,7 +47,8 @@
     "superAdmin": "Superadmin",
     "logout": "Logga ut",
     "tactics": "Taktik",
-    "settings": "Inställningar"
+    "settings": "Inställningar",
+    "sketches": "3D Skisser"
   },
   "auth": {
     "trainingBank": "Träningsbank",
@@ -943,6 +944,15 @@
     "addBall": "Lägg till boll",
     "addCone": "Lägg till kon",
     "clickEndpoint": "Klicka för att placera pilens slutpunkt..."
+  },
+  "sketches": {
+    "title": "3D Skisser",
+    "newSketch": "Ny skiss",
+    "noSketches": "Inga skisser ännu. Skapa din första 3D-övningsskiss.",
+    "untitled": "Namnlös skiss",
+    "deleteConfirm": "Ta bort denna skiss?",
+    "pieces": "pjäser",
+    "arrows": "pilar"
   },
   "equipment": {
     "mats": "Mattor",
