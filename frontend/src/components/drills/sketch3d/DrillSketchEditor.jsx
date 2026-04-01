@@ -1,12 +1,32 @@
-import { useState, useCallback, useRef } from "react";
-import { Canvas } from "@react-three/fiber";
-import { OrbitControls } from "@react-three/drei";
+import { useState, useCallback, useRef, useEffect } from "react";
+import { Canvas, useThree, useFrame } from "@react-three/fiber";
 import { useTranslation } from "react-i18next";
 import Pitch3D, { PITCH_W, PITCH_H } from "./Pitch3D";
 import { Player3D, Cone3D, Ball3D, Arrow3D } from "./Pieces3D";
 import { FiPlus, FiTrash2, FiCircle, FiTriangle, FiMousePointer, FiArrowRight } from "react-icons/fi";
 import * as THREE from "three";
+import { OrbitControls as ThreeOrbitControls } from "three/addons/controls/OrbitControls.js";
 import "../../../styles/sketch3d.css";
+
+// Native Three.js OrbitControls wrapper (avoids drei dependency issues)
+function NativeOrbitControls({ controlsRef, maxPolarAngle, minDistance, maxDistance }) {
+  const { camera, gl } = useThree();
+  const controls = useRef();
+
+  useEffect(() => {
+    controls.current = new ThreeOrbitControls(camera, gl.domElement);
+    controls.current.enableDamping = true;
+    controls.current.dampingFactor = 0.1;
+    controls.current.maxPolarAngle = maxPolarAngle || Math.PI / 2.1;
+    controls.current.minDistance = minDistance || 15;
+    controls.current.maxDistance = maxDistance || 120;
+    if (controlsRef) controlsRef.current = controls.current;
+    return () => controls.current.dispose();
+  }, [camera, gl, controlsRef, maxPolarAngle, minDistance, maxDistance]);
+
+  useFrame(() => controls.current?.update());
+  return null;
+}
 
 const TOOLS = ["select", "arrow"];
 
@@ -184,15 +204,11 @@ export default function DrillSketchEditor({ sketch, onChange, readOnly = false, 
             return <Player3D {...props} />;
           })}
 
-          <OrbitControls
-            ref={controlsRef}
-            enablePan
-            enableZoom
-            enableRotate
+          <NativeOrbitControls
+            controlsRef={controlsRef}
             maxPolarAngle={Math.PI / 2.1}
             minDistance={15}
             maxDistance={120}
-            target={[0, 0, 0]}
           />
 
           {/* Sky color */}
