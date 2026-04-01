@@ -1,5 +1,8 @@
 const mongoose = require("mongoose");
 const { Schema } = mongoose;
+const { createEncryptionHook, createDecryptionTransform } = require("../utils/encryption");
+
+const PII_FIELDS = ["phone", "email", "notes"];
 
 const trainerSchema = new Schema(
   {
@@ -20,5 +23,12 @@ const trainerSchema = new Schema(
 );
 
 trainerSchema.index({ group: 1, active: 1 });
+
+// Encrypt PII fields before save
+trainerSchema.pre("save", createEncryptionHook(PII_FIELDS));
+
+// Decrypt PII fields in API responses
+trainerSchema.set("toJSON", { transform: createDecryptionTransform(PII_FIELDS) });
+trainerSchema.set("toObject", { transform: createDecryptionTransform(PII_FIELDS) });
 
 module.exports = mongoose.model("Trainer", trainerSchema);

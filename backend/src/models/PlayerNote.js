@@ -1,5 +1,6 @@
 const mongoose = require("mongoose");
 const { Schema } = mongoose;
+const { createEncryptionHook, createDecryptionTransform } = require("../utils/encryption");
 
 const playerNoteSchema = new Schema(
   {
@@ -14,5 +15,12 @@ const playerNoteSchema = new Schema(
 );
 
 playerNoteSchema.index({ player: 1, createdAt: -1 });
+
+// Encrypt note content before save
+playerNoteSchema.pre("save", createEncryptionHook(["content"]));
+
+// Decrypt in API responses
+playerNoteSchema.set("toJSON", { transform: createDecryptionTransform(["content"]) });
+playerNoteSchema.set("toObject", { transform: createDecryptionTransform(["content"]) });
 
 module.exports = mongoose.model("PlayerNote", playerNoteSchema);

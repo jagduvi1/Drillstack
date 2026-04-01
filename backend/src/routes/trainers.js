@@ -5,6 +5,7 @@ const { authenticate } = require("../middleware/auth");
 const { standardLimiter } = require("../utils/rateLimiters");
 const Trainer = require("../models/Trainer");
 const Group = require("../models/Group");
+const { encrypt } = require("../utils/encryption");
 
 router.use(standardLimiter);
 router.use(authenticate);
@@ -81,6 +82,11 @@ router.put("/:groupId/:trainerId", async (req, res, next) => {
     for (const key of allowed) {
       if (req.body[key] !== undefined) update[key] = req.body[key];
     }
+    // Encrypt PII fields before update
+    if (update.phone) update.phone = encrypt(update.phone);
+    if (update.email) update.email = encrypt(update.email);
+    if (update.notes) update.notes = encrypt(update.notes);
+
     const trainer = await Trainer.findOneAndUpdate(
       { _id: req.params.trainerId, group: req.params.groupId },
       { $set: update },

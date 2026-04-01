@@ -10,6 +10,7 @@ const PlayerGoal = require("../models/PlayerGoal");
 const PlayerNote = require("../models/PlayerNote");
 const PlayerMetrics = require("../models/PlayerMetrics");
 const TrainingSession = require("../models/TrainingSession");
+const { encrypt, encryptNumber } = require("../utils/encryption");
 
 router.use(standardLimiter);
 router.use(authenticate);
@@ -107,6 +108,12 @@ router.put("/:groupId/:playerId", async (req, res, next) => {
         });
       }
     }
+
+    // Encrypt PII fields before update (pre-save hooks don't run on findOneAndUpdate)
+    if (update.notes) update.notes = encrypt(update.notes);
+    if (update.photoUrl) update.photoUrl = encrypt(update.photoUrl);
+    if (update.height != null) update.height = encryptNumber(update.height);
+    if (update.weight != null) update.weight = encryptNumber(update.weight);
 
     const player = await Player.findOneAndUpdate(
       { _id: req.params.playerId, group: req.params.groupId },
