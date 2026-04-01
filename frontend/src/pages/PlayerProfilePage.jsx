@@ -63,6 +63,7 @@ export default function PlayerProfilePage() {
 
   const startEdit = () => {
     setEditForm({
+      name: player.name || "",
       dateOfBirth: player.dateOfBirth ? new Date(player.dateOfBirth).toISOString().slice(0, 10) : "",
       height: player.height || "",
       weight: player.weight || "",
@@ -118,6 +119,11 @@ export default function PlayerProfilePage() {
 
         {editing && (
           <div className="edit-profile-form" style={{ marginTop: "0.75rem", display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0.5rem" }}>
+            <div style={{ gridColumn: "1 / -1" }}>
+              <label className="text-xs">{t("players.name")}</label>
+              <input className="form-control form-control-sm" value={editForm.name}
+                onChange={(e) => setEditForm({ ...editForm, name: e.target.value })} />
+            </div>
             {isDual ? (
               <>
                 <div>
