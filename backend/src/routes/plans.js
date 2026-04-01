@@ -30,7 +30,7 @@ router.get("/", authenticate, resolveUserGroups, async (req, res, next) => {
 
     const plans = await PeriodPlan.find(filter)
       .sort({ startDate: -1 })
-      .populate("weeklyPlans.sessions.session", "title sport totalDuration")
+      .populate("weeklyPlans.sessions.linkedSession", "title sport totalDuration")
       .populate("createdBy", "name");
     res.json(plans);
   } catch (err) {
@@ -42,7 +42,7 @@ router.get("/", authenticate, resolveUserGroups, async (req, res, next) => {
 router.get("/:id", authenticate, resolveUserGroups, async (req, res, next) => {
   try {
     const plan = await PeriodPlan.findById(req.params.id)
-      .populate("weeklyPlans.sessions.session", "title description sport totalDuration blocks date")
+      .populate("weeklyPlans.sessions.linkedSession", "title description sport totalDuration blocks date")
       .populate("createdBy", "name");
     if (!plan) return res.status(404).json({ error: "Plan not found" });
 

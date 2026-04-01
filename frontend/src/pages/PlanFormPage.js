@@ -58,10 +58,10 @@ export default function PlanFormPage() {
             ...w,
             sessions: (w.sessions || []).map((s) => ({
               dayOfWeek: s.dayOfWeek || "",
-              session: s.session?._id || s.session,
-              _sessionTitle: s.session?.title || "",
-              _sessionDuration: s.session?.totalDuration || 0,
-              _sessionSport: s.session?.sport || "",
+              linkedSession: s.linkedSession?._id || s.linkedSession,
+              _sessionTitle: s.linkedSession?.title || "",
+              _sessionDuration: s.linkedSession?.totalDuration || 0,
+              _sessionSport: s.linkedSession?.sport || "",
               notes: s.notes || "",
             })),
           })),
@@ -144,7 +144,7 @@ export default function PlanFormPage() {
         ...(weeks[weekIdx].sessions || []),
         {
           dayOfWeek: "",
-          session: session._id,
+          linkedSession: session._id,
           _sessionTitle: session.title,
           _sessionDuration: session.totalDuration || 0,
           _sessionSport: session.sport || "",
