@@ -1023,7 +1023,10 @@
     "typeRating": "Rating",
     "typeLevel": "Level",
     "typeCert": "Cert",
-    "resetToDefaults": "Reset to defaults"
+    "resetToDefaults": "Reset to defaults",
+    "enableWeights": "Enable weighted skill average (advanced)",
+    "weightsHint": "Set a weight per skill (0-10). Higher weight = more impact on the average skill rating. Default is 1 for all.",
+    "weight": "Weight"
   },
   "settings": {
     "title": "Settings",

@@ -35,7 +35,9 @@ const groupSchema = new Schema(
       name: { type: String, required: true },
       type: { type: String, enum: ["rating", "level", "cert"], default: "rating" },
       order: { type: Number, default: 0 },
+      weight: { type: Number, default: 1, min: 0 },
     }],
+    skillWeightsEnabled: { type: Boolean, default: false },
 
     // Club verification — clubs require admin approval before full activation
     verified: { type: Boolean, default: null }, // null = not applicable (teams), false = pending, true = verified
