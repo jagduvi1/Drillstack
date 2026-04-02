@@ -107,9 +107,24 @@ export default function DrillSketchEditor({ sketch, onChange, readOnly = false, 
     const hw = PITCH_W / 2 + 5, hh = PITCH_H / 2 + 5;
     const cx = Math.max(-hw, Math.min(hw, x));
     const cz = Math.max(-hh, Math.min(hh, z));
-    const newSteps = steps.map((s, i) =>
-      i === currentStepIdx ? { ...s, pieces: s.pieces.map((p) => p.id === id ? { ...p, x: cx, z: cz } : p) } : s
-    );
+    const newSteps = steps.map((s, i) => {
+      if (i !== currentStepIdx) return s;
+      return {
+        ...s,
+        pieces: s.pieces.map((p) => p.id === id ? { ...p, x: cx, z: cz } : p),
+        // Keep pass endpoints in sync with linked pieces
+        passes: (s.passes || []).map((pass) => {
+          let updated = pass;
+          if (pass.fromPieceId === id) {
+            updated = { ...updated, fromX: cx, fromZ: cz };
+          }
+          if (pass.toPieceId === id) {
+            updated = { ...updated, toX: cx, toZ: cz };
+          }
+          return updated;
+        }),
+      };
+    });
     updateSteps(newSteps);
   }, [steps, currentStepIdx, updateSteps]);
 
