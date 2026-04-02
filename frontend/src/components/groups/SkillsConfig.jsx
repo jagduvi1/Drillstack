@@ -13,14 +13,16 @@ export default memo(function SkillsConfig({ group, onSaved }) {
     if (group.customSkills?.length > 0) {
       return group.customSkills
         .sort((a, b) => (a.order || 0) - (b.order || 0))
-        .map((s) => ({ key: s.key, name: s.name, type: s.type || "rating" }));
+        .map((s) => ({ key: s.key, name: s.name, type: s.type || "rating", weight: s.weight ?? 1 }));
     }
     return sportDefaults.map((d) => ({
       key: d.key,
       name: t(`metrics.${d.key}`, d.key),
       type: d.type,
+      weight: 1,
     }));
   });
+  const [weightsEnabled, setWeightsEnabled] = useState(!!group.skillWeightsEnabled);
 
   const [newName, setNewName] = useState("");
   const [newType, setNewType] = useState("rating");
@@ -64,7 +66,7 @@ export default memo(function SkillsConfig({ group, onSaved }) {
   const addSkill = (name, type, key) => {
     const skillKey = key || name.toLowerCase().replace(/[^a-z0-9]/g, "");
     if (!skillKey || skills.some((s) => s.key === skillKey)) return;
-    setSkills([...skills, { key: skillKey, name: name.trim(), type }]);
+    setSkills([...skills, { key: skillKey, name: name.trim(), type, weight: 1 }]);
     setNewName("");
     setFilteredSuggestions([]);
   };
@@ -84,9 +86,9 @@ export default memo(function SkillsConfig({ group, onSaved }) {
   const handleSave = async () => {
     setSaving(true);
     try {
-      const customSkills = skills.map((s, i) => ({ key: s.key, name: s.name, type: s.type, order: i }));
-      await updateGroup(group._id, { customSkills });
-      onSaved?.({ ...group, customSkills });
+      const customSkills = skills.map((s, i) => ({ key: s.key, name: s.name, type: s.type, order: i, weight: s.weight ?? 1 }));
+      await updateGroup(group._id, { customSkills, skillWeightsEnabled: weightsEnabled });
+      onSaved?.({ ...group, customSkills, skillWeightsEnabled: weightsEnabled });
       setSaved(true);
       setTimeout(() => setSaved(false), 2000);
     } catch { /* ignore */ }
@@ -98,7 +100,9 @@ export default memo(function SkillsConfig({ group, onSaved }) {
       key: d.key,
       name: t(`metrics.${d.key}`, d.key),
       type: d.type,
+      weight: 1,
     })));
+    setWeightsEnabled(false);
   };
 
   return (
@@ -118,6 +122,20 @@ export default memo(function SkillsConfig({ group, onSaved }) {
           }}>
             <span style={{ flex: 1, fontWeight: 500, fontSize: "0.85rem" }}>{skill.name}</span>
             <span className="tag" style={{ fontSize: "0.6rem" }}>{skill.type}</span>
+            {weightsEnabled && skill.type === "rating" && (
+              <input
+                type="number" min={0} max={10} step={0.5}
+                value={skill.weight ?? 1}
+                onChange={(e) => {
+                  const updated = [...skills];
+                  updated[idx] = { ...updated[idx], weight: Math.max(0, Math.min(10, Number(e.target.value) || 1)) };
+                  setSkills(updated);
+                }}
+                className="form-control form-control-sm"
+                style={{ width: 55, textAlign: "center", padding: "0.1rem" }}
+                title={t("skills.weight")}
+              />
+            )}
             <button className="btn btn-secondary btn-sm" onClick={() => moveSkill(idx, -1)} disabled={idx === 0}
               style={{ padding: "0.1rem 0.3rem" }}><FiChevronUp /></button>
             <button className="btn btn-secondary btn-sm" onClick={() => moveSkill(idx, 1)} disabled={idx === skills.length - 1}
@@ -177,6 +195,15 @@ export default memo(function SkillsConfig({ group, onSaved }) {
           </div>
         )}
       </div>
+
+      {/* Weighted mode toggle */}
+      <label style={{ display: "flex", alignItems: "center", gap: "0.5rem", marginTop: "0.75rem", cursor: "pointer", fontSize: "0.85rem" }}>
+        <input type="checkbox" checked={weightsEnabled} onChange={(e) => setWeightsEnabled(e.target.checked)} />
+        {t("skills.enableWeights")}
+      </label>
+      {weightsEnabled && (
+        <p className="text-sm text-muted" style={{ marginTop: "0.25rem" }}>{t("skills.weightsHint")}</p>
+      )}
 
       {/* Actions */}
       <div className="flex gap-sm" style={{ marginTop: "0.75rem", alignItems: "center" }}>

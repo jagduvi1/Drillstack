@@ -158,7 +158,11 @@ router.put("/:id", standardLimiter, authenticate, [
         name: String(s.name || "").trim().slice(0, 100),
         type: ["rating", "level", "cert"].includes(s.type) ? s.type : "rating",
         order: i,
+        weight: Math.max(0, Math.min(10, Number(s.weight) || 1)),
       })).filter((s) => s.key && s.name);
+    }
+    if (req.body.skillWeightsEnabled !== undefined) {
+      group.skillWeightsEnabled = !!req.body.skillWeightsEnabled;
     }
     await group.save();
     await group.populate("members.user", "name email");

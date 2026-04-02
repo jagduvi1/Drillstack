@@ -210,7 +210,18 @@ export function getEffectiveMetrics(group) {
   if (group?.customSkills?.length > 0) {
     return group.customSkills
       .sort((a, b) => (a.order || 0) - (b.order || 0))
-      .map((s) => ({ key: s.key, name: s.name, type: s.type || "rating" }));
+      .map((s) => ({ key: s.key, name: s.name, type: s.type || "rating", weight: s.weight ?? 1 }));
   }
   return getMetricsForSport(group?.sport);
+}
+
+/** Compute weighted average skill from metric values and definitions. */
+export function computeWeightedAvg(metricDefs, metrics, weightsEnabled) {
+  const ratings = metricDefs
+    .filter((d) => d.type === "rating" && typeof metrics[d.key] === "number")
+    .map((d) => ({ value: metrics[d.key], weight: weightsEnabled ? (d.weight ?? 1) : 1 }));
+  if (ratings.length === 0) return null;
+  const totalWeight = ratings.reduce((sum, r) => sum + r.weight, 0);
+  if (totalWeight === 0) return null;
+  return Math.round(ratings.reduce((sum, r) => sum + r.value * r.weight, 0) / totalWeight);
 }

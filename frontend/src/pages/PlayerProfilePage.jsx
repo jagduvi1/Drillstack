@@ -3,7 +3,7 @@ import { useParams, Link } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { getPlayerOverview, updatePlayer } from "../api/players";
 import { getGroup } from "../api/groups";
-import { getMetricsForSport, getEffectiveMetrics, getPositionsForSport, getDualPositions, hasDualPositions, SPORTS_WITH_NUMBERS, SPORTS_WITH_FOOT, SPORTS_WITH_HAND } from "../constants/sportMetrics";
+import { getMetricsForSport, getEffectiveMetrics, computeWeightedAvg, getPositionsForSport, getDualPositions, hasDualPositions, SPORTS_WITH_NUMBERS, SPORTS_WITH_FOOT, SPORTS_WITH_HAND } from "../constants/sportMetrics";
 import PlayerMetricsEditor from "../components/players/PlayerMetricsEditor";
 import PlayerSkillChart from "../components/players/PlayerSkillChart";
 import PlayerGoalsList from "../components/players/PlayerGoalsList";
@@ -53,8 +53,7 @@ export default function PlayerProfilePage() {
   const showHand = SPORTS_WITH_HAND.includes(sportBase);
 
   // Compute average skill from numeric rating metrics
-  const ratingValues = metricKeys.map((k) => metrics[k]).filter((v) => typeof v === "number");
-  const avgSkill = ratingValues.length > 0 ? Math.round(ratingValues.reduce((a, b) => a + b, 0) / ratingValues.length) : null;
+  const avgSkill = computeWeightedAvg(metricDefs, metrics, groupData?.skillWeightsEnabled);
 
   // Helper: get display name for a metric key (prefer custom name, fallback to i18n)
   const metricLabel = (key) => {
