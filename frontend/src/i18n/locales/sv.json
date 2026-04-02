@@ -978,7 +978,12 @@
     "addCone": "Lägg till kon",
     "clickEndpoint": "Klicka för att placera pilens slutpunkt...",
     "fullscreen": "Helskärm",
-    "cycleStyle": "Byt pilstil (klicka för att ändra)"
+    "cycleStyle": "Byt pilstil (klicka för att ändra)",
+    "airPass": "Luftpassning",
+    "bouncePass": "Studspassning",
+    "groundPass": "Markpassning",
+    "clickBouncePoint": "Klicka var bollen ska studsa",
+    "clickTarget": "Klicka på målspelare eller position"
   },
   "sketches": {
     "title": "3D Skisser",

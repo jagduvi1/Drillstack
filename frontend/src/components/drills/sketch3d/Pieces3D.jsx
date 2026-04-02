@@ -5,7 +5,7 @@ import * as THREE from "three";
 
 const raycaster = new THREE.Raycaster();
 
-function DraggablePiece({ children, position, onMove, isSelected, onSelect, enabled, onDragStart, onDragEnd }) {
+function DraggablePiece({ children, position, onMove, isSelected, onSelect, enabled, onDragStart, onDragEnd, onContextMenu }) {
   const ref = useRef();
   const { camera, gl, scene } = useThree();
   const [dragging, setDragging] = useState(false);
@@ -26,6 +26,11 @@ function DraggablePiece({ children, position, onMove, isSelected, onSelect, enab
   const handlePointerDown = (e) => {
     if (!enabled) return;
     e.stopPropagation();
+    // Right-click → context menu instead of drag
+    if (e.button === 2 && onContextMenu) {
+      onContextMenu(e);
+      return;
+    }
     onSelect?.();
     setDragging(true);
     onDragStart?.();
@@ -54,6 +59,7 @@ function DraggablePiece({ children, position, onMove, isSelected, onSelect, enab
       onPointerDown={handlePointerDown}
       onPointerMove={handlePointerMove}
       onPointerUp={handlePointerUp}
+      onContextMenu={(e) => { if (onContextMenu) { e.stopPropagation(); onContextMenu(e); } }}
     >
       {/* Selection ring */}
       {isSelected && (
@@ -182,7 +188,7 @@ const HANDBALL_BALL_Y = 1.5; // hand height
 const GROUND_BALL_Y = 0.35;
 const HANDBALL_HOLD_DIST = 1.5; // max distance to "hold" ball
 
-export function Ball3D({ piece, onMove, isSelected, onSelect, enabled, onDragStart, onDragEnd, sport, allPieces }) {
+export function Ball3D({ piece, onMove, isSelected, onSelect, enabled, onDragStart, onDragEnd, sport, allPieces, onContextMenu }) {
   const isHandball = sport === "handball";
   const animationDriven = piece.ballY != null;
 
@@ -210,7 +216,7 @@ export function Ball3D({ piece, onMove, isSelected, onSelect, enabled, onDragSta
     <DraggablePiece
       position={[piece.x, 0, piece.z]}
       onMove={onMove} isSelected={isSelected} onSelect={onSelect} enabled={enabled}
-      onDragStart={onDragStart} onDragEnd={onDragEnd}
+      onDragStart={onDragStart} onDragEnd={onDragEnd} onContextMenu={onContextMenu}
     >
       <mesh position={[offsetX, finalY, 0]} castShadow>
         <icosahedronGeometry args={[0.28, 1]} />
@@ -222,6 +228,98 @@ export function Ball3D({ piece, onMove, isSelected, onSelect, enabled, onDragSta
         <meshStandardMaterial color="#333" wireframe transparent opacity={0.4} />
       </mesh>
     </DraggablePiece>
+  );
+}
+
+// ── Pass path visualization ─────────────────────────────────────────────────
+const PASS_COLORS = { air: "#60a5fa", bounce: "#fbbf24", ground: "#a3a3a3" };
+
+export function Pass3D({ pass, isSelected, onSelect }) {
+  const color = PASS_COLORS[pass.type] || "#ffffff";
+  const isBounce = pass.type === "bounce";
+
+  if (isBounce && pass.bounceX != null) {
+    // Two-segment path: from → bounce → to
+    const mid1X = (pass.fromX + pass.bounceX) / 2;
+    const mid1Z = (pass.fromZ + pass.bounceZ) / 2;
+    const dx1 = pass.bounceX - pass.fromX, dz1 = pass.bounceZ - pass.fromZ;
+    const len1 = Math.sqrt(dx1 * dx1 + dz1 * dz1);
+    const angle1 = Math.atan2(dx1, dz1);
+
+    const mid2X = (pass.bounceX + pass.toX) / 2;
+    const mid2Z = (pass.bounceZ + pass.toZ) / 2;
+    const dx2 = pass.toX - pass.bounceX, dz2 = pass.toZ - pass.bounceZ;
+    const len2 = Math.sqrt(dx2 * dx2 + dz2 * dz2);
+    const angle2 = Math.atan2(dx2, dz2);
+
+    return (
+      <group onClick={(e) => { e.stopPropagation(); onSelect?.(); }}>
+        {isSelected && (
+          <mesh position={[pass.bounceX, 0.02, pass.bounceZ]} rotation={[-Math.PI / 2, 0, 0]}>
+            <ringGeometry args={[0.8, 1.1, 16]} />
+            <meshBasicMaterial color="#fbbf24" transparent opacity={0.3} side={THREE.DoubleSide} />
+          </mesh>
+        )}
+        {/* Segment 1: from → bounce */}
+        {len1 > 0.5 && (
+          <mesh position={[mid1X, 0.12, mid1Z]} rotation={[0, angle1, 0]}>
+            <boxGeometry args={[0.12, 0.06, Math.max(0.1, len1 - 0.5)]} />
+            <meshStandardMaterial color={color} transparent opacity={0.6} />
+          </mesh>
+        )}
+        {/* Bounce point marker */}
+        <mesh position={[pass.bounceX, 0.15, pass.bounceZ]}>
+          <sphereGeometry args={[0.3, 8, 8]} />
+          <meshStandardMaterial color="#fbbf24" />
+        </mesh>
+        {/* Down arrow at bounce point */}
+        <mesh position={[pass.bounceX, 0.55, pass.bounceZ]} rotation={[0, 0, Math.PI]}>
+          <coneGeometry args={[0.2, 0.4, 6]} />
+          <meshStandardMaterial color="#fbbf24" />
+        </mesh>
+        {/* Segment 2: bounce → to */}
+        {len2 > 0.5 && (
+          <mesh position={[mid2X, 0.12, mid2Z]} rotation={[0, angle2, 0]}>
+            <boxGeometry args={[0.12, 0.06, Math.max(0.1, len2 - 0.5)]} />
+            <meshStandardMaterial color={color} transparent opacity={0.6} />
+          </mesh>
+        )}
+        {/* Target marker */}
+        <mesh position={[pass.toX, 0.2, pass.toZ]} rotation={[-Math.PI / 2, 0, 0]}>
+          <ringGeometry args={[0.3, 0.5, 16]} />
+          <meshBasicMaterial color={color} side={THREE.DoubleSide} />
+        </mesh>
+      </group>
+    );
+  }
+
+  // Air / ground pass: single segment from → to
+  const dx = pass.toX - pass.fromX, dz = pass.toZ - pass.fromZ;
+  const len = Math.sqrt(dx * dx + dz * dz);
+  if (len < 0.5) return null;
+  const angle = Math.atan2(dx, dz);
+  const midX = (pass.fromX + pass.toX) / 2;
+  const midZ = (pass.fromZ + pass.toZ) / 2;
+  const isAir = pass.type === "air";
+
+  return (
+    <group onClick={(e) => { e.stopPropagation(); onSelect?.(); }}>
+      {isSelected && (
+        <mesh position={[midX, 0.02, midZ]} rotation={[-Math.PI / 2, 0, angle]}>
+          <planeGeometry args={[0.6, len]} />
+          <meshBasicMaterial color={color} transparent opacity={0.2} side={THREE.DoubleSide} />
+        </mesh>
+      )}
+      <mesh position={[midX, isAir ? 0.18 : 0.08, midZ]} rotation={[0, angle, 0]}>
+        <boxGeometry args={[0.12, 0.06, Math.max(0.1, len - 0.5)]} />
+        <meshStandardMaterial color={color} transparent opacity={0.6} />
+      </mesh>
+      {/* Target marker */}
+      <mesh position={[pass.toX, 0.2, pass.toZ]} rotation={[-Math.PI / 2, 0, 0]}>
+        <ringGeometry args={[0.3, 0.5, 16]} />
+        <meshBasicMaterial color={color} side={THREE.DoubleSide} />
+      </mesh>
+    </group>
   );
 }
 
