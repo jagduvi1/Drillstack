@@ -205,18 +205,20 @@ export default function GroupDetailPage() {
     <div>
       <div className="flex-between mb-1">
         {editingName ? (
-          <div className="flex gap-sm" style={{ alignItems: "center", flex: 1 }}>
+          <div className="flex gap-sm" style={{ alignItems: "center", flex: 1, flexWrap: "wrap", minWidth: 0 }}>
             <input className="form-control" value={nameValue} onChange={(e) => setNameValue(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && handleSaveName()}
-              autoFocus style={{ fontSize: "1.25rem", fontWeight: 700 }} />
+              autoFocus style={{ fontSize: "1.25rem", fontWeight: 700, flex: 1, minWidth: 120 }} />
             <button className="btn btn-primary btn-sm" onClick={handleSaveName}><FiCheck /></button>
             <button className="btn btn-secondary btn-sm" onClick={() => setEditingName(false)}><FiXCircle /></button>
           </div>
         ) : (
-          <h1 style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
-            {isClub ? <FiShield /> : <FiUsers />} {group.name}
+          <h1 style={{ display: "flex", alignItems: "center", gap: "0.5rem", flexWrap: "wrap", minWidth: 0 }}>
+            <span style={{ display: "flex", alignItems: "center", gap: "0.5rem", minWidth: 0 }}>
+              {isClub ? <FiShield /> : <FiUsers />} <span style={{ wordBreak: "break-word" }}>{group.name}</span>
+            </span>
             {isAdmin && (
-              <button className="btn btn-secondary btn-sm" onClick={handleEditName} style={{ padding: "0.15rem 0.5rem", marginLeft: "0.25rem" }}><FiEdit3 /></button>
+              <button className="btn btn-secondary btn-sm" onClick={handleEditName} style={{ padding: "0.15rem 0.5rem", flexShrink: 0 }}><FiEdit3 /></button>
             )}
           </h1>
         )}

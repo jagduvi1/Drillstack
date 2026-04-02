@@ -90,32 +90,38 @@ export default memo(function PlayerRoster({ groupId, canEdit, sport }) {
         <p className="text-sm text-muted">{t("players.noPlayers")}</p>
       ) : (
         <div style={{ display: "flex", flexDirection: "column", gap: "0.35rem" }}>
-          {players.map((p) => (
-            <div key={p._id} style={{
-              display: "flex", justifyContent: "space-between", alignItems: "center",
-              background: "var(--color-bg)", borderRadius: "var(--radius)", padding: "0.5rem 0.75rem",
-            }}>
-              <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
-                {hasNumbers && p.number && <span className="tag" style={{ minWidth: 28, textAlign: "center" }}>{p.number}</span>}
-                <Link to={`/groups/${groupId}/players/${p._id}`}
-                  style={{ fontWeight: 600, fontSize: "0.85rem", color: "var(--color-primary)", textDecoration: "none" }}>
-                  {p.name}
-                </Link>
-                {p.position && <span className="text-sm text-muted">{p.position}</span>}
-                {p.defencePosition && <span className="text-sm text-muted">/ {p.defencePosition}</span>}
-              </div>
-              <div className="flex gap-sm" style={{ alignItems: "center" }}>
-                {p.skillRating !== null && p.skillRating !== undefined && (
-                  <span className="tag" style={{ fontSize: "0.65rem", background: "var(--color-primary)", color: "#fff" }}>{p.skillRating}</span>
-                )}
-                {canEdit && (
-                  <button className="btn btn-danger btn-sm" onClick={() => handleDelete(p._id)} style={{ padding: "0.15rem 0.4rem" }}>
-                    <FiTrash2 />
-                  </button>
-                )}
-              </div>
-            </div>
-          ))}
+          {players.map((p) => {
+            const age = p.dateOfBirth
+              ? Math.floor((Date.now() - new Date(p.dateOfBirth).getTime()) / (365.25 * 24 * 60 * 60 * 1000))
+              : null;
+            return (
+              <Link key={p._id} to={`/groups/${groupId}/players/${p._id}`} style={{ textDecoration: "none", color: "inherit" }}>
+                <div style={{
+                  background: "var(--color-bg)", borderRadius: "var(--radius)", padding: "0.5rem 0.75rem",
+                }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                    <span style={{ fontWeight: 600, fontSize: "0.9rem", color: "var(--color-primary)" }}>
+                      {hasNumbers && p.number ? `#${p.number} ` : ""}{p.name}
+                    </span>
+                    {canEdit && (
+                      <button className="btn btn-danger btn-sm" onClick={(e) => { e.preventDefault(); handleDelete(p._id); }} style={{ padding: "0.15rem 0.4rem" }}>
+                        <FiTrash2 />
+                      </button>
+                    )}
+                  </div>
+                  <div className="flex gap-sm" style={{ marginTop: "0.25rem", flexWrap: "wrap" }}>
+                    {p.position && <span className="tag" style={{ fontSize: "0.65rem" }}>{p.position}</span>}
+                    {p.defencePosition && <span className="tag" style={{ fontSize: "0.65rem" }}>{p.defencePosition}</span>}
+                    {age !== null && <span className="tag" style={{ fontSize: "0.65rem" }}>{t("playerProfile.age", { age })}</span>}
+                    {p.height && <span className="tag" style={{ fontSize: "0.65rem" }}>{p.height} cm</span>}
+                    {p.weight && <span className="tag" style={{ fontSize: "0.65rem" }}>{p.weight} kg</span>}
+                    {p.strengths?.[0] && <span className="tag tag-success" style={{ fontSize: "0.65rem" }}>{p.strengths[0]}</span>}
+                    {p.weaknesses?.[0] && <span className="tag" style={{ fontSize: "0.65rem", background: "#fee2e2", color: "#991b1b" }}>{p.weaknesses[0]}</span>}
+                  </div>
+                </div>
+              </Link>
+            );
+          })}
         </div>
       )}
     </div>
