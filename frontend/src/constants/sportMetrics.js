@@ -204,3 +204,13 @@ export function getMetricsForSport(sport) {
   const base = sport.split("-")[0];
   return SPORT_METRICS[base] || SPORT_METRICS[sport] || DEFAULT_METRICS;
 }
+
+/** Returns the effective metric definitions for a group — custom if configured, else sport defaults. */
+export function getEffectiveMetrics(group) {
+  if (group?.customSkills?.length > 0) {
+    return group.customSkills
+      .sort((a, b) => (a.order || 0) - (b.order || 0))
+      .map((s) => ({ key: s.key, name: s.name, type: s.type || "rating" }));
+  }
+  return getMetricsForSport(group?.sport);
+}

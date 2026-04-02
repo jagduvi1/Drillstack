@@ -52,7 +52,7 @@ export default function PlayerMetricsEditor({ groupId, playerId, metrics, metric
               }}>
                 <input type="checkbox" checked={!!values[def.key]}
                   onChange={(e) => setValues((v) => ({ ...v, [def.key]: e.target.checked }))} />
-                {t(`metrics.${def.key}`, def.key)}
+                {def.name || t(`metrics.${def.key}`, def.key)}
               </label>
             ))}
           </div>
@@ -65,7 +65,7 @@ export default function PlayerMetricsEditor({ groupId, playerId, metrics, metric
           <h5 style={{ margin: "0 0 0.5rem", fontSize: "0.85rem" }}>{t("playerProfile.skillLevels")}</h5>
           {levels.map((def) => (
             <div key={def.key} className="metric-row" style={{ marginBottom: "0.35rem" }}>
-              <label className="metric-label">{t(`metrics.${def.key}`, def.key)}</label>
+              <label className="metric-label">{def.name || t(`metrics.${def.key}`, def.key)}</label>
               <select className="form-control form-control-sm" value={values[def.key] || ""}
                 onChange={(e) => setValues((v) => ({ ...v, [def.key]: e.target.value }))}
                 style={{ width: "auto", minWidth: 140 }}>
@@ -88,7 +88,7 @@ export default function PlayerMetricsEditor({ groupId, playerId, metrics, metric
           <div className="metrics-grid">
             {ratings.map((def) => (
               <div key={def.key} className="metric-row">
-                <label className="metric-label">{t(`metrics.${def.key}`, def.key)}</label>
+                <label className="metric-label">{def.name || t(`metrics.${def.key}`, def.key)}</label>
                 <input
                   type="range" min={0} max={100}
                   value={values[def.key] || 0}

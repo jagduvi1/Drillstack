@@ -29,6 +29,14 @@ const groupSchema = new Schema(
 
     starredDrills: [{ type: Schema.Types.ObjectId, ref: "Drill" }],
 
+    // Coach-configurable skill metrics (overrides sport defaults when non-empty)
+    customSkills: [{
+      key: { type: String, required: true },
+      name: { type: String, required: true },
+      type: { type: String, enum: ["rating", "level", "cert"], default: "rating" },
+      order: { type: Number, default: 0 },
+    }],
+
     // Club verification — clubs require admin approval before full activation
     verified: { type: Boolean, default: null }, // null = not applicable (teams), false = pending, true = verified
 
