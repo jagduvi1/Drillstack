@@ -1,9 +1,9 @@
-import { useState } from "react";
 import { useParams, Link, useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import useFetch from "../hooks/useFetch";
 import { getPlan, deletePlan } from "../api/plans";
-import { FiEdit, FiTrash2, FiCalendar } from "react-icons/fi";
+import MatchScoreBar from "../components/sessions/MatchScoreBar";
+import { FiEdit, FiTrash2, FiPlus, FiTarget } from "react-icons/fi";
 
 export default function PlanDetailPage() {
   const { t } = useTranslation();
@@ -20,16 +20,12 @@ export default function PlanDetailPage() {
     navigate("/plans");
   };
 
-  const totalSessions = plan.weeklyPlans?.reduce(
-    (sum, w) => sum + (w.sessions?.length || 0),
-    0
-  ) || 0;
-
   return (
     <div>
       <div className="flex-between mb-1">
-        <h1>{plan.title}</h1>
+        <h1>{plan.name}</h1>
         <div className="flex gap-sm">
+          <Link to={`/sessions/new?plan=${id}`} className="btn btn-primary"><FiPlus /> {t("plans.newSession")}</Link>
           <Link to={`/plans/${id}/edit`} className="btn btn-secondary"><FiEdit /> {t("common.edit")}</Link>
           <button className="btn btn-danger" onClick={handleDelete}><FiTrash2 /> {t("common.delete")}</button>
         </div>
@@ -42,84 +38,116 @@ export default function PlanDetailPage() {
           <span className="tag">
             {new Date(plan.startDate).toLocaleDateString()} — {new Date(plan.endDate).toLocaleDateString()}
           </span>
-          <span className="tag">{t("plans.weeks", { count: plan.weeklyPlans?.length || 0 })}</span>
-          <span className="tag">{t("plans.session", { count: totalSessions })}</span>
+          {plan.phases?.length > 0 && (
+            <span className="tag">{t("plans.phaseCount", { count: plan.phases.length })}</span>
+          )}
+          {plan.sessions?.length > 0 && (
+            <span className="tag">{t("plans.sessionCount", { count: plan.sessions.length })}</span>
+          )}
         </div>
-        {plan.description && (
-          <p style={{ marginTop: "0.75rem" }}>{plan.description}</p>
+        {plan.objective && (
+          <p style={{ marginTop: "0.75rem" }}>{plan.objective}</p>
+        )}
+        {plan.followers?.length > 0 && (
+          <div className="flex gap-sm mt-1" style={{ flexWrap: "wrap" }}>
+            <span className="text-sm text-muted">{t("plans.followers")}:</span>
+            {plan.followers.map((f) => (
+              <span key={f._id || f} className="tag" style={{ background: "#fef3c7", color: "#92400e" }}>
+                {f.name || t("plans.team")}
+              </span>
+            ))}
+          </div>
         )}
       </div>
 
-      {/* Goals */}
-      {plan.goals?.length > 0 && (
+      {/* Phases */}
+      {plan.phases?.length > 0 && (
         <div className="card mb-1">
-          <h3>{t("plans.goals")}</h3>
-          <ul style={{ paddingLeft: "1.25rem", marginTop: "0.5rem" }}>
-            {plan.goals.map((g, i) => <li key={i}>{g}</li>)}
-          </ul>
-        </div>
-      )}
+          <h3 style={{ marginBottom: "0.75rem" }}>{t("plans.phases")}</h3>
+          <div style={{ display: "grid", gap: "0.75rem" }}>
+            {plan.phases.map((phase, pi) => (
+              <div key={phase._id || pi} style={{
+                background: "var(--color-bg)",
+                borderRadius: "var(--radius)",
+                padding: "0.75rem",
+                border: "1px solid var(--color-border)",
+              }}>
+                <div className="flex-between" style={{ marginBottom: "0.25rem" }}>
+                  <strong>
+                    <FiTarget style={{ fontSize: "0.8rem", marginRight: "0.25rem" }} />
+                    {phase.name}
+                  </strong>
+                </div>
+                <div className="flex gap-sm" style={{ flexWrap: "wrap", marginBottom: phase.description ? "0.5rem" : 0 }}>
+                  <span className="tag" style={{ background: "#dbeafe", color: "#1e40af" }}>
+                    {t("plans.primary")}: {phase.primaryFocus}
+                  </span>
+                  {phase.secondaryFocus && (
+                    <span className="tag" style={{ background: "#e0e7ff", color: "#3730a3" }}>
+                      {t("plans.secondary")}: {phase.secondaryFocus}
+                    </span>
+                  )}
+                </div>
+                {phase.description && (
+                  <p className="text-sm text-muted">{phase.description}</p>
+                )}
 
-      {/* Focus Areas */}
-      {plan.focusAreas?.length > 0 && (
-        <div className="card mb-1">
-          <h3>{t("plans.focusAreas")}</h3>
-          <div className="flex gap-sm mt-1" style={{ flexWrap: "wrap" }}>
-            {plan.focusAreas.map((area, i) => (
-              <span key={i} className="tag">{area}</span>
+                {/* Sessions linked to this phase */}
+                {plan.sessions?.filter((s) => s.phase?.toString() === phase._id?.toString()).length > 0 && (
+                  <div style={{ marginTop: "0.5rem", paddingTop: "0.5rem", borderTop: "1px solid var(--color-border)" }}>
+                    {plan.sessions
+                      .filter((s) => s.phase?.toString() === phase._id?.toString())
+                      .map((s) => (
+                        <div key={s._id} className="flex-between" style={{ padding: "0.25rem 0" }}>
+                          <Link to={`/sessions/${s._id}`} className="text-sm">{s.title}</Link>
+                          <div className="flex gap-sm" style={{ alignItems: "center" }}>
+                            {s.date && <span className="text-sm text-muted">{new Date(s.date).toLocaleDateString()}</span>}
+                            {s.matchScore != null && (
+                              <div style={{ width: 150 }}>
+                                <MatchScoreBar score={s.matchScore} feedback={s.matchFeedback} />
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      ))}
+                  </div>
+                )}
+
+                <Link
+                  to={`/sessions/new?plan=${id}&phase=${phase._id}`}
+                  className="text-sm"
+                  style={{ marginTop: "0.5rem", display: "inline-block" }}
+                >
+                  <FiPlus style={{ fontSize: "0.75rem" }} /> {t("plans.createSessionForPhase")}
+                </Link>
+              </div>
             ))}
           </div>
         </div>
       )}
 
-      {/* Weekly Plans */}
-      {plan.weeklyPlans?.length > 0 && plan.weeklyPlans.map((w, wi) => (
-        <div key={wi} className="card mb-1">
-          <div className="flex-between">
-            <h3>{t("plans.week", { number: w.week })}{w.theme ? ` — ${w.theme}` : ""}</h3>
-            <span className="text-sm text-muted">{t("plans.session", { count: w.sessions?.length || 0 })}</span>
-          </div>
-          {w.notes && <p className="text-sm text-muted" style={{ marginTop: "0.25rem" }}>{w.notes}</p>}
-
-          {w.sessions?.length > 0 && (
-            <div style={{ marginTop: "0.75rem", display: "grid", gap: "0.5rem" }}>
-              {w.sessions.map((entry, si) => {
-                const sess = entry.linkedSession;
-                return (
-                  <div key={si} style={{ background: "var(--color-bg)", borderRadius: "var(--radius)", padding: "0.75rem" }}>
-                    <div className="flex-between" style={{ marginBottom: "0.25rem" }}>
-                      <strong className="text-sm">
-                        <FiCalendar style={{ fontSize: "0.75rem" }} />{" "}
-                        {entry.dayOfWeek ? `${entry.dayOfWeek}: ` : ""}
-                        {sess?.title || "Session"}
-                      </strong>
-                      <div className="flex gap-sm">
-                        {sess?.sport && <span className="tag">{sess.sport}</span>}
-                        {sess?.totalDuration > 0 && <span className="tag">{sess.totalDuration} min</span>}
-                      </div>
+      {/* Sessions not linked to any phase */}
+      {plan.sessions?.filter((s) => !s.phase).length > 0 && (
+        <div className="card mb-1">
+          <h3 style={{ marginBottom: "0.75rem" }}>{t("plans.unlinkedSessions")}</h3>
+          {plan.sessions
+            .filter((s) => !s.phase)
+            .map((s) => (
+              <div key={s._id} className="flex-between" style={{ padding: "0.5rem 0", borderBottom: "1px solid var(--color-border)" }}>
+                <Link to={`/sessions/${s._id}`}>{s.title}</Link>
+                <div className="flex gap-sm" style={{ alignItems: "center" }}>
+                  {s.date && <span className="text-sm text-muted">{new Date(s.date).toLocaleDateString()}</span>}
+                  {s.totalDuration > 0 && <span className="tag">{s.totalDuration} min</span>}
+                  {s.matchScore != null && (
+                    <div style={{ width: 150 }}>
+                      <MatchScoreBar score={s.matchScore} feedback={s.matchFeedback} />
                     </div>
-                    {sess?.description && (
-                      <p className="text-sm text-muted" style={{ marginTop: "0.25rem" }}>
-                        {sess.description}
-                      </p>
-                    )}
-                    {entry.notes && (
-                      <p className="text-sm" style={{ marginTop: "0.25rem", fontStyle: "italic" }}>
-                        {entry.notes}
-                      </p>
-                    )}
-                    {sess?._id && (
-                      <Link to={`/sessions/${sess._id}`} className="text-sm" style={{ marginTop: "0.25rem", display: "inline-block" }}>
-                        {t("plans.viewSessionDetails")}
-                      </Link>
-                    )}
-                  </div>
-                );
-              })}
-            </div>
-          )}
+                  )}
+                </div>
+              </div>
+            ))}
         </div>
-      ))}
+      )}
     </div>
   );
 }

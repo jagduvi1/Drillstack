@@ -23,6 +23,7 @@ const EMPTY_DRILL = {
   coachingPoints: [],
   variations: [],
   commonMistakes: [],
+  tags: [],
   apparatus: "",
   skillLevel: "",
   prerequisites: [],
@@ -75,6 +76,7 @@ export default function DrillFormPage() {
           coachingPoints: d.coachingPoints || [],
           variations: d.variations || [],
           commonMistakes: d.commonMistakes || [],
+          tags: d.tags || [],
           apparatus: d.apparatus || "",
           skillLevel: d.skillLevel || "",
           prerequisites: d.prerequisites || [],
@@ -360,6 +362,32 @@ export default function DrillFormPage() {
                   <option value="high">{t("drills.high")}</option>
                 </select>
               </div>
+            </div>
+
+            {/* Tags for plan matching */}
+            <div className="form-group" style={{ marginTop: "0.5rem" }}>
+              <label>{t("drills.tags")}</label>
+              <div className="flex gap-sm mb-sm" style={{ flexWrap: "wrap" }}>
+                {(form.tags || []).map((tag, i) => (
+                  <span key={i} className="tag" style={{ cursor: "pointer" }} onClick={() => set("tags", form.tags.filter((_, j) => j !== i))}>
+                    {tag} &times;
+                  </span>
+                ))}
+              </div>
+              <input
+                className="form-control"
+                placeholder={t("drills.tagsPlaceholder")}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
+                    e.preventDefault();
+                    const val = e.target.value.trim();
+                    if (val && !(form.tags || []).includes(val)) {
+                      set("tags", [...(form.tags || []), val]);
+                      e.target.value = "";
+                    }
+                  }
+                }}
+              />
             </div>
           </div>
 

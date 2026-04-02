@@ -4,86 +4,103 @@ const validate = require("../middleware/validate");
 const { authenticate } = require("../middleware/auth");
 const { resolveUserGroups } = require("../middleware/groupAuth");
 const { checkOwnership } = require("../middleware/checkOwnership");
-const PeriodPlan = require("../models/PeriodPlan");
+const Plan = require("../models/Plan");
+const TrainingSession = require("../models/TrainingSession");
 const { indexPlan } = require("../services/sync");
 const { checkLimit } = require("../middleware/planLimits");
 const { standardLimiter } = require("../utils/rateLimiters");
 
 router.use(standardLimiter);
 
-// GET /api/plans
+// ── Helpers ──────────────────────────────────────────────────────────────────
+
+function canAccess(plan, userId, trainerGroupIds) {
+  const isOwner = plan.createdBy.toString() === userId.toString();
+  if (isOwner) return true;
+  if (plan.followers && plan.followers.length && trainerGroupIds?.length) {
+    return plan.followers.some((fid) =>
+      trainerGroupIds.some((gid) => gid.toString() === fid.toString())
+    );
+  }
+  return false;
+}
+
+// ── GET /api/plans ───────────────────────────────────────────────────────────
+
 router.get("/", authenticate, resolveUserGroups, async (req, res, next) => {
   try {
     const conditions = [{ createdBy: req.user._id }];
 
-    // Plans shared with groups where user is admin or trainer
-    if (req.userTrainerGroupIds && req.userTrainerGroupIds.length > 0) {
+    if (req.userTrainerGroupIds?.length) {
       conditions.push({
-        group: { $in: req.userTrainerGroupIds },
+        followers: { $in: req.userTrainerGroupIds },
         visibility: "group",
       });
     }
 
     const filter = { $or: conditions };
     if (req.query.sport) filter.sport = String(req.query.sport);
-    if (req.query.group) filter.group = String(req.query.group);
 
-    const plans = await PeriodPlan.find(filter)
+    const plans = await Plan.find(filter)
       .sort({ startDate: -1 })
-      .populate("weeklyPlans.sessions.linkedSession", "title sport totalDuration")
+      .populate("followers", "name")
       .populate("createdBy", "name");
+
     res.json(plans);
   } catch (err) {
     next(err);
   }
 });
 
-// GET /api/plans/:id
+// ── GET /api/plans/:id ──────────────────────────────────────────────────────
+
 router.get("/:id", authenticate, resolveUserGroups, async (req, res, next) => {
   try {
-    const plan = await PeriodPlan.findById(req.params.id)
-      .populate("weeklyPlans.sessions.linkedSession", "title description sport totalDuration blocks date")
+    const plan = await Plan.findById(req.params.id)
+      .populate("followers", "name")
       .populate("createdBy", "name");
     if (!plan) return res.status(404).json({ error: "Plan not found" });
 
-    // Check the user has access
-    const isOwner = plan.createdBy._id.toString() === req.user._id.toString();
-    const isGroupShared = plan.visibility === "group" && req.userTrainerGroupIds?.some((gid) => gid.toString() === plan.group?.toString());
-    if (!isOwner && !isGroupShared) {
+    if (!canAccess(plan, req.user._id, req.userTrainerGroupIds)) {
       return res.status(403).json({ error: "Forbidden" });
     }
 
-    res.json(plan);
+    // Include sessions linked to this plan
+    const sessions = await TrainingSession.find({ plan: plan._id })
+      .select("title date sport matchScore matchFeedback phase totalDuration")
+      .sort({ date: 1 });
+
+    res.json({ ...plan.toObject(), sessions });
   } catch (err) {
     next(err);
   }
 });
 
-// POST /api/plans
+// ── POST /api/plans ─────────────────────────────────────────────────────────
+
 router.post(
   "/",
   authenticate,
   resolveUserGroups,
   checkLimit("plans"),
   [
-    body("title").trim().notEmpty().isLength({ max: 200 }),
+    body("name").trim().notEmpty().isLength({ max: 200 }),
     body("startDate").isISO8601(),
     body("endDate").isISO8601(),
   ],
   validate,
   async (req, res, next) => {
     try {
-      const { title, description, sport, startDate, endDate, goals, focusAreas, weeklyPlans, group, visibility } = req.body;
+      const { name, sport, startDate, endDate, objective, phases, followers, visibility } = req.body;
 
-      // Validate group membership when sharing with a group
-      if (group && visibility && visibility !== "private") {
-        const isMember = req.userTrainerGroupIds?.some((gid) => gid.toString() === group.toString());
-        if (!isMember) {
-          return res.status(403).json({ error: "You are not a member of this group" });
-        }
-      }
+      const plan = await Plan.create({
+        name, sport, startDate, endDate, objective,
+        phases: phases || [],
+        followers: followers || [],
+        visibility,
+        createdBy: req.user._id,
+      });
 
-      const plan = await PeriodPlan.create({ title, description, sport, startDate, endDate, goals, focusAreas, weeklyPlans, group, visibility, createdBy: req.user._id });
       indexPlan(plan).catch((e) => console.error("Index error:", e.message));
       res.status(201).json(plan);
     } catch (err) {
@@ -92,25 +109,35 @@ router.post(
   }
 );
 
-// PUT /api/plans/:id
+// ── PUT /api/plans/:id ──────────────────────────────────────────────────────
+
 router.put(
   "/:id",
   authenticate,
   resolveUserGroups,
-  checkOwnership(PeriodPlan, { resourceName: "Plan" }),
+  checkOwnership(Plan, { resourceName: "Plan", groupField: "followers" }),
   [
-    body("title").optional().trim().notEmpty().isLength({ max: 200 }),
+    body("name").optional().trim().notEmpty().isLength({ max: 200 }),
     body("startDate").optional().isISO8601(),
     body("endDate").optional().isISO8601(),
-    body("description").optional().isLength({ max: 5000 }),
   ],
   validate,
   async (req, res, next) => {
     try {
       const plan = req.resource;
-      const { title, description, sport, startDate, endDate, goals, focusAreas, weeklyPlans, group, visibility } = req.body;
-      Object.assign(plan, { title, description, sport, startDate, endDate, goals, focusAreas, weeklyPlans, group, visibility });
+      const { name, sport, startDate, endDate, objective, phases, followers, visibility } = req.body;
+      Object.assign(plan, {
+        ...(name !== undefined && { name }),
+        ...(sport !== undefined && { sport }),
+        ...(startDate !== undefined && { startDate }),
+        ...(endDate !== undefined && { endDate }),
+        ...(objective !== undefined && { objective }),
+        ...(phases !== undefined && { phases }),
+        ...(followers !== undefined && { followers }),
+        ...(visibility !== undefined && { visibility }),
+      });
       await plan.save();
+
       indexPlan(plan).catch((e) => console.error("Index error:", e.message));
       res.json(plan);
     } catch (err) {
@@ -119,20 +146,72 @@ router.put(
   }
 );
 
-// DELETE /api/plans/:id
+// ── DELETE /api/plans/:id ───────────────────────────────────────────────────
+
 router.delete(
   "/:id",
   authenticate,
   resolveUserGroups,
-  checkOwnership(PeriodPlan, { resourceName: "Plan" }),
+  checkOwnership(Plan, { resourceName: "Plan", groupField: "followers" }),
   async (req, res, next) => {
-    try {
-      await req.resource.deleteOne();
-      res.json({ message: "Deleted" });
-    } catch (err) {
-      next(err);
-    }
+  try {
+    const plan = req.resource;
+
+    // Unlink sessions that reference this plan
+    await TrainingSession.updateMany(
+      { plan: plan._id },
+      { $set: { plan: null, phase: null, matchScore: null, matchFeedback: "" } }
+    );
+
+    await plan.deleteOne();
+    res.json({ message: "Deleted" });
+  } catch (err) {
+    next(err);
   }
-);
+});
+
+// ── POST /api/plans/:id/followers ───────────────────────────────────────────
+
+router.post("/:id/followers", authenticate, resolveUserGroups, async (req, res, next) => {
+  try {
+    const plan = await Plan.findById(req.params.id);
+    if (!plan) return res.status(404).json({ error: "Plan not found" });
+    if (plan.createdBy.toString() !== req.user._id.toString()) {
+      return res.status(403).json({ error: "Not authorized" });
+    }
+
+    const { groupId } = req.body;
+    if (!groupId) return res.status(400).json({ error: "groupId required" });
+
+    if (!plan.followers.some((f) => f.toString() === groupId.toString())) {
+      plan.followers.push(groupId);
+      await plan.save();
+    }
+
+    res.json(plan);
+  } catch (err) {
+    next(err);
+  }
+});
+
+// ── DELETE /api/plans/:id/followers/:groupId ────────────────────────────────
+
+router.delete("/:id/followers/:groupId", authenticate, async (req, res, next) => {
+  try {
+    const plan = await Plan.findById(req.params.id);
+    if (!plan) return res.status(404).json({ error: "Plan not found" });
+    if (plan.createdBy.toString() !== req.user._id.toString()) {
+      return res.status(403).json({ error: "Not authorized" });
+    }
+
+    plan.followers = plan.followers.filter(
+      (f) => f.toString() !== req.params.groupId
+    );
+    await plan.save();
+    res.json(plan);
+  } catch (err) {
+    next(err);
+  }
+});
 
 module.exports = router;

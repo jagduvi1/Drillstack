@@ -195,8 +195,8 @@ async function indexPlan(plan) {
       await meili.index("plans").addDocuments([
         {
           id: plan._id.toString(),
-          title: plan.title,
-          description: plan.description || "",
+          title: plan.name || plan.title || "",
+          description: plan.objective || plan.description || "",
           sport: plan.sport || "",
           startDate: plan.startDate,
         },

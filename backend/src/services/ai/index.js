@@ -210,12 +210,10 @@ ${blocksDesc}`;
 
 // ── Training Program ─────────────────────────────────────────────────────────
 
-async function generateTrainingProgram({ description, sport, sessionsPerWeek, weeks, startDate, endDate, userSport }) {
+async function generateTrainingProgram({ description, sport, startDate, endDate, userSport }) {
   const parts = [];
   if (sport) parts.push(`Sport: ${sport}`);
-  if (sessionsPerWeek) parts.push(`Sessions per week: ${sessionsPerWeek}`);
-  if (weeks) parts.push(`Duration: ${weeks} weeks`);
-  else if (startDate && endDate) parts.push(`Period: ${startDate} to ${endDate}`);
+  if (startDate && endDate) parts.push(`Period: ${startDate} to ${endDate}`);
   parts.push(`\nProgram request: ${description}`);
 
   const { content: raw, debug } = await completeWithDebug(buildProgramSystemPrompt(userSport || sport), parts.join("\n"));
@@ -224,12 +222,10 @@ async function generateTrainingProgram({ description, sport, sessionsPerWeek, we
   } catch {
     return {
       program: {
-        title: "Training Program",
-        description,
+        name: "Training Program",
+        objective: description,
         sport: sport || "general",
-        goals: [],
-        focusAreas: [],
-        weeklyPlans: [],
+        phases: [],
       },
       debug,
     };
