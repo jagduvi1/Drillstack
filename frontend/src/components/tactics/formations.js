@@ -255,17 +255,29 @@ export function buildFormationPieces(team, formation, sport = "football") {
   }));
 }
 
-export function createInitialStep(homeFormation = "4-4-2", awayFormation = "4-4-2", sport = "football") {
+export function createInitialStep(homeFormation = "4-4-2", awayFormation = "4-4-2", sport = "football", fieldView = null) {
   const pitch = getPitch(sport);
+  const pieces = [
+    ...buildFormationPieces("home", homeFormation, sport),
+    ...buildFormationPieces("away", awayFormation, sport),
+    { id: "ball", type: "ball", team: "neutral", label: "", x: pitch.width / 2, y: pitch.height / 2 },
+  ];
+
+  // Clamp pieces into the visible field view
+  if (fieldView) {
+    const vx = fieldView.x, vy = fieldView.y;
+    const vw = fieldView.w, vh = fieldView.h;
+    for (const p of pieces) {
+      p.x = Math.max(vx + 0.5, Math.min(vx + vw - 0.5, p.x));
+      p.y = Math.max(vy + 0.5, Math.min(vy + vh - 0.5, p.y));
+    }
+  }
+
   return {
     id: "step-0",
     label: "Setup",
     duration: 1500,
-    pieces: [
-      ...buildFormationPieces("home", homeFormation, sport),
-      ...buildFormationPieces("away", awayFormation, sport),
-      { id: "ball", type: "ball", team: "neutral", label: "", x: pitch.width / 2, y: pitch.height / 2 },
-    ],
+    pieces,
     arrows: [],
   };
 }
