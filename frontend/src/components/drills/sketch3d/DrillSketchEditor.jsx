@@ -235,24 +235,54 @@ export default function DrillSketchEditor({ sketch, onChange, readOnly = false, 
     const to = steps[toIdx].pieces;
     const arrows = steps[fromIdx].arrows || [];
 
-    return from.map((piece) => {
+    // Pre-compute interpolated positions for all pieces (needed for ball→player proximity)
+    const interpolatedAll = from.map((piece) => {
       const target = to.find((p) => p.id === piece.id);
       if (!target) return piece;
-      const interpolated = { ...piece, x: piece.x + (target.x - piece.x) * animProgress, z: piece.z + (target.z - piece.z) * animProgress };
+      return { ...piece, x: piece.x + (target.x - piece.x) * animProgress, z: piece.z + (target.z - piece.z) * animProgress };
+    });
 
-      // Bounce pass: ball y-position follows a V-curve (hand → ground → hand)
-      if (piece.type === "ball" && sport === "handball") {
-        const HAND_Y = 1.5, GROUND_Y = 0.28;
-        // Check if there's a bounce arrow near the ball's path
+    return interpolatedAll.map((interpolated) => {
+      const piece = from.find((p) => p.id === interpolated.id) || interpolated;
+      const target = to.find((p) => p.id === interpolated.id);
+
+      // Ball trajectory during handball animation
+      if (piece.type === "ball" && sport === "handball" && target) {
+        const HAND_Y = 1.5, GROUND_Y = 0.28, HOLD_DIST = 1.5;
+        const t = animProgress;
+
+        // Check if ball is near a player at start and end frames
+        const nearPlayerStart = from.filter((p) => p.type === "player").some((pl) => {
+          const dx = pl.x - piece.x, dz = pl.z - piece.z;
+          return Math.sqrt(dx * dx + dz * dz) < HOLD_DIST;
+        });
+        const nearPlayerEnd = to.filter((p) => p.type === "player").some((pl) => {
+          const dx = pl.x - target.x, dz = pl.z - target.z;
+          return Math.sqrt(dx * dx + dz * dz) < HOLD_DIST;
+        });
+
+        // Check for bounce arrow along this ball's path
         const hasBounce = arrows.some((a) => a.style === "bounce" &&
           Math.abs(a.fromX - piece.x) < 2 && Math.abs(a.fromZ - piece.z) < 2 &&
           Math.abs(a.toX - target.x) < 2 && Math.abs(a.toZ - target.z) < 2
         );
+
+        const startY = nearPlayerStart ? HAND_Y : GROUND_Y;
+        const endY = nearPlayerEnd ? HAND_Y : GROUND_Y;
+
         if (hasBounce) {
-          // V-curve: dips to ground at t=0.5, returns to hand height at t=1
-          const t = animProgress;
-          interpolated.ballY = HAND_Y - (HAND_Y - GROUND_Y) * (1 - Math.pow(2 * t - 1, 2));
+          // Bounce pass: V-curve (start → ground at midpoint → end)
+          interpolated.ballY = t < 0.5
+            ? startY + (GROUND_Y - startY) * (t * 2)
+            : GROUND_Y + (endY - GROUND_Y) * ((t - 0.5) * 2);
+        } else if (nearPlayerStart || nearPlayerEnd) {
+          // Regular pass / air ball: smooth arc (slight parabolic loft)
+          const baseY = startY + (endY - startY) * t;
+          const arcHeight = 0.8; // extra loft at midpoint
+          const arc = arcHeight * 4 * t * (1 - t); // parabola peaking at t=0.5
+          interpolated.ballY = baseY + arc;
         }
+        // else: ball stays on ground (no players nearby), no ballY override
       }
 
       return interpolated;

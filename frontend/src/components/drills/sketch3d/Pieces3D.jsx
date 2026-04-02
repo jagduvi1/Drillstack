@@ -184,11 +184,13 @@ const HANDBALL_HOLD_DIST = 1.5; // max distance to "hold" ball
 
 export function Ball3D({ piece, onMove, isSelected, onSelect, enabled, onDragStart, onDragEnd, sport, allPieces }) {
   const isHandball = sport === "handball";
+  const animationDriven = piece.ballY != null;
 
-  // For handball: check if a player is close enough to "hold" the ball
+  // For handball (static/edit mode): check if a player is close enough to "hold" the ball
+  // During animation, ballY is set by the interpolation logic — skip proximity check
   let ballY = GROUND_BALL_Y;
   let offsetX = 0;
-  if (isHandball && allPieces) {
+  if (isHandball && !animationDriven && allPieces) {
     const players = allPieces.filter((p) => p.type === "player");
     let minDist = Infinity;
     for (const pl of players) {
@@ -202,8 +204,7 @@ export function Ball3D({ piece, onMove, isSelected, onSelect, enabled, onDragSta
     }
   }
 
-  // Allow override from animation (piece.ballY)
-  const finalY = piece.ballY != null ? piece.ballY : ballY;
+  const finalY = animationDriven ? piece.ballY : ballY;
 
   return (
     <DraggablePiece
