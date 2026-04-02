@@ -45,6 +45,7 @@ export default function TacticToolbar({
   onZoomChange, onSportChange, onFieldTypeChange, onFormationChange, onColorChange,
 }) {
   const { t } = useTranslation();
+  const isRacket = sport === "padel" || sport?.startsWith("tennis");
   if (isFullscreen) return null;
 
   return (
@@ -58,10 +59,10 @@ export default function TacticToolbar({
           <button className={`tactic-tool-btn ${tool === "arrow" ? "active" : ""}`} onClick={() => onToolChange("arrow")} title={`${t("tactics.tools.arrow")} (2)`}>
             <FiArrowRight />
           </button>
-          <button className={`tactic-tool-btn ${tool === "pass" ? "active" : ""}`} onClick={() => onToolChange("pass")} title={`${t("tactics.tools.pass")} (3)`}>
+          <button className={`tactic-tool-btn ${tool === "pass" ? "active" : ""}`} onClick={() => onToolChange("pass")} title={`${t(isRacket ? "tactics.tools.passRacket" : "tactics.tools.pass")} (3)`}>
             <IconPass />
           </button>
-          <button className={`tactic-tool-btn ${tool === "dribble" ? "active" : ""}`} onClick={() => onToolChange("dribble")} title={`${t("tactics.tools.dribble")} (4)`}>
+          <button className={`tactic-tool-btn ${tool === "dribble" ? "active" : ""}`} onClick={() => onToolChange("dribble")} title={`${t(isRacket ? "tactics.tools.dribbleRacket" : "tactics.tools.dribble")} (4)`}>
             <IconDribble />
           </button>
           <button className={`tactic-tool-btn ${tool === "dashedArrow" ? "active" : ""}`} onClick={() => onToolChange("dashedArrow")} title={`${t("tactics.tools.dashedArrow")} (5)`}>

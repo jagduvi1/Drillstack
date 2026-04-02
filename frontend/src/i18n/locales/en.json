@@ -561,6 +561,8 @@
     "offencePosition": "Offence position",
     "defencePosition": "Defence position",
     "deleteConfirm": "Remove this player?",
+    "linkMember": "Link member...",
+    "linked": "Linked",
     "attendance": "Attendance",
     "selectAll": "Select all",
     "deselectAll": "Deselect all",
@@ -675,6 +677,8 @@
     "certs": "certifications",
     "certPlaceholder": "Certifications (comma-separated)...",
     "deleteConfirm": "Remove this trainer?",
+    "linkMember": "Link member...",
+    "linked": "Linked",
     "guestTrainerName": "Guest trainer name...",
     "addGuestTrainer": "Add guest trainer"
   },
@@ -918,7 +922,9 @@
       "select": "Select & Move",
       "arrow": "Run / Movement",
       "pass": "Pass",
+      "passRacket": "Lob",
       "dribble": "Dribble",
+      "dribbleRacket": "Stroke",
       "dashedArrow": "Dashed Arrow",
       "ballPass": "Ball Movement",
       "eraser": "Eraser"

@@ -32,12 +32,14 @@ export default function TacticBoardPage() {
     // Default to user's preferred sport if set
     return user?.preferredSport || "football";
   });
+  const initialSport = user?.preferredSport || "football";
+  const initialFormation = getDefaultFormation(initialSport);
   const [title, setTitle] = useState("");
   const [fieldType, setFieldType] = useState("full");
-  const [steps, setSteps] = useState([createInitialStep()]);
+  const [steps, setSteps] = useState([createInitialStep(initialFormation, initialFormation, initialSport)]);
   const [currentStepIdx, setCurrentStepIdx] = useState(0);
-  const [homeFormation, setHomeFormation] = useState("4-4-2");
-  const [awayFormation, setAwayFormation] = useState("4-4-2");
+  const [homeFormation, setHomeFormation] = useState(initialFormation);
+  const [awayFormation, setAwayFormation] = useState(initialFormation);
   const [homeColor, setHomeColor] = useState("#2563eb");
   const [awayColor, setAwayColor] = useState("#ef4444");
   const [drillId, setDrillId] = useState(null);
@@ -234,7 +236,8 @@ export default function TacticBoardPage() {
     const sportViews = SPORT_CONFIGS[newSport]?.fieldViews || {};
     const newFieldType = sportViews[fieldType] ? fieldType : "full";
     setFieldType(newFieldType);
-    setSteps([createInitialStep(defaultF, defaultF, newSport)]);
+    const viewCfg = sportViews[newFieldType] || Object.values(sportViews)[0];
+    setSteps([createInitialStep(defaultF, defaultF, newSport, viewCfg)]);
     setCurrentStepIdx(0);
     setSelectedPieceId(null);
   };
@@ -408,7 +411,9 @@ export default function TacticBoardPage() {
     const hasPieces = currentStep?.pieces.length > 0 || steps.length > 1;
     if (hasPieces && !window.confirm(t("tactics.confirmFieldChange"))) return;
     setFieldType(newType);
-    setSteps([createInitialStep(homeFormation, awayFormation, sport)]);
+    const sportViews = SPORT_CONFIGS[sport]?.fieldViews || {};
+    const viewCfg = sportViews[newType] || Object.values(sportViews)[0];
+    setSteps([createInitialStep(homeFormation, awayFormation, sport, viewCfg)]);
     setCurrentStepIdx(0);
     setSelectedPieceId(null);
   };

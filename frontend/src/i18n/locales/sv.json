@@ -561,6 +561,8 @@
     "offencePosition": "Anfallsposition",
     "defencePosition": "Försvarsposition",
     "deleteConfirm": "Ta bort denna spelare?",
+    "linkMember": "Länka medlem...",
+    "linked": "Länkad",
     "attendance": "Närvaro",
     "selectAll": "Välj alla",
     "deselectAll": "Avmarkera alla",
@@ -675,6 +677,8 @@
     "certs": "certifieringar",
     "certPlaceholder": "Certifieringar (kommaseparerade)...",
     "deleteConfirm": "Ta bort denna tränare?",
+    "linkMember": "Länka medlem...",
+    "linked": "Länkad",
     "guestTrainerName": "Gästtränarnamn...",
     "addGuestTrainer": "Lägg till gästtränare"
   },
@@ -918,7 +922,9 @@
       "select": "Välj & Flytta",
       "arrow": "Löpning / Rörelse",
       "pass": "Passning",
+      "passRacket": "Lobb",
       "dribble": "Dribbling",
+      "dribbleRacket": "Slag",
       "dashedArrow": "Streckad pil",
       "ballPass": "Bollrörelse",
       "eraser": "Suddgummi"

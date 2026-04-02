@@ -467,9 +467,14 @@ function PadelField({ sc, sportCfg }) {
   // Service line is 6.95m from the net → at x = 10-6.95 = 3.05 and x = 10+6.95 = 16.95
   const svc = cx - 6.95; // 3.05m from each back wall
 
+  const runout = 3; // run-out area depth in meters
+
   return (
     <Group listening={false}>
       <Rect x={0} y={0} width={sc.canvasW} height={sc.canvasH} fill={sportCfg.bgColor} />
+      {/* Run-out areas behind the doors — from quarter court to three-quarter court, 1m extra depth */}
+      <Rect x={sc.x(w / 4)} y={sc.y(-(runout + 1))} width={sc.s(w / 2)} height={sc.s(runout + 1)} fill={sportCfg.fieldColor1} />
+      <Rect x={sc.x(w / 4)} y={sc.y(h)} width={sc.s(w / 2)} height={sc.s(runout + 1)} fill={sportCfg.fieldColor2} />
       {/* Court surface — two halves */}
       <Rect x={sc.x(0)} y={sc.y(0)} width={sc.s(cx)} height={sc.s(h)} fill={sportCfg.fieldColor1} />
       <Rect x={sc.x(cx)} y={sc.y(0)} width={sc.s(cx)} height={sc.s(h)} fill={sportCfg.fieldColor2} />

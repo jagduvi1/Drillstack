@@ -27,6 +27,7 @@ const playerSchema = new Schema(
     // Overall skill rating (0-100)
     skillRating: { type: Number, default: null, min: 0, max: 100 },
 
+    linkedUser: { type: Schema.Types.ObjectId, ref: "User", default: null },
     active: { type: Boolean, default: true },
     createdBy: { type: Schema.Types.ObjectId, ref: "User", required: true },
   },
