@@ -61,6 +61,7 @@ router.post(
         phone: req.body.phone || "",
         email: req.body.email || "",
         notes: req.body.notes || "",
+        linkedUser: req.body.linkedUser || null,
         createdBy: req.user._id,
       });
       res.status(201).json(trainer);
@@ -77,7 +78,7 @@ router.put("/:groupId/:trainerId", async (req, res, next) => {
     if (!group) return res.status(404).json({ error: "Group not found" });
     if (!hasRole(group, req.user._id, "admin")) return res.status(403).json({ error: "Admin access required" });
 
-    const allowed = ["name", "role", "specialization", "certifications", "phone", "email", "notes", "active"];
+    const allowed = ["name", "role", "specialization", "certifications", "phone", "email", "notes", "active", "linkedUser"];
     const update = {};
     for (const key of allowed) {
       if (req.body[key] !== undefined) update[key] = req.body[key];

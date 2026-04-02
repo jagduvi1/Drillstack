@@ -109,7 +109,7 @@ function PlayerPiece({ piece, x, y, sc, draggable, isGhost, isSelected, homeColo
 
   const isBall = piece.type === "ball";
   const isCone = piece.type === "cone";
-  const r = isBall ? radius * ((sport === "padel" || sport?.startsWith("tennis")) ? 0.5 : 0.65) : isCone ? radius * 0.55 : radius;
+  const r = isBall ? radius * ((sport === "padel" || sport?.startsWith("tennis")) ? 0.25 : 0.65) : isCone ? radius * 0.55 : radius;
 
   return (
     <Group
@@ -174,14 +174,16 @@ function PlayerPiece({ piece, x, y, sc, draggable, isGhost, isSelected, homeColo
 }
 
 // ── Render a single arrow/line based on style ───────────────────────────────
-function TacticArrow({ arrow, sc, tool, onDelete }) {
+function TacticArrow({ arrow, sc, tool, onDelete, sport }) {
   const x1 = sc.x(arrow.fromX), y1 = sc.y(arrow.fromY);
   const x2 = sc.x(arrow.toX), y2 = sc.y(arrow.toY);
   const color = arrow.color || "#ffffff";
   const handleClick = () => { if (tool === "eraser") onDelete?.(arrow.id); };
-  const sw = sc.es(0.4);       // stroke width scaled with zoom
-  const pl = sc.es(1.3);       // pointer length
-  const pw = sc.es(1.3);       // pointer width
+  const fieldDiag = Math.sqrt(sc.cfg.w * sc.cfg.w + sc.cfg.h * sc.cfg.h);
+  const arrowScale = fieldDiag / 125; // normalize to football's ~125m diagonal
+  const sw = sc.es(0.4 * arrowScale);
+  const pl = sc.es(1.3 * arrowScale);
+  const pw = sc.es(1.3 * arrowScale);
 
   if (arrow.style === "dribble") {
     const pts = wavyLinePoints(x1, y1, x2, y2, 6, 5);
@@ -196,6 +198,36 @@ function TacticArrow({ arrow, sc, tool, onDelete }) {
   }
 
   if (arrow.style === "pass") {
+    const isRacket = sport === "padel" || sport?.startsWith("tennis");
+    if (isRacket) {
+      // Arched lob line for racket sports
+      const mx = (x1 + x2) / 2;
+      const my = (y1 + y2) / 2;
+      const dx = x2 - x1, dy = y2 - y1;
+      const len = Math.sqrt(dx * dx + dy * dy);
+      const archHeight = len * 0.2;
+      // Perpendicular offset for the arch control point
+      const nx = -dy / len, ny = dx / len;
+      const cx_ = mx + nx * archHeight, cy_ = my + ny * archHeight;
+      const pts = [];
+      for (let i = 0; i <= 20; i++) {
+        const t_ = i / 20;
+        pts.push(
+          (1 - t_) * (1 - t_) * x1 + 2 * (1 - t_) * t_ * cx_ + t_ * t_ * x2,
+          (1 - t_) * (1 - t_) * y1 + 2 * (1 - t_) * t_ * cy_ + t_ * t_ * y2,
+        );
+      }
+      return (
+        <Group>
+          <Line points={pts} stroke={color} strokeWidth={sw * 0.7} dash={[3, 5]}
+            hitStrokeWidth={14} onClick={handleClick} onTap={handleClick} />
+          <Arrow points={[pts[pts.length - 4], pts[pts.length - 3], x2, y2]}
+            stroke={color} strokeWidth={sw * 0.7}
+            pointerLength={pl * 0.8} pointerWidth={pw * 0.8}
+            hitStrokeWidth={14} onClick={handleClick} onTap={handleClick} />
+        </Group>
+      );
+    }
     return (
       <Arrow points={[x1, y1, x2, y2]} stroke={color} strokeWidth={sw * 0.7}
         pointerLength={pl * 0.8} pointerWidth={pw * 0.8} dash={[3, 5]}
@@ -451,13 +483,13 @@ export default function TacticCanvas({
         {/* User arrows */}
         <Layer>
           {arrows?.map((arrow) => (
-            <TacticArrow key={arrow.id} arrow={arrow} sc={sc} tool={tool} onDelete={onArrowDelete} />
+            <TacticArrow key={arrow.id} arrow={arrow} sc={sc} tool={tool} onDelete={onArrowDelete} sport={sport} />
           ))}
           {/* Preview arrow being drawn */}
           {drawingArrow && (
             <TacticArrow
               arrow={{ id: "preview", ...drawingArrow, color: "#ffffff", style: previewStyle }}
-              sc={sc} tool="select" onDelete={() => {}} />
+              sc={sc} tool="select" onDelete={() => {}} sport={sport} />
           )}
         </Layer>
 

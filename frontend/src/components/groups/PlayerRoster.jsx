@@ -5,7 +5,7 @@ import { getPlayers, addPlayer, deletePlayer } from "../../api/players";
 import { getPositionsForSport, getDualPositions, hasDualPositions, SPORTS_WITH_NUMBERS } from "../../constants/sportMetrics";
 import { FiPlus, FiTrash2, FiUser } from "react-icons/fi";
 
-export default memo(function PlayerRoster({ groupId, canEdit, sport }) {
+export default memo(function PlayerRoster({ groupId, canEdit, sport, members = [] }) {
   const { t } = useTranslation();
   const [players, setPlayers] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -13,6 +13,7 @@ export default memo(function PlayerRoster({ groupId, canEdit, sport }) {
   const [newName, setNewName] = useState("");
   const [newPosition, setNewPosition] = useState("");
   const [newDefencePosition, setNewDefencePosition] = useState("");
+  const [newLinkedUser, setNewLinkedUser] = useState("");
 
   const positions = getPositionsForSport(sport);
   const dual = getDualPositions(sport);
@@ -31,10 +32,11 @@ export default memo(function PlayerRoster({ groupId, canEdit, sport }) {
   const handleAdd = async (e) => {
     e.preventDefault();
     if (!newName.trim()) return;
-    await addPlayer(groupId, { name: newName.trim(), position: newPosition.trim(), defencePosition: newDefencePosition.trim() });
+    await addPlayer(groupId, { name: newName.trim(), position: newPosition.trim(), defencePosition: newDefencePosition.trim(), linkedUser: newLinkedUser || null });
     setNewName("");
     setNewPosition("");
     setNewDefencePosition("");
+    setNewLinkedUser("");
     setShowAdd(false);
     fetchPlayers();
   };
@@ -61,6 +63,23 @@ export default memo(function PlayerRoster({ groupId, canEdit, sport }) {
       {/* Add player form */}
       {showAdd && canEdit && (
         <form onSubmit={handleAdd} className="flex gap-sm mb-1" style={{ flexWrap: "wrap" }}>
+          {members.length > 0 && (
+            <select className="form-control" value={newLinkedUser} onChange={(e) => {
+              const uid = e.target.value;
+              setNewLinkedUser(uid);
+              if (uid) {
+                const m = members.find((m) => (m.user?._id || m.user) === uid);
+                if (m?.user?.name) setNewName(m.user.name);
+              }
+            }} style={{ width: 160 }}>
+              <option value="">{t("players.linkMember")}</option>
+              {members.map((m) => {
+                const uid = m.user?._id || m.user;
+                const name = m.user?.name || uid;
+                return <option key={uid} value={uid}>{name}</option>;
+              })}
+            </select>
+          )}
           <input className="form-control" placeholder={t("players.namePlaceholder")} value={newName} onChange={(e) => setNewName(e.target.value)} required style={{ flex: 1, minWidth: 120 }} />
           {isDual ? (
             <>
@@ -113,10 +132,11 @@ export default memo(function PlayerRoster({ groupId, canEdit, sport }) {
                     {p.position && <span className="tag" style={{ fontSize: "0.65rem" }}>{p.position}</span>}
                     {p.defencePosition && <span className="tag" style={{ fontSize: "0.65rem" }}>{p.defencePosition}</span>}
                     {age !== null && <span className="tag" style={{ fontSize: "0.65rem" }}>{t("playerProfile.age", { age })}</span>}
-                    {p.height && <span className="tag" style={{ fontSize: "0.65rem" }}>{p.height} cm</span>}
-                    {p.weight && <span className="tag" style={{ fontSize: "0.65rem" }}>{p.weight} kg</span>}
+                    {p.height > 0 && <span className="tag" style={{ fontSize: "0.65rem" }}>{p.height} cm</span>}
+                    {p.weight > 0 && <span className="tag" style={{ fontSize: "0.65rem" }}>{p.weight} kg</span>}
                     {p.strengths?.[0] && <span className="tag tag-success" style={{ fontSize: "0.65rem" }}>{p.strengths[0]}</span>}
                     {p.weaknesses?.[0] && <span className="tag" style={{ fontSize: "0.65rem", background: "#fee2e2", color: "#991b1b" }}>{p.weaknesses[0]}</span>}
+                    {p.linkedUser && <span className="tag" style={{ fontSize: "0.65rem", background: "#dbeafe", color: "#1e40af" }}><FiUser style={{ fontSize: "0.6rem" }} /> {t("players.linked")}</span>}
                   </div>
                 </div>
               </Link>

@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { useParams, Link } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { getPlayerOverview, updatePlayer } from "../api/players";
+import { getGroup } from "../api/groups";
 import { getMetricsForSport, getPositionsForSport, getDualPositions, hasDualPositions, SPORTS_WITH_NUMBERS, SPORTS_WITH_FOOT, SPORTS_WITH_HAND } from "../constants/sportMetrics";
 import PlayerMetricsEditor from "../components/players/PlayerMetricsEditor";
 import PlayerSkillChart from "../components/players/PlayerSkillChart";
@@ -22,12 +23,16 @@ export default function PlayerProfilePage() {
   const [editing, setEditing] = useState(false);
   const [editForm, setEditForm] = useState({});
   const [autoSkills, setAutoSkills] = useState(true);
+  const [members, setMembers] = useState([]);
 
   useEffect(() => {
     getPlayerOverview(groupId, playerId)
       .then((res) => setData(res.data))
       .catch(() => {})
       .finally(() => setLoading(false));
+    getGroup(groupId)
+      .then((res) => setMembers(res.data?.members || []))
+      .catch(() => {});
   }, [groupId, playerId]);
 
   if (loading) return <div className="loading">{t("common.loading")}</div>;
@@ -89,6 +94,7 @@ export default function PlayerProfilePage() {
       strengths: player.strengths || [],
       weaknesses: player.weaknesses || [],
       notes: player.notes || "",
+      linkedUser: player.linkedUser || "",
     });
     setEditing(true);
   };
@@ -118,8 +124,8 @@ export default function PlayerProfilePage() {
               {player.position && <span className="tag">{player.position}</span>}
               {player.defencePosition && <span className="tag">{player.defencePosition}</span>}
               {age !== null && <span className="tag">{t("playerProfile.age", { age })}</span>}
-              {player.height && <span className="tag">{player.height} cm</span>}
-              {player.weight && <span className="tag">{player.weight} kg</span>}
+              {player.height > 0 && <span className="tag">{player.height} cm</span>}
+              {player.weight > 0 && <span className="tag">{player.weight} kg</span>}
               {showFoot && player.preferredFoot && <span className="tag">{t(`playerProfile.foot.${player.preferredFoot}`)}</span>}
               {showHand && player.preferredHand && <span className="tag">{t(`playerProfile.hand.${player.preferredHand}`)}</span>}
               {player.skillRating !== null && (
@@ -129,6 +135,7 @@ export default function PlayerProfilePage() {
               )}
               {autoStrengths[0] && <span className="tag tag-success" style={{ fontSize: "0.7rem" }}>{autoStrengths[0]}</span>}
               {autoWeaknesses[0] && <span className="tag" style={{ fontSize: "0.7rem", background: "#fee2e2", color: "#991b1b" }}>{autoWeaknesses[0]}</span>}
+              {player.linkedUser && <span className="tag" style={{ fontSize: "0.7rem", background: "#dbeafe", color: "#1e40af" }}><FiUser style={{ fontSize: "0.6rem" }} /> {t("players.linked")}</span>}
             </div>
           </div>
           <button className="btn btn-secondary btn-sm" onClick={editing ? handleSaveProfile : startEdit}>
@@ -138,10 +145,22 @@ export default function PlayerProfilePage() {
 
         {editing && (
           <div className="edit-profile-form" style={{ marginTop: "0.75rem", display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0.5rem" }}>
-            <div style={{ gridColumn: "1 / -1" }}>
+            <div>
               <label className="text-xs">{t("players.name")}</label>
               <input className="form-control form-control-sm" value={editForm.name}
                 onChange={(e) => setEditForm({ ...editForm, name: e.target.value })} />
+            </div>
+            <div>
+              <label className="text-xs">{t("players.linkMember")}</label>
+              <select className="form-control form-control-sm" value={editForm.linkedUser || ""}
+                onChange={(e) => setEditForm({ ...editForm, linkedUser: e.target.value || null })}>
+                <option value="">{t("players.linkMember")}</option>
+                {members.map((m) => {
+                  const uid = m.user?._id || m.user;
+                  const name = m.user?.name || uid;
+                  return <option key={uid} value={uid}>{name}</option>;
+                })}
+              </select>
             </div>
             {isDual ? (
               <>

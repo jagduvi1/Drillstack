@@ -3,13 +3,14 @@ import { useTranslation } from "react-i18next";
 import { getTrainers, addTrainer, updateTrainer, deleteTrainer } from "../../api/trainers";
 import { FiPlus, FiTrash2, FiChevronDown, FiChevronUp, FiUsers } from "react-icons/fi";
 
-export default memo(function TrainerRoster({ groupId, canEdit }) {
+export default memo(function TrainerRoster({ groupId, canEdit, members = [] }) {
   const { t } = useTranslation();
   const [trainers, setTrainers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showAdd, setShowAdd] = useState(false);
   const [newName, setNewName] = useState("");
   const [newRole, setNewRole] = useState("");
+  const [newLinkedUser, setNewLinkedUser] = useState("");
   const [expandedId, setExpandedId] = useState(null);
   const [editData, setEditData] = useState({});
 
@@ -25,9 +26,10 @@ export default memo(function TrainerRoster({ groupId, canEdit }) {
   const handleAdd = async (e) => {
     e.preventDefault();
     if (!newName.trim()) return;
-    await addTrainer(groupId, { name: newName.trim(), role: newRole.trim() });
+    await addTrainer(groupId, { name: newName.trim(), role: newRole.trim(), linkedUser: newLinkedUser || null });
     setNewName("");
     setNewRole("");
+    setNewLinkedUser("");
     setShowAdd(false);
     fetchTrainers();
   };
@@ -58,6 +60,7 @@ export default memo(function TrainerRoster({ groupId, canEdit }) {
         phone: trainer.phone || "",
         email: trainer.email || "",
         notes: trainer.notes || "",
+        linkedUser: trainer.linkedUser || "",
       });
     }
   };
@@ -76,7 +79,24 @@ export default memo(function TrainerRoster({ groupId, canEdit }) {
       </div>
 
       {showAdd && canEdit && (
-        <form onSubmit={handleAdd} className="flex gap-sm mb-1">
+        <form onSubmit={handleAdd} className="flex gap-sm mb-1" style={{ flexWrap: "wrap" }}>
+          {members.length > 0 && (
+            <select className="form-control" value={newLinkedUser} onChange={(e) => {
+              const uid = e.target.value;
+              setNewLinkedUser(uid);
+              if (uid) {
+                const m = members.find((m) => (m.user?._id || m.user) === uid);
+                if (m?.user?.name) setNewName(m.user.name);
+              }
+            }} style={{ width: 160 }}>
+              <option value="">{t("trainers.linkMember")}</option>
+              {members.map((m) => {
+                const uid = m.user?._id || m.user;
+                const name = m.user?.name || uid;
+                return <option key={uid} value={uid}>{name}</option>;
+              })}
+            </select>
+          )}
           <input className="form-control" placeholder={t("trainers.namePlaceholder")} value={newName} onChange={(e) => setNewName(e.target.value)} required style={{ flex: 1 }} />
           <input className="form-control" placeholder={t("trainers.rolePlaceholder")} value={newRole} onChange={(e) => setNewRole(e.target.value)} style={{ width: 150 }} />
           <button type="submit" className="btn btn-primary btn-sm"><FiPlus /></button>
@@ -97,6 +117,7 @@ export default memo(function TrainerRoster({ groupId, canEdit }) {
                 <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
                   <strong className="text-sm">{tr.name}</strong>
                   {tr.role && <span className="tag" style={{ fontSize: "0.65rem" }}>{tr.role}</span>}
+                  {tr.linkedUser && <span className="tag" style={{ fontSize: "0.65rem", background: "#dbeafe", color: "#1e40af" }}>{t("trainers.linked")}</span>}
                 </div>
                 <div className="flex gap-sm" style={{ alignItems: "center" }}>
                   {tr.certifications?.length > 0 && (
@@ -118,6 +139,16 @@ export default memo(function TrainerRoster({ groupId, canEdit }) {
                       value={(editData.certifications || []).join(", ")}
                       onChange={(e) => setEditData({ ...editData, certifications: e.target.value.split(",").map((s) => s.trim()).filter(Boolean) })} />
                   </div>
+                  {members.length > 0 && (
+                    <select className="form-control form-control-sm" value={editData.linkedUser || ""} onChange={(e) => setEditData({ ...editData, linkedUser: e.target.value || null })} style={{ gridColumn: "1 / -1" }}>
+                      <option value="">{t("trainers.linkMember")}</option>
+                      {members.map((m) => {
+                        const uid = m.user?._id || m.user;
+                        const name = m.user?.name || uid;
+                        return <option key={uid} value={uid}>{name}</option>;
+                      })}
+                    </select>
+                  )}
                   <textarea className="form-control form-control-sm" rows={2} placeholder={t("trainers.notes")}
                     value={editData.notes || ""} onChange={(e) => setEditData({ ...editData, notes: e.target.value })} />
                   <div className="flex gap-sm mt-1">

@@ -32,12 +32,14 @@ export default function TacticBoardPage() {
     // Default to user's preferred sport if set
     return user?.preferredSport || "football";
   });
+  const initialSport = user?.preferredSport || "football";
+  const initialFormation = getDefaultFormation(initialSport);
   const [title, setTitle] = useState("");
   const [fieldType, setFieldType] = useState("full");
-  const [steps, setSteps] = useState([createInitialStep()]);
+  const [steps, setSteps] = useState([createInitialStep(initialFormation, initialFormation, initialSport)]);
   const [currentStepIdx, setCurrentStepIdx] = useState(0);
-  const [homeFormation, setHomeFormation] = useState("4-4-2");
-  const [awayFormation, setAwayFormation] = useState("4-4-2");
+  const [homeFormation, setHomeFormation] = useState(initialFormation);
+  const [awayFormation, setAwayFormation] = useState(initialFormation);
   const [homeColor, setHomeColor] = useState("#2563eb");
   const [awayColor, setAwayColor] = useState("#ef4444");
   const [drillId, setDrillId] = useState(null);

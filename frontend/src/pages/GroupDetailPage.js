@@ -358,10 +358,10 @@ export default function GroupDetailPage() {
       </div>
 
       {/* Trainer Roster */}
-      <TrainerRoster groupId={id} canEdit={isAdmin} />
+      <TrainerRoster groupId={id} canEdit={isAdmin} members={group.members} />
 
       {/* Player Roster */}
-      <PlayerRoster groupId={id} canEdit={isTrainer} sport={group.sport} />
+      <PlayerRoster groupId={id} canEdit={isTrainer} sport={group.sport} members={group.members} />
 
       {/* Starred Drills */}
       {isTrainer && (
