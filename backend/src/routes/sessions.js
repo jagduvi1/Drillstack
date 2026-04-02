@@ -6,8 +6,9 @@ const { resolveUserGroups } = require("../middleware/groupAuth");
 const { checkOwnership } = require("../middleware/checkOwnership");
 const { parsePagination } = require("../middleware/pagination");
 const TrainingSession = require("../models/TrainingSession");
-const PeriodPlan = require("../models/PeriodPlan");
+const Plan = require("../models/Plan");
 const Drill = require("../models/Drill");
+const { calculate: calcMatchScore } = require("../utils/matchScore");
 const { indexSession } = require("../services/sync");
 const { checkLimit } = require("../middleware/planLimits");
 const { standardLimiter } = require("../utils/rateLimiters");
@@ -37,9 +38,30 @@ async function computeEquipment(session) {
 }
 
 const POPULATE_BLOCKS = [
-  { path: "blocks.drills.drill", select: "title intensity setup sport" },
-  { path: "blocks.stations.drill", select: "title intensity setup sport" },
+  { path: "blocks.drills.drill", select: "title intensity setup sport tags" },
+  { path: "blocks.stations.drill", select: "title intensity setup sport tags" },
 ];
+
+function extractDrillIds(blocks) {
+  const ids = [];
+  for (const block of blocks || []) {
+    if (block.type === "drills") ids.push(...block.drills.map((d) => d.drill));
+    else if (block.type === "stations") ids.push(...block.stations.map((s) => s.drill).filter(Boolean));
+  }
+  return ids;
+}
+
+async function computeMatchScore(session) {
+  if (!session.plan || !session.phase) return;
+  const plan = await Plan.findById(session.plan);
+  if (!plan) return;
+  const drillIds = extractDrillIds(session.blocks);
+  if (drillIds.length === 0) { session.matchScore = 0; session.matchFeedback = "No drills to evaluate"; return; }
+  const drills = await Drill.find({ _id: { $in: drillIds } }).select("tags");
+  const { score, feedback } = calcMatchScore(plan, session.phase, drills);
+  session.matchScore = score;
+  session.matchFeedback = feedback;
+}
 
 /** Build a filter that includes own sessions + group-shared sessions */
 function buildSessionFilter(req) {
@@ -75,6 +97,7 @@ router.get("/", authenticate, resolveUserGroups, async (req, res, next) => {
     const filter = buildSessionFilter(req);
     if (req.query.sport) filter.sport = String(req.query.sport);
     if (req.query.group) filter.group = String(req.query.group);
+    if (req.query.plan) filter.plan = String(req.query.plan);
     // Date range filter for calendar view
     if (req.query.dateFrom || req.query.dateTo) {
       filter.date = {};
@@ -99,90 +122,33 @@ router.get("/", authenticate, resolveUserGroups, async (req, res, next) => {
   }
 });
 
-// GET /api/sessions/today — sessions for today (by date + from active plans)
-const WEEKDAYS = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
-
+// GET /api/sessions/today — sessions for today (by date, with plan info if linked)
 router.get("/today", authenticate, resolveUserGroups, async (req, res, next) => {
   try {
     const now = new Date();
     const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate());
     const endOfDay = new Date(startOfDay.getTime() + 24 * 60 * 60 * 1000);
-    const dayName = WEEKDAYS[now.getDay()];
 
-    // 1) Sessions with today's date (own + group shared)
     const dateFilter = buildSessionFilter(req);
     dateFilter.date = { $gte: startOfDay, $lt: endOfDay };
-    const dateSessions = await TrainingSession.find(dateFilter)
+
+    const sessions = await TrainingSession.find(dateFilter)
       .populate(POPULATE_BLOCKS)
+      .populate("plan", "name sport phases")
       .populate("group", "name sport")
       .populate("attendees", "name position number")
       .populate("trainerAttendees", "name role");
 
-    // 2) Plans (own + group shared)
-    const planFilter = {
-      $or: [
-        { createdBy: req.user._id },
-        ...(req.userTrainerGroupIds && req.userTrainerGroupIds.length > 0
-          ? [{ group: { $in: req.userTrainerGroupIds }, visibility: "group" }]
-          : []),
-      ],
-      startDate: { $lte: endOfDay },
-      endDate: { $gte: startOfDay },
-    };
-    const plans = await PeriodPlan.find(planFilter).populate("weeklyPlans.sessions.linkedSession");
-
-    const planSessionIds = new Set();
-    const planEntries = [];
-    for (const plan of plans) {
-      // Figure out which week we're in (1-based: days 0-6 = week 1, days 7-13 = week 2, etc.)
-      const planStart = new Date(plan.startDate);
-      const planStartDay = new Date(planStart.getFullYear(), planStart.getMonth(), planStart.getDate());
-      const daysDiff = Math.max(0, Math.round((startOfDay - planStartDay) / (24 * 60 * 60 * 1000)));
-      const weekNum = Math.floor(daysDiff / 7) + 1;
-      const week = plan.weeklyPlans.find((w) => w.week === weekNum);
-      if (!week) continue;
-      for (const entry of week.sessions || []) {
-        // Show session if dayOfWeek matches today, or if no day was set (show every day)
-        if ((entry.dayOfWeek === dayName || !entry.dayOfWeek) && entry.linkedSession) {
-          const sid = entry.linkedSession._id?.toString() || entry.linkedSession.toString();
-          if (!planSessionIds.has(sid)) {
-            planSessionIds.add(sid);
-            planEntries.push({
-              planTitle: plan.title,
-              planId: plan._id,
-              planGroup: plan.group || null,
-              weekNum,
-              dayOfWeek: entry.dayOfWeek,
-              notes: entry.notes,
-              sessionId: sid,
-            });
-          }
-        }
-      }
-    }
-
-    // Fetch plan sessions with full drill population (plan populate doesn't go deep enough)
-    const planSessions = planSessionIds.size > 0
-      ? await TrainingSession.find({ _id: { $in: [...planSessionIds] } })
-          .populate(POPULATE_BLOCKS)
-          .populate("group", "name sport")
-          .populate("attendees", "name position number")
-      : [];
-
-    // Combine, avoiding duplicates
-    const dateIds = new Set(dateSessions.map((s) => s._id.toString()));
-    const combined = [...dateSessions.map((s) => ({ session: s, source: "date" }))];
-
-    for (const ps of planSessions) {
-      const entry = planEntries.find((e) => e.sessionId === ps._id.toString());
-      if (!dateIds.has(ps._id.toString())) {
-        combined.push({ session: ps, source: "plan", plan: entry });
-      } else {
-        // Already in list from date, just add plan info
-        const existing = combined.find((c) => c.session._id.toString() === ps._id.toString());
-        if (existing) existing.plan = entry;
-      }
-    }
+    const combined = sessions.map((s) => ({
+      session: s,
+      source: s.plan ? "plan" : "date",
+      ...(s.plan && {
+        plan: {
+          planTitle: s.plan.name,
+          planId: s.plan._id,
+        },
+      }),
+    }));
 
     res.json(combined);
   } catch (err) {
@@ -195,6 +161,7 @@ router.get("/:id", authenticate, resolveUserGroups, async (req, res, next) => {
   try {
     const session = await TrainingSession.findById(req.params.id)
       .populate(POPULATE_BLOCKS)
+      .populate("plan", "name sport phases objective")
       .populate("createdBy", "name");
     if (!session) return res.status(404).json({ error: "Session not found" });
 
@@ -227,7 +194,7 @@ router.post(
   validate,
   async (req, res, next) => {
     try {
-      const { title, description, date, sport, blocks, expectedPlayers, expectedTrainers, actualPlayers, actualTrainers, group, visibility, aiGenerated, aiConversation } = req.body;
+      const { title, description, date, sport, blocks, expectedPlayers, expectedTrainers, actualPlayers, actualTrainers, group, visibility, aiGenerated, aiConversation, plan, phase } = req.body;
 
       // Validate group membership when sharing with a group
       if (group && visibility && visibility !== "private") {
@@ -236,9 +203,10 @@ router.post(
           return res.status(403).json({ error: "You are not a member of this group" });
         }
       }
-      const data = { title, description, date, sport, blocks, expectedPlayers, expectedTrainers, actualPlayers, actualTrainers, group, visibility, aiGenerated, aiConversation, createdBy: req.user._id };
+      const data = { title, description, date, sport, blocks, expectedPlayers, expectedTrainers, actualPlayers, actualTrainers, group, visibility, aiGenerated, aiConversation, plan: plan || null, phase: phase || null, createdBy: req.user._id };
       const session = new TrainingSession(data);
       session.equipmentSummary = await computeEquipment(session);
+      await computeMatchScore(session);
       await session.save();
       indexSession(session).catch((e) => console.error("Index error:", e.message));
       res.status(201).json(session);
@@ -257,9 +225,10 @@ router.put(
   async (req, res, next) => {
     try {
       const session = req.resource;
-      const { title, description, date, sport, blocks, expectedPlayers, expectedTrainers, actualPlayers, actualTrainers, group, visibility, aiGenerated, aiConversation } = req.body;
-      Object.assign(session, { title, description, date, sport, blocks, expectedPlayers, expectedTrainers, actualPlayers, actualTrainers, group, visibility, aiGenerated, aiConversation });
+      const { title, description, date, sport, blocks, expectedPlayers, expectedTrainers, actualPlayers, actualTrainers, group, visibility, aiGenerated, aiConversation, plan, phase } = req.body;
+      Object.assign(session, { title, description, date, sport, blocks, expectedPlayers, expectedTrainers, actualPlayers, actualTrainers, group, visibility, aiGenerated, aiConversation, plan: plan || null, phase: phase || null });
       session.equipmentSummary = await computeEquipment(session);
+      await computeMatchScore(session);
       await session.save();
       indexSession(session).catch((e) => console.error("Index error:", e.message));
       res.json(session);
@@ -320,6 +289,26 @@ router.put("/:id/attendance", authenticate, resolveUserGroups, async (req, res, 
     await session.populate("attendees", "name position number");
     await session.populate("trainerAttendees", "name role");
     res.json(session);
+  } catch (err) {
+    next(err);
+  }
+});
+
+// GET /api/sessions/:id/match-score — recalculate match score without saving
+router.get("/:id/match-score", authenticate, async (req, res, next) => {
+  try {
+    const session = await TrainingSession.findById(req.params.id);
+    if (!session) return res.status(404).json({ error: "Session not found" });
+    if (!session.plan || !session.phase) {
+      return res.json({ score: null, feedback: "Session not linked to a plan" });
+    }
+    const plan = await Plan.findById(session.plan);
+    if (!plan) return res.json({ score: null, feedback: "Plan not found" });
+    const drillIds = extractDrillIds(session.blocks);
+    if (drillIds.length === 0) return res.json({ score: 0, feedback: "No drills to evaluate" });
+    const drills = await Drill.find({ _id: { $in: drillIds } }).select("tags");
+    const result = calcMatchScore(plan, session.phase, drills);
+    res.json(result);
   } catch (err) {
     next(err);
   }

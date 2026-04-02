@@ -3,7 +3,7 @@ const { body } = require("express-validator");
 const validate = require("../../middleware/validate");
 const { authenticate } = require("../../middleware/auth");
 const { checkAiLimit } = require("../../middleware/planLimits");
-const PeriodPlan = require("../../models/PeriodPlan");
+const Plan = require("../../models/Plan");
 const aiService = require("../../services/ai");
 const { indexPlan } = require("../../services/sync");
 const { sanitizeDebug, sanitizeAiInput } = require("./utils");
@@ -13,17 +13,14 @@ router.post(
   "/generate-program",
   authenticate,
   checkAiLimit,
-  [body("description").trim().notEmpty().isLength({ max: 5000 }), body("sessionsPerWeek").optional().isInt({ min: 1, max: 14 })],
+  [body("description").trim().notEmpty().isLength({ max: 5000 })],
   validate,
   async (req, res, next) => {
     try {
-      const { description, sport, sessionsPerWeek, weeks, startDate, endDate } =
-        req.body;
+      const { description, sport, startDate, endDate } = req.body;
       const { program: generated, debug } = await aiService.generateTrainingProgram({
         description,
         sport,
-        sessionsPerWeek,
-        weeks,
         startDate,
         endDate,
         userSport: req.user.preferredSport,
@@ -44,41 +41,33 @@ router.post(
     body("description").trim().notEmpty().isLength({ max: 5000 }),
     body("startDate").isISO8601(),
     body("endDate").isISO8601(),
-    body("sessionsPerWeek").optional().isInt({ min: 1, max: 14 }),
   ],
   validate,
   async (req, res, next) => {
     try {
-      const { description, sport, sessionsPerWeek, startDate, endDate } =
-        req.body;
+      const { description, sport, startDate, endDate } = req.body;
 
       const start = new Date(startDate);
       const end = new Date(endDate);
       if (end <= start) {
         return res.status(400).json({ error: "End date must be after start date" });
       }
-      const weeks = Math.max(1, Math.ceil((end - start) / (7 * 24 * 60 * 60 * 1000)));
 
       const { program: generated, debug } = await aiService.generateTrainingProgram({
         description,
         sport,
-        sessionsPerWeek,
-        weeks,
         startDate,
         endDate,
         userSport: req.user.preferredSport,
       });
 
-      const plan = await PeriodPlan.create({
-        title: generated.title || "Training Program",
-        description: generated.description || description,
+      const plan = await Plan.create({
+        name: generated.name || generated.title || "Training Program",
         sport: generated.sport || sport || null,
         startDate,
         endDate,
-        sessionsPerWeek: sessionsPerWeek || 3,
-        goals: generated.goals || [],
-        focusAreas: generated.focusAreas || [],
-        weeklyPlans: generated.weeklyPlans || [],
+        objective: generated.objective || generated.description || description,
+        phases: generated.phases || [],
         aiConversation: [
           { role: "user", content: description },
           { role: "assistant", content: "Training program generated successfully." },
@@ -103,7 +92,7 @@ router.post(
   validate,
   async (req, res, next) => {
     try {
-      const plan = await PeriodPlan.findOne({
+      const plan = await Plan.findOne({
         _id: req.params.id,
         createdBy: req.user._id,
       });
@@ -115,23 +104,15 @@ router.post(
       });
 
       const currentProgram = {
-        title: plan.title,
-        description: plan.description,
+        name: plan.name,
+        objective: plan.objective,
         sport: plan.sport,
-        goals: plan.goals,
-        focusAreas: plan.focusAreas,
-        weeklyPlans: plan.weeklyPlans.map((w) => ({
-          week: w.week,
-          theme: w.theme,
-          sessions: w.sessions.map((s) => ({
-            dayOfWeek: s.dayOfWeek,
-            title: s.title,
-            focus: s.focus,
-            intensity: s.intensity,
-            durationMinutes: s.durationMinutes,
-            notes: s.notes,
-          })),
-          notes: w.notes,
+        phases: plan.phases.map((p) => ({
+          name: p.name,
+          primaryFocus: p.primaryFocus,
+          secondaryFocus: p.secondaryFocus,
+          description: p.description,
+          order: p.order,
         })),
       };
 
@@ -146,13 +127,11 @@ router.post(
       );
 
       if (result.program) {
-        plan.title = result.program.title || plan.title;
-        plan.description = result.program.description || plan.description;
+        plan.name = result.program.name || result.program.title || plan.name;
+        plan.objective = result.program.objective || result.program.description || plan.objective;
         plan.sport = result.program.sport || plan.sport;
-        plan.goals = result.program.goals || plan.goals;
-        plan.focusAreas = result.program.focusAreas || plan.focusAreas;
-        if (result.program.weeklyPlans) {
-          plan.weeklyPlans = result.program.weeklyPlans;
+        if (result.program.phases) {
+          plan.phases = result.program.phases;
         }
         plan.aiConversation.push({
           role: "assistant",

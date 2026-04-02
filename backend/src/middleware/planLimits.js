@@ -1,7 +1,7 @@
 const { getLimit, isUnlimited } = require("../config/plans");
 const Drill = require("../models/Drill");
 const TrainingSession = require("../models/TrainingSession");
-const PeriodPlan = require("../models/PeriodPlan");
+const Plan = require("../models/Plan");
 const Group = require("../models/Group");
 const User = require("../models/User");
 const { resetAiUsageIfNeeded } = require("../utils/resetAiUsage");
@@ -20,7 +20,7 @@ function getEffectivePlan(user) {
 const resourceCounters = {
   drills: (userId) => Drill.countDocuments({ createdBy: userId }),
   sessions: (userId) => TrainingSession.countDocuments({ createdBy: userId }),
-  plans: (userId) => PeriodPlan.countDocuments({ createdBy: userId }),
+  plans: (userId) => Plan.countDocuments({ createdBy: userId }),
   groups: (userId) => Group.countDocuments({ "members.user": userId, createdBy: userId }),
 };
 

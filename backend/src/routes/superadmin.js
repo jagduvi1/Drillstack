@@ -9,7 +9,7 @@ const { logAudit } = require("../models/AuditLog");
 const User = require("../models/User");
 const Drill = require("../models/Drill");
 const TrainingSession = require("../models/TrainingSession");
-const PeriodPlan = require("../models/PeriodPlan");
+const Plan = require("../models/Plan");
 const { superadminLimiter } = require("../utils/rateLimiters");
 
 router.use(superadminLimiter);
@@ -25,7 +25,7 @@ router.get("/overview", async (_req, res, next) => {
       User.countDocuments(),
       Drill.countDocuments(),
       TrainingSession.countDocuments(),
-      PeriodPlan.countDocuments(),
+      Plan.countDocuments(),
     ]);
 
     // Role breakdown

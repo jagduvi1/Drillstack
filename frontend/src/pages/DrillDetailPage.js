@@ -458,6 +458,13 @@ export default function DrillDetailPage() {
             <span className={`tag tag-${displayDrill.intensity === "high" ? "danger" : displayDrill.intensity === "low" ? "" : "warning"}`}>{displayDrill.intensity}</span>
             {displayDrill.setup?.duration && <span className="tag">{displayDrill.setup.duration}</span>}
           </div>
+          {displayDrill.tags?.length > 0 && (
+            <div className="flex gap-sm mt-sm" style={{ flexWrap: "wrap" }}>
+              {displayDrill.tags.map((tag, i) => (
+                <span key={i} className="tag" style={{ background: "#e0e7ff", color: "#3730a3" }}>{tag}</span>
+              ))}
+            </div>
+          )}
         </div>
 
         {/* Setup */}

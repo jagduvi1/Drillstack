@@ -1,9 +1,11 @@
 import { useState, useEffect, useCallback } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import useFormDirty from "../hooks/useFormDirty";
 import { getSession, createSession, updateSession } from "../api/sessions";
+import { getPlans } from "../api/plans";
 import { suggestSession } from "../api/ai";
+import MatchScoreBar from "../components/sessions/MatchScoreBar";
 import BlockList from "../components/sessions/BlockList";
 import DrillPickerModal from "../components/sessions/DrillPickerModal";
 import DrillPreviewModal from "../components/sessions/DrillPreviewModal";
@@ -24,6 +26,8 @@ const EMPTY_SESSION = {
   blocks: [],
   group: "",
   visibility: "private",
+  plan: "",
+  phase: "",
 };
 
 export default function SessionFormPage() {
@@ -32,8 +36,10 @@ export default function SessionFormPage() {
   const navigate = useNavigate();
   const isEdit = Boolean(id);
 
+  const [searchParams] = useSearchParams();
   const { groups, activeGroupId } = useGroups();
-  const [form, setForm] = useState({ ...EMPTY_SESSION, group: activeGroupId || "", visibility: activeGroupId ? "group" : "private" });
+  const [plans, setPlans] = useState([]);
+  const [form, setForm] = useState({ ...EMPTY_SESSION, group: activeGroupId || "", visibility: activeGroupId ? "group" : "private", plan: searchParams.get("plan") || "", phase: searchParams.get("phase") || "" });
   const [dirty, setDirty, markLoaded] = useFormDirty(form);
   const [mode, setMode] = useState("manual"); // "manual" | "ai"
   const [aiPrompt, setAiPrompt] = useState("");
@@ -55,6 +61,11 @@ export default function SessionFormPage() {
   // Drill preview state
   const [previewDrillId, setPreviewDrillId] = useState(null);
 
+  // Load available plans
+  useEffect(() => {
+    getPlans().then((res) => setPlans(res.data || [])).catch(() => {});
+  }, []);
+
   // Load existing session for edit
   useEffect(() => {
     if (isEdit) {
@@ -71,6 +82,8 @@ export default function SessionFormPage() {
             expectedTrainers: s.expectedTrainers || "",
             group: s.group || "",
             visibility: s.visibility || "private",
+            plan: s.plan?._id || s.plan || "",
+            phase: s.phase || "",
             blocks: (s.blocks || []).map((b, i) => ({
               ...b,
               order: i,
@@ -268,6 +281,8 @@ export default function SessionFormPage() {
         sport: form.sport || undefined,
         group: form.group || null,
         visibility: form.group ? form.visibility : "private",
+        plan: form.plan || null,
+        phase: form.phase || null,
         expectedPlayers: form.expectedPlayers || 0,
         expectedTrainers: form.expectedTrainers || 0,
         blocks: form.blocks.map((b, i) => ({
@@ -477,6 +492,37 @@ export default function SessionFormPage() {
                     </select>
                   </div>
                 )}
+              </div>
+            )}
+
+            {/* Plan linking */}
+            {plans.length > 0 && (
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "1rem", marginTop: "1rem" }}>
+                <div className="form-group" style={{ marginBottom: 0 }}>
+                  <label>{t("sessions.linkToPlan")}</label>
+                  <select className="form-control" value={form.plan || ""}
+                    onChange={(e) => setForm((prev) => ({ ...prev, plan: e.target.value || "", phase: "" }))}>
+                    <option value="">{t("sessions.noPlan")}</option>
+                    {plans.map((p) => (
+                      <option key={p._id} value={p._id}>{p.name}</option>
+                    ))}
+                  </select>
+                </div>
+                {form.plan && (() => {
+                  const selectedPlan = plans.find((p) => p._id === form.plan);
+                  return selectedPlan?.phases?.length > 0 ? (
+                    <div className="form-group" style={{ marginBottom: 0 }}>
+                      <label>{t("sessions.selectPhase")}</label>
+                      <select className="form-control" value={form.phase || ""}
+                        onChange={(e) => setForm((prev) => ({ ...prev, phase: e.target.value || "" }))}>
+                        <option value="">{t("sessions.noPhase")}</option>
+                        {selectedPlan.phases.map((ph) => (
+                          <option key={ph._id} value={ph._id}>{ph.name} ({ph.primaryFocus})</option>
+                        ))}
+                      </select>
+                    </div>
+                  ) : null;
+                })()}
               </div>
             )}
           </div>

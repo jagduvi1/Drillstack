@@ -17,6 +17,7 @@ import {
   FiCode,
 } from "react-icons/fi";
 import { BLOCK_ICONS, BLOCK_COLORS, blockDuration } from "../constants/blockTypes";
+import MatchScoreBar from "../components/sessions/MatchScoreBar";
 
 export default function SessionDetailPage() {
   const { t } = useTranslation();
@@ -181,6 +182,27 @@ export default function SessionDetailPage() {
           <p className="text-muted" style={{ marginTop: "0.75rem" }}>
             {session.description}
           </p>
+        )}
+
+        {/* Plan linkage and match score */}
+        {session.plan && (
+          <div style={{ marginTop: "0.75rem", padding: "0.75rem", background: "var(--color-bg)", borderRadius: "var(--radius)", border: "1px solid var(--color-border)" }}>
+            <div className="flex-between" style={{ marginBottom: session.matchScore != null ? "0.5rem" : 0 }}>
+              <span className="text-sm">
+                {t("sessions.linkedToPlan")}:{" "}
+                <Link to={`/plans/${session.plan._id || session.plan}`} style={{ fontWeight: 600 }}>
+                  {session.plan.name || t("sessions.viewPlan")}
+                </Link>
+                {session.phase && session.plan.phases && (() => {
+                  const phase = session.plan.phases.find((p) => p._id === session.phase);
+                  return phase ? <> &mdash; {phase.name}</> : null;
+                })()}
+              </span>
+            </div>
+            {session.matchScore != null && (
+              <MatchScoreBar score={session.matchScore} feedback={session.matchFeedback} />
+            )}
+          </div>
         )}
       </div>
 

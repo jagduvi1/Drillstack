@@ -6,7 +6,7 @@ const User = require("../models/User");
 const { resetAiUsageIfNeeded } = require("../utils/resetAiUsage");
 const Drill = require("../models/Drill");
 const TrainingSession = require("../models/TrainingSession");
-const PeriodPlan = require("../models/PeriodPlan");
+const Plan = require("../models/Plan");
 const Group = require("../models/Group");
 
 // GET /api/billing/plans — list available plans
@@ -29,7 +29,7 @@ router.get("/usage", authenticate, async (req, res, next) => {
     const [drills, sessions, plans, groups] = await Promise.all([
       Drill.countDocuments({ createdBy: req.user._id }),
       TrainingSession.countDocuments({ createdBy: req.user._id }),
-      PeriodPlan.countDocuments({ createdBy: req.user._id }),
+      Plan.countDocuments({ createdBy: req.user._id }),
       Group.countDocuments({ "members.user": req.user._id, createdBy: req.user._id }),
     ]);
 

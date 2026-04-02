@@ -224,12 +224,10 @@ async function generateTrainingProgram({ description, sport, sessionsPerWeek, we
   } catch {
     return {
       program: {
-        title: "Training Program",
-        description,
+        name: "Training Program",
+        objective: description,
         sport: sport || "general",
-        goals: [],
-        focusAreas: [],
-        weeklyPlans: [],
+        phases: [],
       },
       debug,
     };

@@ -44,6 +44,9 @@ const drillSchema = new Schema(
       default: "medium",
     },
 
+    // ── Focus-area tags (used for plan match scoring) ──────────────────────
+    tags: [{ type: String }],
+
     // ── Sport-specific fields ──────────────────────────────────────────────
     apparatus: { type: String, default: "" }, // e.g. floor, beam, bars, vault, trampoline, general
     skillLevel: {
@@ -94,7 +97,7 @@ const drillSchema = new Schema(
   { timestamps: true }
 );
 
-drillSchema.index({ title: "text", description: "text", howItWorks: "text" });
+drillSchema.index({ title: "text", description: "text", howItWorks: "text", tags: "text" });
 drillSchema.index({ parentDrill: 1 });
 
 module.exports = mongoose.model("Drill", drillSchema);

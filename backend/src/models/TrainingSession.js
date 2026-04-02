@@ -98,6 +98,12 @@ const sessionSchema = new Schema(
     visibility: { type: String, enum: ["private", "group", "club"], default: "private" },
     group: { type: Schema.Types.ObjectId, ref: "Group", default: null, index: true },
 
+    // ── Plan linkage ────────────────────────────────────────────────
+    plan: { type: Schema.Types.ObjectId, ref: "Plan", default: null, index: true },
+    phase: { type: Schema.Types.ObjectId, default: null },
+    matchScore: { type: Number, default: null, min: 0, max: 100 },
+    matchFeedback: { type: String, default: "" },
+
     createdBy: { type: Schema.Types.ObjectId, ref: "User", required: true, index: true },
   },
   { timestamps: true }

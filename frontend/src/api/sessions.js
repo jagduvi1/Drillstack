@@ -8,3 +8,4 @@ export const updateSession = (id, data) => api.put(`/sessions/${id}`, data);
 export const deleteSession = (id) => api.delete(`/sessions/${id}`);
 export const updateAttendance = (id, data) =>
   api.put(`/sessions/${id}/attendance`, data);
+export const getMatchScore = (id) => api.get(`/sessions/${id}/match-score`);

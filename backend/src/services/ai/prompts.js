@@ -93,36 +93,26 @@ function buildProgramSystemPrompt(sport) {
 
 Return ONLY valid JSON with this exact structure:
 {
-  "title": "Program title",
-  "description": "2-3 sentence overview of the program philosophy and expected outcomes",
+  "name": "Program name",
+  "objective": "2-3 sentence overview of the program philosophy and expected outcomes",
   "sport": "the sport",
-  "goals": ["list of specific training goals"],
-  "focusAreas": ["key focus areas across the program"],
-  "weeklyPlans": [
+  "phases": [
     {
-      "week": 1,
-      "theme": "Weekly theme, e.g. 'Build aerobic base and passing accuracy'",
-      "sessions": [
-        {
-          "dayOfWeek": "Monday",
-          "title": "Session title",
-          "focus": "What this specific session trains",
-          "intensity": "low" | "medium" | "high",
-          "durationMinutes": 90,
-          "notes": "Key coaching priorities and structure for this session"
-        }
-      ],
-      "notes": "Week-level notes: load management, recovery, key observations"
+      "name": "Phase name, e.g. 'Build aerobic base'",
+      "primaryFocus": "Main training focus area, e.g. 'passing'",
+      "secondaryFocus": "Secondary focus area, e.g. 'movement'",
+      "description": "Detailed description of this phase's goals and approach",
+      "order": 0
     }
   ]
 }
 
 Guidelines:
-- Build progressive overload: increase complexity/intensity across weeks
-- Alternate high and low intensity days for recovery
-- Each week should have a clear theme that builds on the previous
-- Session notes should be specific enough that a coach can plan drills from them
-- Include recovery/lighter sessions as appropriate
+- Create 3-6 phases that represent distinct focus periods within the plan
+- Build progressive overload: increase complexity/intensity across phases
+- Each phase should have a clear primary focus area (a single word/tag like "passing", "defense", "shooting")
+- The secondary focus complements the primary (e.g. primary: "passing", secondary: "movement")
+- Phase descriptions should be specific enough that a coach can plan sessions from them
 - Consider periodization principles (preparation, competition, transition phases)
 - If the user writes in a specific language, respond in that same language
 - Always return valid JSON only, no extra text`;
@@ -138,26 +128,16 @@ The coach will describe changes they want to make to an existing program. You mu
 
 Return ONLY valid JSON with this exact structure:
 {
-  "title": "...",
-  "description": "...",
+  "name": "...",
+  "objective": "...",
   "sport": "...",
-  "goals": ["..."],
-  "focusAreas": ["..."],
-  "weeklyPlans": [
+  "phases": [
     {
-      "week": 1,
-      "theme": "...",
-      "sessions": [
-        {
-          "dayOfWeek": "...",
-          "title": "...",
-          "focus": "...",
-          "intensity": "low" | "medium" | "high",
-          "durationMinutes": 90,
-          "notes": "..."
-        }
-      ],
-      "notes": "..."
+      "name": "...",
+      "primaryFocus": "...",
+      "secondaryFocus": "...",
+      "description": "...",
+      "order": 0
     }
   ]
 }
