@@ -124,8 +124,8 @@ export default function PlayerProfilePage() {
               {player.position && <span className="tag">{player.position}</span>}
               {player.defencePosition && <span className="tag">{player.defencePosition}</span>}
               {age !== null && <span className="tag">{t("playerProfile.age", { age })}</span>}
-              {player.height && <span className="tag">{player.height} cm</span>}
-              {player.weight && <span className="tag">{player.weight} kg</span>}
+              {player.height > 0 && <span className="tag">{player.height} cm</span>}
+              {player.weight > 0 && <span className="tag">{player.weight} kg</span>}
               {showFoot && player.preferredFoot && <span className="tag">{t(`playerProfile.foot.${player.preferredFoot}`)}</span>}
               {showHand && player.preferredHand && <span className="tag">{t(`playerProfile.hand.${player.preferredHand}`)}</span>}
               {player.skillRating !== null && (

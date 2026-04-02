@@ -132,8 +132,8 @@ export default memo(function PlayerRoster({ groupId, canEdit, sport, members = [
                     {p.position && <span className="tag" style={{ fontSize: "0.65rem" }}>{p.position}</span>}
                     {p.defencePosition && <span className="tag" style={{ fontSize: "0.65rem" }}>{p.defencePosition}</span>}
                     {age !== null && <span className="tag" style={{ fontSize: "0.65rem" }}>{t("playerProfile.age", { age })}</span>}
-                    {p.height && <span className="tag" style={{ fontSize: "0.65rem" }}>{p.height} cm</span>}
-                    {p.weight && <span className="tag" style={{ fontSize: "0.65rem" }}>{p.weight} kg</span>}
+                    {p.height > 0 && <span className="tag" style={{ fontSize: "0.65rem" }}>{p.height} cm</span>}
+                    {p.weight > 0 && <span className="tag" style={{ fontSize: "0.65rem" }}>{p.weight} kg</span>}
                     {p.strengths?.[0] && <span className="tag tag-success" style={{ fontSize: "0.65rem" }}>{p.strengths[0]}</span>}
                     {p.weaknesses?.[0] && <span className="tag" style={{ fontSize: "0.65rem", background: "#fee2e2", color: "#991b1b" }}>{p.weaknesses[0]}</span>}
                     {p.linkedUser && <span className="tag" style={{ fontSize: "0.65rem", background: "#dbeafe", color: "#1e40af" }}><FiUser style={{ fontSize: "0.6rem" }} /> {t("players.linked")}</span>}
