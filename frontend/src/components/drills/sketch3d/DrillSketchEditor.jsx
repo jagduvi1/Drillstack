@@ -2,7 +2,7 @@ import { useState, useCallback, useRef, useEffect, useMemo } from "react";
 import { Canvas, useThree, useFrame } from "@react-three/fiber";
 import { useTranslation } from "react-i18next";
 import Pitch3D, { PITCH_W, PITCH_H, SPORT_DIMS_3D } from "./Pitch3D";
-import { Player3D, Cone3D, Ball3D, Arrow3D } from "./Pieces3D";
+import { Player3D, Cone3D, Ball3D, Arrow3D, Pass3D } from "./Pieces3D";
 import {
   FiPlus, FiTrash2, FiCircle, FiTriangle, FiMousePointer, FiArrowRight,
   FiPlay, FiPause, FiSkipBack, FiSkipForward, FiRepeat, FiMaximize, FiMinimize,
@@ -48,6 +48,7 @@ function createEmptyStep(copyPieces = []) {
     duration: 1500,
     pieces: copyPieces.map((p) => ({ ...p })),
     arrows: [],
+    passes: [],
   };
 }
 
@@ -80,6 +81,10 @@ export default function DrillSketchEditor({ sketch, onChange, readOnly = false, 
   const [animStep, setAnimStep] = useState(0);
   const playStartIdx = useRef(0);
   const animRef = useRef(null);
+
+  // Pass context menu & creation
+  const [passMenu, setPassMenu] = useState(null); // { x, y, ballId } screen coords
+  const [passMode, setPassMode] = useState(null); // { type, ballId, bouncePoint? }
 
   // Fullscreen
   const [isFullscreen, setIsFullscreen] = useState(false);
@@ -125,7 +130,12 @@ export default function DrillSketchEditor({ sketch, onChange, readOnly = false, 
   const deleteSelected = () => {
     if (!selectedId) return;
     const newSteps = steps.map((s, i) =>
-      i === currentStepIdx ? { ...s, pieces: s.pieces.filter((p) => p.id !== selectedId), arrows: s.arrows.filter((a) => a.id !== selectedId) } : s
+      i === currentStepIdx ? {
+        ...s,
+        pieces: s.pieces.filter((p) => p.id !== selectedId),
+        arrows: s.arrows.filter((a) => a.id !== selectedId),
+        passes: (s.passes || []).filter((p) => p.id !== selectedId),
+      } : s
     );
     updateSteps(newSteps);
     setSelectedId(null);
@@ -145,6 +155,69 @@ export default function DrillSketchEditor({ sketch, onChange, readOnly = false, 
     updateSteps(newSteps);
   };
 
+  // ── Pass creation ──────────────────────────────────────────────────────
+  const handleBallContextMenu = useCallback((ballId, pointerEvent) => {
+    if (readOnly || isPlaying) return;
+    pointerEvent.nativeEvent?.preventDefault?.();
+    const rect = fullscreenRef.current?.getBoundingClientRect() || { left: 0, top: 0 };
+    const clientX = pointerEvent.clientX || pointerEvent.nativeEvent?.clientX || 0;
+    const clientY = pointerEvent.clientY || pointerEvent.nativeEvent?.clientY || 0;
+    setPassMenu({
+      x: clientX - rect.left,
+      y: clientY - rect.top,
+      ballId,
+    });
+  }, [readOnly, isPlaying]);
+
+  const startPassMode = (type) => {
+    const ballId = passMenu.ballId;
+    const ball = currentStep.pieces.find((p) => p.id === ballId);
+    setPassMenu(null);
+    if (!ball) return;
+    setPassMode({ type, ballId, fromX: ball.x, fromZ: ball.z, bouncePoint: null });
+    setTool("select"); // exit arrow tool if active
+    if (controlsRef.current) controlsRef.current.enabled = false;
+  };
+
+  const handlePassClick = useCallback((point, clickedPieceId) => {
+    if (!passMode) return;
+    const { type, ballId, fromX, fromZ, bouncePoint } = passMode;
+
+    if (type === "bounce" && !bouncePoint) {
+      // First click: set bounce point
+      setPassMode({ ...passMode, bouncePoint: { x: point.x, z: point.z } });
+      return;
+    }
+
+    // Final click: create the pass
+    const pass = {
+      id: `pass-${Date.now()}`,
+      type,
+      fromPieceId: ballId,
+      toPieceId: clickedPieceId || null,
+      fromX, fromZ,
+      toX: point.x, toZ: point.z,
+    };
+    if (type === "bounce" && bouncePoint) {
+      pass.bounceX = bouncePoint.x;
+      pass.bounceZ = bouncePoint.z;
+    }
+
+    const newSteps = steps.map((s, i) =>
+      i === currentStepIdx ? { ...s, passes: [...(s.passes || []), pass] } : s
+    );
+    updateSteps(newSteps);
+    setPassMode(null);
+    if (controlsRef.current) controlsRef.current.enabled = true;
+  }, [passMode, steps, currentStepIdx, updateSteps]);
+
+  const cancelPassMode = () => {
+    setPassMode(null);
+    if (controlsRef.current) controlsRef.current.enabled = true;
+  };
+
+  const selectedPass = currentStep?.passes?.find((p) => p.id === selectedId);
+
   // ── Step operations ───────────────────────────────────────────────────
   const addStep = () => {
     const last = steps[steps.length - 1];
@@ -162,9 +235,11 @@ export default function DrillSketchEditor({ sketch, onChange, readOnly = false, 
     setCurrentStepIdx(Math.min(currentStepIdx, newSteps.length - 1));
   };
 
-  // ── Ground click (arrow drawing) ──────────────────────────────────────
+  // ── Ground click (arrow drawing + pass placement) ─────────────────────
   const handleGroundClick = useCallback((e) => {
     if (readOnly && !isFullscreen) return;
+    if (passMenu) { setPassMenu(null); return; }
+    if (passMode) { handlePassClick(e.point, null); return; }
     if (isFullscreen) { setSelectedId(null); return; }
     if (tool === "select") { setSelectedId(null); return; }
     if (tool === "arrow") {
@@ -184,7 +259,7 @@ export default function DrillSketchEditor({ sketch, onChange, readOnly = false, 
         if (controlsRef.current) controlsRef.current.enabled = true;
       }
     }
-  }, [tool, arrowStart, steps, currentStepIdx, updateSteps, readOnly, isFullscreen]);
+  }, [tool, arrowStart, steps, currentStepIdx, updateSteps, readOnly, isFullscreen, passMenu, passMode, handlePassClick]);
 
   // ── Playback engine ───────────────────────────────────────────────────
   useEffect(() => {
@@ -242,47 +317,73 @@ export default function DrillSketchEditor({ sketch, onChange, readOnly = false, 
       return { ...piece, x: piece.x + (target.x - piece.x) * animProgress, z: piece.z + (target.z - piece.z) * animProgress };
     });
 
+    const passes = steps[fromIdx].passes || [];
+
     return interpolatedAll.map((interpolated) => {
       const piece = from.find((p) => p.id === interpolated.id) || interpolated;
       const target = to.find((p) => p.id === interpolated.id);
 
-      // Ball trajectory during handball animation
-      if (piece.type === "ball" && sport === "handball" && target) {
+      // Ball trajectory during animation
+      if (piece.type === "ball" && target) {
         const HAND_Y = 1.5, GROUND_Y = 0.28, HOLD_DIST = 1.5;
         const t = animProgress;
 
-        // Check if ball is near a player at start and end frames
-        const nearPlayerStart = from.filter((p) => p.type === "player").some((pl) => {
-          const dx = pl.x - piece.x, dz = pl.z - piece.z;
-          return Math.sqrt(dx * dx + dz * dz) < HOLD_DIST;
-        });
-        const nearPlayerEnd = to.filter((p) => p.type === "player").some((pl) => {
-          const dx = pl.x - target.x, dz = pl.z - target.z;
-          return Math.sqrt(dx * dx + dz * dz) < HOLD_DIST;
-        });
+        // Check for an explicit pass defined for this ball
+        const pass = passes.find((p) => p.fromPieceId === piece.id);
 
-        // Check for bounce arrow along this ball's path
-        const hasBounce = arrows.some((a) => a.style === "bounce" &&
-          Math.abs(a.fromX - piece.x) < 2 && Math.abs(a.fromZ - piece.z) < 2 &&
-          Math.abs(a.toX - target.x) < 2 && Math.abs(a.toZ - target.z) < 2
-        );
+        if (pass) {
+          // Explicit pass — use defined trajectory
+          const startY = HAND_Y; // ball starts from hand (user placed it there)
+          const endY = pass.toPieceId ? HAND_Y : GROUND_Y; // to player = hand, to ground = low
 
-        const startY = nearPlayerStart ? HAND_Y : GROUND_Y;
-        const endY = nearPlayerEnd ? HAND_Y : GROUND_Y;
+          if (pass.type === "bounce" && pass.bounceX != null) {
+            // Bounce pass via explicit bounce point
+            // Compute how far along the total path the bounce point is
+            const d1 = Math.sqrt((pass.bounceX - pass.fromX) ** 2 + (pass.bounceZ - pass.fromZ) ** 2);
+            const d2 = Math.sqrt((pass.toX - pass.bounceX) ** 2 + (pass.toZ - pass.bounceZ) ** 2);
+            const totalD = d1 + d2;
+            const bounceFrac = totalD > 0 ? d1 / totalD : 0.5;
 
-        if (hasBounce) {
-          // Bounce pass: V-curve (start → ground at midpoint → end)
-          interpolated.ballY = t < 0.5
-            ? startY + (GROUND_Y - startY) * (t * 2)
-            : GROUND_Y + (endY - GROUND_Y) * ((t - 0.5) * 2);
-        } else if (nearPlayerStart || nearPlayerEnd) {
-          // Regular pass / air ball: smooth arc (slight parabolic loft)
-          const baseY = startY + (endY - startY) * t;
-          const arcHeight = 0.8; // extra loft at midpoint
-          const arc = arcHeight * 4 * t * (1 - t); // parabola peaking at t=0.5
-          interpolated.ballY = baseY + arc;
+            if (t < bounceFrac) {
+              // Segment 1: hand → ground at bounce point
+              const segT = t / bounceFrac;
+              interpolated.ballY = startY + (GROUND_Y - startY) * segT;
+              // Also interpolate x/z through bounce point
+              interpolated.x = pass.fromX + (pass.bounceX - pass.fromX) * segT;
+              interpolated.z = pass.fromZ + (pass.bounceZ - pass.fromZ) * segT;
+            } else {
+              // Segment 2: ground at bounce → target
+              const segT = (t - bounceFrac) / (1 - bounceFrac);
+              interpolated.ballY = GROUND_Y + (endY - GROUND_Y) * segT;
+              interpolated.x = pass.bounceX + (pass.toX - pass.bounceX) * segT;
+              interpolated.z = pass.bounceZ + (pass.toZ - pass.bounceZ) * segT;
+            }
+          } else if (pass.type === "air") {
+            // Air pass: parabolic arc
+            const baseY = startY + (endY - startY) * t;
+            const arcHeight = 1.0;
+            interpolated.ballY = baseY + arcHeight * 4 * t * (1 - t);
+          } else {
+            // Ground pass: stays low
+            interpolated.ballY = GROUND_Y;
+          }
+        } else if (sport === "handball") {
+          // Fallback: proximity-based trajectory (backward compat)
+          const nearStart = from.filter((p) => p.type === "player").some((pl) => {
+            const dx = pl.x - piece.x, dz = pl.z - piece.z;
+            return Math.sqrt(dx * dx + dz * dz) < HOLD_DIST;
+          });
+          const nearEnd = to.filter((p) => p.type === "player").some((pl) => {
+            const dx = pl.x - target.x, dz = pl.z - target.z;
+            return Math.sqrt(dx * dx + dz * dz) < HOLD_DIST;
+          });
+          if (nearStart || nearEnd) {
+            const startY = nearStart ? HAND_Y : GROUND_Y;
+            const endY = nearEnd ? HAND_Y : GROUND_Y;
+            const baseY = startY + (endY - startY) * t;
+            interpolated.ballY = baseY + 0.8 * 4 * t * (1 - t);
+          }
         }
-        // else: ball stays on ground (no players nearby), no ballY override
       }
 
       return interpolated;
@@ -383,7 +484,8 @@ export default function DrillSketchEditor({ sketch, onChange, readOnly = false, 
       )}
 
       {/* 3D Canvas */}
-      <div className="sketch-canvas-wrapper" style={fullHeight || isFullscreen ? { height: "100%", flex: 1 } : undefined}>
+      <div className="sketch-canvas-wrapper" style={fullHeight || isFullscreen ? { height: "100%", flex: 1 } : undefined}
+        onContextMenu={(e) => e.preventDefault()}>
         <Canvas shadows camera={{ position: [0, 60, 50], fov: 45 }} onPointerMissed={() => setSelectedId(null)}>
           <ambientLight intensity={0.6} />
           <directionalLight position={[30, 50, 20]} intensity={1} castShadow
@@ -402,6 +504,11 @@ export default function DrillSketchEditor({ sketch, onChange, readOnly = false, 
             <Arrow3D key={a.id} arrow={a} isSelected={selectedId === a.id} onSelect={() => setSelectedId(a.id)} />
           ))}
 
+          {/* Pass path visualizations */}
+          {!isPlaying && (currentStep?.passes || []).map((p) => (
+            <Pass3D key={p.id} pass={p} isSelected={selectedId === p.id} onSelect={() => setSelectedId(p.id)} />
+          ))}
+
           {displayedPieces.map((p) => {
             const props = {
               key: p.id, piece: p,
@@ -413,7 +520,12 @@ export default function DrillSketchEditor({ sketch, onChange, readOnly = false, 
               onDragEnd: () => { if (controlsRef.current) controlsRef.current.enabled = true; },
             };
             if (p.type === "cone") return <Cone3D {...props} />;
-            if (p.type === "ball") return <Ball3D {...props} sport={sport} allPieces={displayedPieces} />;
+            if (p.type === "ball") return <Ball3D {...props} sport={sport} allPieces={displayedPieces}
+              onContextMenu={(e) => handleBallContextMenu(p.id, e)} />;
+            if (passMode) {
+              const origSelect = props.onSelect;
+              props.onSelect = () => { handlePassClick({ x: p.x, z: p.z }, p.id); };
+            }
             return <Player3D {...props} sport={sport} />;
           })}
 
@@ -422,6 +534,41 @@ export default function DrillSketchEditor({ sketch, onChange, readOnly = false, 
           <fog attach="fog" args={["#87ceeb", 100, 200]} />
         </Canvas>
       </div>
+
+      {/* Pass context menu */}
+      {passMenu && (
+        <div className="sketch-pass-menu" style={{ position: "absolute", left: passMenu.x, top: passMenu.y, zIndex: 100 }}>
+          <div className="card" style={{ padding: "0.25rem 0", minWidth: 140, boxShadow: "0 4px 12px rgba(0,0,0,0.3)" }}>
+            <button className="sketch-pass-menu-item" onClick={() => startPassMode("air")}>
+              <span style={{ color: "#60a5fa" }}>&#9650;</span> {t("sketch.airPass")}
+            </button>
+            <button className="sketch-pass-menu-item" onClick={() => startPassMode("bounce")}>
+              <span style={{ color: "#fbbf24" }}>&#9660;</span> {t("sketch.bouncePass")}
+            </button>
+            <button className="sketch-pass-menu-item" onClick={() => startPassMode("ground")}>
+              <span style={{ color: "#a3a3a3" }}>&#9654;</span> {t("sketch.groundPass")}
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Pass mode status bar */}
+      {passMode && (
+        <div style={{
+          position: "absolute", bottom: 50, left: "50%", transform: "translateX(-50%)", zIndex: 50,
+          background: "rgba(0,0,0,0.8)", color: "white", padding: "0.5rem 1rem", borderRadius: 8,
+          fontSize: "0.85rem", display: "flex", gap: "0.75rem", alignItems: "center",
+        }}>
+          <span>
+            {passMode.type === "bounce" && !passMode.bouncePoint
+              ? t("sketch.clickBouncePoint")
+              : t("sketch.clickTarget")}
+          </span>
+          <button className="btn btn-sm btn-danger" onClick={cancelPassMode} style={{ padding: "0.15rem 0.5rem" }}>
+            {t("common.cancel")}
+          </button>
+        </div>
+      )}
 
       {/* Step timeline — hidden in fullscreen */}
       {!isFullscreen && (

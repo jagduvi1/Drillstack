@@ -965,7 +965,12 @@
     "addCone": "Add cone",
     "clickEndpoint": "Click to place arrow endpoint...",
     "fullscreen": "Fullscreen",
-    "cycleStyle": "Cycle arrow style (click to change)"
+    "cycleStyle": "Cycle arrow style (click to change)",
+    "airPass": "Air pass",
+    "bouncePass": "Bounce pass",
+    "groundPass": "Ground pass",
+    "clickBouncePoint": "Click where the ball should bounce",
+    "clickTarget": "Click the target player or position"
   },
   "sketches": {
     "title": "3D Sketches",
