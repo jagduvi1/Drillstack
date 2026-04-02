@@ -186,6 +186,14 @@ function TacticArrow({ arrow, sc, tool, onDelete, sport }) {
   const pw = sc.es(1.3 * arrowScale);
 
   if (arrow.style === "dribble") {
+    const isRacket = sport === "padel" || sport?.startsWith("tennis");
+    if (isRacket) {
+      return (
+        <Arrow points={[x1, y1, x2, y2]} stroke={color} strokeWidth={sw}
+          pointerLength={pl} pointerWidth={pw}
+          hitStrokeWidth={14} onClick={handleClick} onTap={handleClick} />
+      );
+    }
     const pts = wavyLinePoints(x1, y1, x2, y2, 6, 5);
     return (
       <Group>
@@ -205,7 +213,7 @@ function TacticArrow({ arrow, sc, tool, onDelete, sport }) {
       const my = (y1 + y2) / 2;
       const dx = x2 - x1, dy = y2 - y1;
       const len = Math.sqrt(dx * dx + dy * dy);
-      const archHeight = len * 0.2;
+      const archHeight = len * 0.45;
       // Perpendicular offset for the arch control point
       const nx = -dy / len, ny = dx / len;
       const cx_ = mx + nx * archHeight, cy_ = my + ny * archHeight;
@@ -377,8 +385,9 @@ export default function TacticCanvas({
       }
     }
 
-    // Drawing arrows (left-click only)
+    // Drawing arrows (left-click only) — start draw even if clicking on existing elements
     if (!isDrawTool || btn !== 0) return;
+    e.evt.preventDefault();
     const [mx, my] = pointerToField(e);
     setDrawingArrow({ fromX: mx, fromY: my, toX: mx, toY: my });
   }, [isDrawTool, pointerToField, canPan, panOffset]);
@@ -417,7 +426,9 @@ export default function TacticCanvas({
     if (!drawingArrow) return;
     const dx = drawingArrow.toX - drawingArrow.fromX;
     const dy = drawingArrow.toY - drawingArrow.fromY;
-    if (Math.sqrt(dx * dx + dy * dy) > 2) {
+    const fieldDiag = Math.sqrt(sc.cfg.w * sc.cfg.w + sc.cfg.h * sc.cfg.h);
+    const minDist = Math.max(0.3, fieldDiag * 0.015);
+    if (Math.sqrt(dx * dx + dy * dy) > minDist) {
       const styleMap = { arrow: "solid", dashedArrow: "dashed", pass: "pass", dribble: "dribble", ballPass: "ballPass" };
       onArrowCreate?.({
         id: `arrow-${Date.now()}`,
