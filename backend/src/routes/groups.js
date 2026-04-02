@@ -119,6 +119,24 @@ router.get("/:id", standardLimiter, authenticate, async (req, res, next) => {
   }
 });
 
+// GET /api/groups/skill-suggestions — unique skill names used by groups with a given sport
+router.get("/skill-suggestions", standardLimiter, authenticate, async (req, res, next) => {
+  try {
+    const sport = String(req.query.sport || "").trim();
+    if (!sport) return res.json([]);
+    const results = await Group.aggregate([
+      { $match: { sport, "customSkills.0": { $exists: true } } },
+      { $unwind: "$customSkills" },
+      { $group: { _id: { key: "$customSkills.key", name: "$customSkills.name", type: "$customSkills.type" }, count: { $sum: 1 } } },
+      { $sort: { count: -1 } },
+      { $limit: 100 },
+    ]);
+    res.json(results.map((r) => ({ key: r._id.key, name: r._id.name, type: r._id.type, count: r.count })));
+  } catch (err) {
+    next(err);
+  }
+});
+
 // PUT /api/groups/:id — update group
 router.put("/:id", standardLimiter, authenticate, [
   body("name").optional().trim().notEmpty().isLength({ max: 100 }),
@@ -134,6 +152,14 @@ router.put("/:id", standardLimiter, authenticate, [
     group.name = req.body.name || group.name;
     group.description = req.body.description ?? group.description;
     group.sport = req.body.sport ?? group.sport;
+    if (req.body.customSkills !== undefined) {
+      group.customSkills = (req.body.customSkills || []).slice(0, 50).map((s, i) => ({
+        key: String(s.key || "").toLowerCase().replace(/[^a-z0-9]/g, "").slice(0, 50),
+        name: String(s.name || "").trim().slice(0, 100),
+        type: ["rating", "level", "cert"].includes(s.type) ? s.type : "rating",
+        order: i,
+      })).filter((s) => s.key && s.name);
+    }
     await group.save();
     await group.populate("members.user", "name email");
     res.json(group);

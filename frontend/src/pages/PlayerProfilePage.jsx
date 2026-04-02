@@ -3,7 +3,7 @@ import { useParams, Link } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { getPlayerOverview, updatePlayer } from "../api/players";
 import { getGroup } from "../api/groups";
-import { getMetricsForSport, getPositionsForSport, getDualPositions, hasDualPositions, SPORTS_WITH_NUMBERS, SPORTS_WITH_FOOT, SPORTS_WITH_HAND } from "../constants/sportMetrics";
+import { getMetricsForSport, getEffectiveMetrics, getPositionsForSport, getDualPositions, hasDualPositions, SPORTS_WITH_NUMBERS, SPORTS_WITH_FOOT, SPORTS_WITH_HAND } from "../constants/sportMetrics";
 import PlayerMetricsEditor from "../components/players/PlayerMetricsEditor";
 import PlayerSkillChart from "../components/players/PlayerSkillChart";
 import PlayerGoalsList from "../components/players/PlayerGoalsList";
@@ -24,6 +24,7 @@ export default function PlayerProfilePage() {
   const [editForm, setEditForm] = useState({});
   const [autoSkills, setAutoSkills] = useState(true);
   const [members, setMembers] = useState([]);
+  const [groupData, setGroupData] = useState(null);
 
   useEffect(() => {
     getPlayerOverview(groupId, playerId)
@@ -31,7 +32,7 @@ export default function PlayerProfilePage() {
       .catch(() => {})
       .finally(() => setLoading(false));
     getGroup(groupId)
-      .then((res) => setMembers(res.data?.members || []))
+      .then((res) => { setMembers(res.data?.members || []); setGroupData(res.data); })
       .catch(() => {});
   }, [groupId, playerId]);
 
@@ -40,7 +41,7 @@ export default function PlayerProfilePage() {
 
   const { player, metrics, goals, recentNotes, history, attendance } = data;
   const sport = player.group?.sport || "";
-  const metricDefs = getMetricsForSport(sport);
+  const metricDefs = groupData ? getEffectiveMetrics(groupData) : getMetricsForSport(sport);
   const metricKeys = metricDefs.filter((d) => d.type === "rating").map((d) => d.key);
 
   const positions = getPositionsForSport(sport);
@@ -55,14 +56,20 @@ export default function PlayerProfilePage() {
   const ratingValues = metricKeys.map((k) => metrics[k]).filter((v) => typeof v === "number");
   const avgSkill = ratingValues.length > 0 ? Math.round(ratingValues.reduce((a, b) => a + b, 0) / ratingValues.length) : null;
 
+  // Helper: get display name for a metric key (prefer custom name, fallback to i18n)
+  const metricLabel = (key) => {
+    const def = metricDefs.find((d) => d.key === key);
+    return def?.name || t(`metrics.${key}`, key);
+  };
+
   // Auto-generate strengths/weaknesses from top/bottom 3 rated metrics
   const ratedMetrics = metricKeys
     .filter((k) => typeof metrics[k] === "number")
     .map((k) => ({ key: k, value: metrics[k] }))
     .sort((a, b) => b.value - a.value);
-  const autoStrengths = ratedMetrics.slice(0, 3).map((m) => t(`metrics.${m.key}`, m.key));
+  const autoStrengths = ratedMetrics.slice(0, 3).map((m) => metricLabel(m.key));
   const autoWeaknesses = ratedMetrics.length > 3
-    ? ratedMetrics.slice(-3).reverse().map((m) => t(`metrics.${m.key}`, m.key))
+    ? ratedMetrics.slice(-3).reverse().map((m) => metricLabel(m.key))
     : [];
 
   const age = player.dateOfBirth
@@ -344,12 +351,12 @@ export default function PlayerProfilePage() {
                 <div className="flex gap-sm" style={{ flexWrap: "wrap", marginBottom: "0.5rem" }}>
                   {metricDefs.filter((d) => d.type === "cert" && metrics[d.key]).map((d) => (
                     <span key={d.key} className="tag tag-success" style={{ fontSize: "0.65rem" }}>
-                      {t(`metrics.${d.key}`, d.key)}
+                      {metricLabel(d.key)}
                     </span>
                   ))}
                   {metricDefs.filter((d) => d.type === "level" && metrics[d.key]).map((d) => (
                     <span key={d.key} className="tag" style={{ fontSize: "0.65rem" }}>
-                      {t(`metrics.${d.key}`, d.key)}: {t(`skillLevels.${metrics[d.key]}`, metrics[d.key])}
+                      {metricLabel(d.key)}: {t(`skillLevels.${metrics[d.key]}`, metrics[d.key])}
                     </span>
                   ))}
                 </div>
@@ -359,7 +366,7 @@ export default function PlayerProfilePage() {
                 {metricKeys.map((key) => (
                   metrics[key] !== undefined ? (
                     <div key={key} className="metric-summary-item">
-                      <span className="text-xs">{t(`metrics.${key}`, key)}</span>
+                      <span className="text-xs">{metricLabel(key)}</span>
                       <div className="metric-bar">
                         <div className="metric-bar-fill" style={{ width: `${metrics[key]}%` }} />
                       </div>
@@ -379,7 +386,7 @@ export default function PlayerProfilePage() {
                 <div key={g._id} className="text-sm" style={{ marginBottom: "0.25rem" }}>
                   <FiTarget style={{ fontSize: "0.7rem", marginRight: "0.25rem" }} />
                   {g.title}
-                  {g.metric && <span className="tag" style={{ fontSize: "0.6rem", marginLeft: "0.35rem" }}>{t(`metrics.${g.metric}`, g.metric)}</span>}
+                  {g.metric && <span className="tag" style={{ fontSize: "0.6rem", marginLeft: "0.35rem" }}>{metricLabel(g.metric)}</span>}
                 </div>
               ))}
             </div>
@@ -417,12 +424,12 @@ export default function PlayerProfilePage() {
           />
           {history.length > 0 && (
             <div style={{ marginTop: "1rem" }}>
-              <PlayerSkillChart history={history} />
+              <PlayerSkillChart history={history} metricDefs={metricDefs} />
               <h4 style={{ margin: "1rem 0 0.5rem" }}>{t("playerProfile.skillHistory")}</h4>
               <div className="skill-history-list">
                 {history.slice(0, 20).map((h) => (
                   <div key={h._id} className="text-sm" style={{ marginBottom: "0.25rem", display: "flex", gap: "0.5rem", alignItems: "center" }}>
-                    <span className="tag" style={{ fontSize: "0.6rem", minWidth: 60 }}>{t(`metrics.${h.metric}`, h.metric)}</span>
+                    <span className="tag" style={{ fontSize: "0.6rem", minWidth: 60 }}>{metricLabel(h.metric)}</span>
                     <span>{h.oldValue} → {h.newValue}</span>
                     {h.note && <span className="text-muted">({h.note})</span>}
                     <span className="text-xs text-muted" style={{ marginLeft: "auto" }}>

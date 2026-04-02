@@ -22,5 +22,7 @@ export const regenerateInvite = (id) => api.post(`/groups/${id}/regenerate-invit
 export const toggleGroupStar = (id, drillId) => api.post(`/groups/${id}/star-drill/${drillId}`);
 export const getGroupStarredDrills = (id) => api.get(`/groups/${id}/starred-drills`);
 
+export const getSkillSuggestions = (sport) => api.get("/groups/skill-suggestions", { params: { sport } });
+
 export const getPendingClubs = () => api.get("/groups/admin/pending-clubs");
 export const verifyClub = (id, verified) => api.put(`/groups/${id}/verify`, { verified });

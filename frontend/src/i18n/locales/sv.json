@@ -963,6 +963,17 @@
     "sv": "Svenska",
     "label": "Språk"
   },
+  "skills": {
+    "title": "Färdigheter",
+    "count_one": "{{count}} färdighet",
+    "count_other": "{{count}} färdigheter",
+    "description": "Ställ in vilka färdigheter som spåras för detta lag. Lägg till, ta bort eller sortera om. Börja skriva för att se förslag från andra lag.",
+    "addPlaceholder": "Lägg till en färdighet (t.ex. Acceleration)...",
+    "typeRating": "Betyg",
+    "typeLevel": "Nivå",
+    "typeCert": "Cert",
+    "resetToDefaults": "Återställ till standard"
+  },
   "settings": {
     "title": "Inställningar",
     "preferredSport": "Föredragen sport",

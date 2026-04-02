@@ -1014,6 +1014,17 @@
     "sv": "Svenska",
     "label": "Language"
   },
+  "skills": {
+    "title": "Skills",
+    "count_one": "{{count}} skill",
+    "count_other": "{{count}} skills",
+    "description": "Configure which skills are tracked for this team. Add, remove, or reorder skills. Start typing to see suggestions from other teams.",
+    "addPlaceholder": "Add a skill (e.g. Acceleration)...",
+    "typeRating": "Rating",
+    "typeLevel": "Level",
+    "typeCert": "Cert",
+    "resetToDefaults": "Reset to defaults"
+  },
   "settings": {
     "title": "Settings",
     "preferredSport": "Preferred Sport",

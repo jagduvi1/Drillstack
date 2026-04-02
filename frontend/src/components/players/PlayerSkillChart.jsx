@@ -4,8 +4,12 @@ import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianG
 
 const COLORS = ["#6366f1", "#22c55e", "#f59e0b", "#ef4444", "#3b82f6", "#8b5cf6", "#ec4899", "#14b8a6"];
 
-export default function PlayerSkillChart({ history }) {
+export default function PlayerSkillChart({ history, metricDefs = [] }) {
   const { t } = useTranslation();
+  const metricLabel = (key) => {
+    const def = metricDefs.find((d) => d.key === key);
+    return def?.name || t(`metrics.${key}`, key);
+  };
 
   // Group history by metric, only include numeric ratings
   const metricGroups = useMemo(() => {
@@ -76,7 +80,7 @@ export default function PlayerSkillChart({ history }) {
               borderLeft: `3px solid ${COLORS[i % COLORS.length]}`,
             }}
             onClick={() => toggleMetric(m)}>
-            {t(`metrics.${m}`, m)}
+            {metricLabel(m)}
           </button>
         ))}
       </div>
@@ -90,7 +94,7 @@ export default function PlayerSkillChart({ history }) {
             <Tooltip contentStyle={{ fontSize: 12, background: "var(--color-card)", border: "1px solid var(--color-border)" }} />
             {selectedMetrics.map((m, i) => (
               <Line key={m} type="monotone" dataKey={m}
-                name={t(`metrics.${m}`, m)}
+                name={metricLabel(m)}
                 stroke={COLORS[i % COLORS.length]}
                 strokeWidth={2} dot={{ r: 3 }} connectNulls />
             ))}

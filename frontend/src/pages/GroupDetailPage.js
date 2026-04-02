@@ -8,6 +8,7 @@ import { useGroups } from "../context/GroupContext";
 import { FiTrash2, FiPlus, FiUsers, FiShield, FiUser, FiCopy, FiRefreshCw, FiLink, FiXCircle, FiStar, FiSearch, FiAlertCircle, FiCheck, FiEdit3 } from "react-icons/fi";
 import PlayerRoster from "../components/groups/PlayerRoster";
 import TrainerRoster from "../components/groups/TrainerRoster";
+import SkillsConfig from "../components/groups/SkillsConfig";
 import { SPORT_GROUPS } from "../components/tactics/sportConfigs";
 
 export default function GroupDetailPage() {
@@ -362,6 +363,9 @@ export default function GroupDetailPage() {
 
       {/* Player Roster */}
       <PlayerRoster groupId={id} canEdit={isTrainer} sport={group.sport} members={group.members} />
+
+      {/* Skills Config — admin only */}
+      {isAdmin && <SkillsConfig group={group} onSaved={(updated) => setGroup((g) => ({ ...g, customSkills: updated.customSkills }))} />}
 
       {/* Starred Drills */}
       {isTrainer && (
