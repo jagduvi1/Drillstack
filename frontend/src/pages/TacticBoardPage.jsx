@@ -234,7 +234,8 @@ export default function TacticBoardPage() {
     const sportViews = SPORT_CONFIGS[newSport]?.fieldViews || {};
     const newFieldType = sportViews[fieldType] ? fieldType : "full";
     setFieldType(newFieldType);
-    setSteps([createInitialStep(defaultF, defaultF, newSport)]);
+    const viewCfg = sportViews[newFieldType] || Object.values(sportViews)[0];
+    setSteps([createInitialStep(defaultF, defaultF, newSport, viewCfg)]);
     setCurrentStepIdx(0);
     setSelectedPieceId(null);
   };
@@ -408,7 +409,9 @@ export default function TacticBoardPage() {
     const hasPieces = currentStep?.pieces.length > 0 || steps.length > 1;
     if (hasPieces && !window.confirm(t("tactics.confirmFieldChange"))) return;
     setFieldType(newType);
-    setSteps([createInitialStep(homeFormation, awayFormation, sport)]);
+    const sportViews = SPORT_CONFIGS[sport]?.fieldViews || {};
+    const viewCfg = sportViews[newType] || Object.values(sportViews)[0];
+    setSteps([createInitialStep(homeFormation, awayFormation, sport, viewCfg)]);
     setCurrentStepIdx(0);
     setSelectedPieceId(null);
   };
