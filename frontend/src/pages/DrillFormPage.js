@@ -9,6 +9,7 @@ import DebugPanel from "../components/common/DebugPanel";
 import useDebugPanel from "../hooks/useDebugPanel";
 import useFormState from "../hooks/useFormState";
 import { FiZap, FiSave, FiX, FiPlus, FiTrash2, FiAlertCircle, FiCode, FiMessageCircle, FiTarget } from "react-icons/fi";
+import { getMetricsForSport } from "../constants/sportMetrics";
 import DrillFormAiChat from "../components/drills/DrillFormAiChat";
 import { lazy, Suspense } from "react";
 const DrillSketchEditor = lazy(() => import("../components/drills/sketch3d/DrillSketchEditor"));
@@ -367,13 +368,42 @@ export default function DrillFormPage() {
             {/* Tags for plan matching */}
             <div className="form-group" style={{ marginTop: "0.5rem" }}>
               <label>{t("drills.tags")}</label>
-              <div className="flex gap-sm mb-sm" style={{ flexWrap: "wrap" }}>
-                {(form.tags || []).map((tag, i) => (
-                  <span key={i} className="tag" style={{ cursor: "pointer" }} onClick={() => set("tags", form.tags.filter((_, j) => j !== i))}>
-                    {tag} &times;
-                  </span>
-                ))}
-              </div>
+              {(() => {
+                const sportMetrics = getMetricsForSport((form.sport || "").toLowerCase()).filter((m) => m.type === "rating");
+                const skillLabels = new Set(sportMetrics.map((m) => t(`metrics.${m.key}`, m.key)));
+                return (
+                  <div className="flex gap-sm" style={{ flexWrap: "wrap", marginBottom: "0.75rem" }}>
+                    {(form.tags || []).map((tag, i) => {
+                      const isSkill = skillLabels.has(tag);
+                      return (
+                        <span key={i} className="tag" style={{ cursor: "pointer", background: isSkill ? "#e0e7ff" : "#f3f4f6", color: isSkill ? "#3730a3" : "#374151" }}
+                          onClick={() => set("tags", form.tags.filter((_, j) => j !== i))}>
+                          {tag} &times;
+                        </span>
+                      );
+                    })}
+                  </div>
+                );
+              })()}
+              {/* Predefined skill tags from sport metrics */}
+              {(() => {
+                const sportMetrics = getMetricsForSport((form.sport || "").toLowerCase()).filter((m) => m.type === "rating");
+                const currentTags = form.tags || [];
+                const available = sportMetrics.filter((m) => !currentTags.includes(t(`metrics.${m.key}`, m.key)));
+                return available.length > 0 ? (
+                  <div className="flex gap-sm" style={{ flexWrap: "wrap", marginBottom: "0.75rem" }}>
+                    {available.map((m) => {
+                      const label = t(`metrics.${m.key}`, m.key);
+                      return (
+                        <span key={m.key} className="tag" style={{ cursor: "pointer", background: "var(--color-bg)", border: "1px dashed #aaa", fontSize: "0.7rem" }}
+                          onClick={() => set("tags", [...currentTags, label])}>
+                          + {label}
+                        </span>
+                      );
+                    })}
+                  </div>
+                ) : null;
+              })()}
               <input
                 className="form-control"
                 placeholder={t("drills.tagsPlaceholder")}
