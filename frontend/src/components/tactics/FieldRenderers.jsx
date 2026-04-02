@@ -483,16 +483,18 @@ function PadelField({ sc, sportCfg }) {
       <Line points={[sc.x(svc), sc.y(0), sc.x(svc), sc.y(h)]} stroke={lc} strokeWidth={lw} />
       <Line points={[sc.x(w - svc), sc.y(0), sc.x(w - svc), sc.y(h)]} stroke={lc} strokeWidth={lw} />
 
-      {/* Center service lines (T-lines: run from service line to net through each service box) */}
-      <Line points={[sc.x(svc), sc.y(h / 2), sc.x(cx), sc.y(h / 2)]} stroke={lc} strokeWidth={lw} />
-      <Line points={[sc.x(cx), sc.y(h / 2), sc.x(w - svc), sc.y(h / 2)]} stroke={lc} strokeWidth={lw} />
+      {/* Center service lines (T-lines: run from service line to net, with short tick past service line) */}
+      <Line points={[sc.x(svc - 0.4), sc.y(h / 2), sc.x(cx), sc.y(h / 2)]} stroke={lc} strokeWidth={lw} />
+      <Line points={[sc.x(cx), sc.y(h / 2), sc.x(w - svc + 0.4), sc.y(h / 2)]} stroke={lc} strokeWidth={lw} />
 
-      {/* Back wall indicators (small marks at court edges) */}
+      {/* Back wall indicators */}
       <Line points={[sc.x(0), sc.y(0), sc.x(0), sc.y(h)]} stroke="rgba(255,255,255,0.5)" strokeWidth={4} />
       <Line points={[sc.x(w), sc.y(0), sc.x(w), sc.y(h)]} stroke="rgba(255,255,255,0.5)" strokeWidth={4} />
-      {/* Side wall indicators */}
-      <Line points={[sc.x(0), sc.y(0), sc.x(w), sc.y(0)]} stroke="rgba(255,255,255,0.5)" strokeWidth={4} />
-      <Line points={[sc.x(0), sc.y(h), sc.x(w), sc.y(h)]} stroke="rgba(255,255,255,0.5)" strokeWidth={4} />
+      {/* Side walls with door openings (~2.6m gap centered) */}
+      <Line points={[sc.x(0), sc.y(0), sc.x(cx - 1.3), sc.y(0)]} stroke="rgba(255,255,255,0.5)" strokeWidth={4} />
+      <Line points={[sc.x(cx + 1.3), sc.y(0), sc.x(w), sc.y(0)]} stroke="rgba(255,255,255,0.5)" strokeWidth={4} />
+      <Line points={[sc.x(0), sc.y(h), sc.x(cx - 1.3), sc.y(h)]} stroke="rgba(255,255,255,0.5)" strokeWidth={4} />
+      <Line points={[sc.x(cx + 1.3), sc.y(h), sc.x(w), sc.y(h)]} stroke="rgba(255,255,255,0.5)" strokeWidth={4} />
     </Group>
   );
 }
