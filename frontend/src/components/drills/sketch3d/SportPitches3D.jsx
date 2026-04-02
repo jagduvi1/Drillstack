@@ -12,6 +12,19 @@ function Lines({ points, color = "white", opacity = 0.8 }) {
   );
 }
 
+/** Renders a continuous dashed line through an ordered list of points. */
+function DashedArc({ points, color = "white", opacity = 0.8, dashSize = 0.4, gapSize = 0.3 }) {
+  const geometry = useMemo(() => new THREE.BufferGeometry().setFromPoints(points), [points]);
+  return (
+    <line
+      geometry={geometry}
+      ref={(el) => { if (el) el.computeLineDistances(); }}
+    >
+      <lineDashedMaterial color={color} transparent opacity={opacity} dashSize={dashSize} gapSize={gapSize} />
+    </line>
+  );
+}
+
 function arcSegments(cx, cz, r, startDeg, endDeg, y = 0.02, n = 32) {
   const pts = [];
   for (let i = 0; i < n; i++) {
@@ -19,6 +32,16 @@ function arcSegments(cx, cz, r, startDeg, endDeg, y = 0.02, n = 32) {
     const a2 = ((startDeg + (endDeg - startDeg) * ((i + 1) / n)) * Math.PI) / 180;
     pts.push(new THREE.Vector3(cx + Math.cos(a1) * r, y, cz + Math.sin(a1) * r));
     pts.push(new THREE.Vector3(cx + Math.cos(a2) * r, y, cz + Math.sin(a2) * r));
+  }
+  return pts;
+}
+
+/** Returns an ordered array of points along an arc (for continuous Line geometry). */
+function arcPoints(cx, cz, r, startDeg, endDeg, y = 0.02, n = 64) {
+  const pts = [];
+  for (let i = 0; i <= n; i++) {
+    const a = ((startDeg + (endDeg - startDeg) * (i / n)) * Math.PI) / 180;
+    pts.push(new THREE.Vector3(cx + Math.cos(a) * r, y, cz + Math.sin(a) * r));
   }
   return pts;
 }
@@ -118,24 +141,25 @@ export function FootballLines3D({ w = 105, h = 68 }) {
 // ── Handball (40x20) ────────────────────────────────────────────────────────
 export function HandballPitch3D() {
   const w = 40, h = 20, hw = w / 2, hh = h / 2;
-  const points = useMemo(() => {
+  const solidPoints = useMemo(() => {
     const lines = [];
     addLine(lines, -hw, -hh, hw, -hh); addLine(lines, hw, -hh, hw, hh);
     addLine(lines, hw, hh, -hw, hh); addLine(lines, -hw, hh, -hw, -hh);
     addLine(lines, 0, -hh, 0, hh); // center
-    lines.push(...arcSegments(0, 0, 4, 0, 360)); // center circle (4m radius approx)
-    // 6m goal area arcs
+    lines.push(...arcSegments(0, 0, 4, 0, 360)); // center circle
+    // 6m goal area arcs (solid)
     lines.push(...arcSegments(-hw, 0, 6, -90, 90));
     lines.push(...arcSegments(hw, 0, 6, 90, 270));
-    // 9m dashed lines (free throw)
-    lines.push(...arcSegments(-hw, 0, 9, -90, 90));
-    lines.push(...arcSegments(hw, 0, 9, 90, 270));
     return lines;
   }, []);
+  const dashed9mLeft = useMemo(() => arcPoints(-hw, 0, 9, -90, 90), []);
+  const dashed9mRight = useMemo(() => arcPoints(hw, 0, 9, 90, 270), []);
   return (
     <group>
       <Surface w={w} h={h} color="#2a5a8a" stripes={false} />
-      <Lines points={points} />
+      <Lines points={solidPoints} />
+      <DashedArc points={dashed9mLeft} />
+      <DashedArc points={dashed9mRight} />
       <Goals3D hw={hw} goalWidth={3} goalHeight={2} />
     </group>
   );
