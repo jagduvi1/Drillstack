@@ -127,6 +127,8 @@ export default function PlayerProfilePage() {
                   {player.skillRating}/100
                 </span>
               )}
+              {autoStrengths[0] && <span className="tag tag-success" style={{ fontSize: "0.7rem" }}>{autoStrengths[0]}</span>}
+              {autoWeaknesses[0] && <span className="tag" style={{ fontSize: "0.7rem", background: "#fee2e2", color: "#991b1b" }}>{autoWeaknesses[0]}</span>}
             </div>
           </div>
           <button className="btn btn-secondary btn-sm" onClick={editing ? handleSaveProfile : startEdit}>
