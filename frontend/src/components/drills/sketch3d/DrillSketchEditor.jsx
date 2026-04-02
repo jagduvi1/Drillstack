@@ -131,6 +131,20 @@ export default function DrillSketchEditor({ sketch, onChange, readOnly = false, 
     setSelectedId(null);
   };
 
+  // ── Arrow style cycling ────────────────────────────────────────────────
+  const ARROW_STYLES = ["solid", "dashed", "pass", "bounce"];
+  const selectedArrow = currentStep?.arrows?.find((a) => a.id === selectedId);
+
+  const cycleArrowStyle = () => {
+    if (!selectedArrow) return;
+    const idx = ARROW_STYLES.indexOf(selectedArrow.style || "solid");
+    const next = ARROW_STYLES[(idx + 1) % ARROW_STYLES.length];
+    const newSteps = steps.map((s, i) =>
+      i === currentStepIdx ? { ...s, arrows: s.arrows.map((a) => a.id === selectedId ? { ...a, style: next } : a) } : s
+    );
+    updateSteps(newSteps);
+  };
+
   // ── Step operations ───────────────────────────────────────────────────
   const addStep = () => {
     const last = steps[steps.length - 1];
@@ -219,12 +233,31 @@ export default function DrillSketchEditor({ sketch, onChange, readOnly = false, 
     if (fromIdx === toIdx) return steps[toIdx].pieces;
     const from = steps[fromIdx].pieces;
     const to = steps[toIdx].pieces;
+    const arrows = steps[fromIdx].arrows || [];
+
     return from.map((piece) => {
       const target = to.find((p) => p.id === piece.id);
       if (!target) return piece;
-      return { ...piece, x: piece.x + (target.x - piece.x) * animProgress, z: piece.z + (target.z - piece.z) * animProgress };
+      const interpolated = { ...piece, x: piece.x + (target.x - piece.x) * animProgress, z: piece.z + (target.z - piece.z) * animProgress };
+
+      // Bounce pass: ball y-position follows a V-curve (hand → ground → hand)
+      if (piece.type === "ball" && sport === "handball") {
+        const HAND_Y = 1.5, GROUND_Y = 0.28;
+        // Check if there's a bounce arrow near the ball's path
+        const hasBounce = arrows.some((a) => a.style === "bounce" &&
+          Math.abs(a.fromX - piece.x) < 2 && Math.abs(a.fromZ - piece.z) < 2 &&
+          Math.abs(a.toX - target.x) < 2 && Math.abs(a.toZ - target.z) < 2
+        );
+        if (hasBounce) {
+          // V-curve: dips to ground at t=0.5, returns to hand height at t=1
+          const t = animProgress;
+          interpolated.ballY = HAND_Y - (HAND_Y - GROUND_Y) * (1 - Math.pow(2 * t - 1, 2));
+        }
+      }
+
+      return interpolated;
     });
-  }, [isPlaying, steps, currentStep, animStep, animProgress]);
+  }, [isPlaying, steps, currentStep, animStep, animProgress, sport]);
 
   const displayedArrows = isPlaying ? steps[animStep]?.arrows || [] : currentStep?.arrows || [];
 
@@ -287,6 +320,11 @@ export default function DrillSketchEditor({ sketch, onChange, readOnly = false, 
           {selectedId && (
             <>
               <span className="sketch-toolbar-divider" />
+              {selectedArrow && (
+                <button className="btn btn-sm btn-secondary" onClick={cycleArrowStyle} title={t("sketch.cycleStyle")}>
+                  {selectedArrow.style || "solid"}
+                </button>
+              )}
               <button className="btn btn-sm btn-danger" onClick={deleteSelected}><FiTrash2 /> {t("common.delete")}</button>
             </>
           )}
@@ -330,7 +368,9 @@ export default function DrillSketchEditor({ sketch, onChange, readOnly = false, 
             <meshBasicMaterial />
           </mesh>
 
-          {displayedArrows.map((a) => <Arrow3D key={a.id} arrow={a} />)}
+          {displayedArrows.map((a) => (
+            <Arrow3D key={a.id} arrow={a} isSelected={selectedId === a.id} onSelect={() => setSelectedId(a.id)} />
+          ))}
 
           {displayedPieces.map((p) => {
             const props = {
@@ -343,8 +383,8 @@ export default function DrillSketchEditor({ sketch, onChange, readOnly = false, 
               onDragEnd: () => { if (controlsRef.current) controlsRef.current.enabled = true; },
             };
             if (p.type === "cone") return <Cone3D {...props} />;
-            if (p.type === "ball") return <Ball3D {...props} />;
-            return <Player3D {...props} />;
+            if (p.type === "ball") return <Ball3D {...props} sport={sport} allPieces={displayedPieces} />;
+            return <Player3D {...props} sport={sport} />;
           })}
 
           <NativeOrbitControls controlsRef={controlsRef} maxPolarAngle={Math.PI / 2.1} minDistance={15} maxDistance={120} />

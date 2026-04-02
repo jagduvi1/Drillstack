@@ -964,7 +964,8 @@
     "addBall": "Add ball",
     "addCone": "Add cone",
     "clickEndpoint": "Click to place arrow endpoint...",
-    "fullscreen": "Fullscreen"
+    "fullscreen": "Fullscreen",
+    "cycleStyle": "Cycle arrow style (click to change)"
   },
   "sketches": {
     "title": "3D Sketches",

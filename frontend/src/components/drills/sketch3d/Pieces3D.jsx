@@ -68,7 +68,8 @@ function DraggablePiece({ children, position, onMove, isSelected, onSelect, enab
 }
 
 // ── Low-poly humanoid player ────────────────────────────────────────────────
-function LowPolyPlayer({ color, skinColor = "#f4c587" }) {
+function LowPolyPlayer({ color, skinColor = "#f4c587", sport }) {
+  const isHandball = sport === "handball";
   return (
     <group>
       {/* Feet / shoes */}
@@ -103,15 +104,19 @@ function LowPolyPlayer({ color, skinColor = "#f4c587" }) {
         <meshStandardMaterial color={color} />
       </mesh>
 
-      {/* Arms */}
+      {/* Left arm — always at side */}
       <mesh position={[-0.52, 1.3, 0]} castShadow>
         <boxGeometry args={[0.2, 0.65, 0.2]} />
         <meshStandardMaterial color={skinColor} />
       </mesh>
-      <mesh position={[0.52, 1.3, 0]} castShadow>
-        <boxGeometry args={[0.2, 0.65, 0.2]} />
-        <meshStandardMaterial color={skinColor} />
-      </mesh>
+
+      {/* Right arm — raised for handball (throwing stance) */}
+      <group position={[0.52, 1.6, 0]} rotation={isHandball ? [-0.5, 0, 0] : [0, 0, 0]}>
+        <mesh position={[0, -0.3, 0]} castShadow>
+          <boxGeometry args={[0.2, 0.65, 0.2]} />
+          <meshStandardMaterial color={skinColor} />
+        </mesh>
+      </group>
 
       {/* Neck */}
       <mesh position={[0, 1.85, 0]}>
@@ -134,7 +139,7 @@ function LowPolyPlayer({ color, skinColor = "#f4c587" }) {
   );
 }
 
-export function Player3D({ piece, onMove, isSelected, onSelect, enabled, onDragStart, onDragEnd }) {
+export function Player3D({ piece, onMove, isSelected, onSelect, enabled, onDragStart, onDragEnd, sport }) {
   const color = piece.color || (piece.team === "home" ? "#2563eb" : "#ef4444");
   return (
     <DraggablePiece
@@ -142,7 +147,7 @@ export function Player3D({ piece, onMove, isSelected, onSelect, enabled, onDragS
       onMove={onMove} isSelected={isSelected} onSelect={onSelect} enabled={enabled}
       onDragStart={onDragStart} onDragEnd={onDragEnd}
     >
-      <LowPolyPlayer color={color} />
+      <LowPolyPlayer color={color} sport={sport} />
       {/* Label sprite above head */}
       {piece.label && (
         <sprite position={[0, 3, 0]} scale={[1, 0.5, 1]}>
@@ -173,29 +178,56 @@ export function Cone3D({ piece, onMove, isSelected, onSelect, enabled, onDragSta
   );
 }
 
-export function Ball3D({ piece, onMove, isSelected, onSelect, enabled, onDragStart, onDragEnd }) {
+const HANDBALL_BALL_Y = 1.5; // hand height
+const GROUND_BALL_Y = 0.35;
+const HANDBALL_HOLD_DIST = 1.5; // max distance to "hold" ball
+
+export function Ball3D({ piece, onMove, isSelected, onSelect, enabled, onDragStart, onDragEnd, sport, allPieces }) {
+  const isHandball = sport === "handball";
+
+  // For handball: check if a player is close enough to "hold" the ball
+  let ballY = GROUND_BALL_Y;
+  let offsetX = 0;
+  if (isHandball && allPieces) {
+    const players = allPieces.filter((p) => p.type === "player");
+    let minDist = Infinity;
+    for (const pl of players) {
+      const dx = pl.x - piece.x, dz = pl.z - piece.z;
+      const dist = Math.sqrt(dx * dx + dz * dz);
+      if (dist < minDist) minDist = dist;
+    }
+    if (minDist < HANDBALL_HOLD_DIST) {
+      ballY = HANDBALL_BALL_Y;
+      offsetX = 0.6; // offset to the right (throwing hand)
+    }
+  }
+
+  // Allow override from animation (piece.ballY)
+  const finalY = piece.ballY != null ? piece.ballY : ballY;
+
   return (
     <DraggablePiece
       position={[piece.x, 0, piece.z]}
       onMove={onMove} isSelected={isSelected} onSelect={onSelect} enabled={enabled}
       onDragStart={onDragStart} onDragEnd={onDragEnd}
     >
-      <mesh position={[0, 0.35, 0]} castShadow>
-        <icosahedronGeometry args={[0.35, 1]} />
+      <mesh position={[offsetX, finalY, 0]} castShadow>
+        <icosahedronGeometry args={[0.28, 1]} />
         <meshStandardMaterial color="white" flatShading />
       </mesh>
       {/* Dark panels */}
-      <mesh position={[0, 0.35, 0]}>
-        <icosahedronGeometry args={[0.36, 0]} />
+      <mesh position={[offsetX, finalY, 0]}>
+        <icosahedronGeometry args={[0.29, 0]} />
         <meshStandardMaterial color="#333" wireframe transparent opacity={0.4} />
       </mesh>
     </DraggablePiece>
   );
 }
 
-export function Arrow3D({ arrow }) {
+export function Arrow3D({ arrow, onSelect, isSelected }) {
   const color = arrow.color || "#ffffff";
-  const dashed = arrow.style === "dashed" || arrow.style === "pass";
+  const isBounce = arrow.style === "bounce";
+  const dashed = arrow.style === "dashed" || arrow.style === "pass" || isBounce;
 
   const dx = arrow.toX - arrow.fromX;
   const dz = arrow.toZ - arrow.fromZ;
@@ -203,21 +235,36 @@ export function Arrow3D({ arrow }) {
   if (len < 0.5) return null;
   const angle = Math.atan2(dx, dz);
 
-  // Arrow shaft as a thin box
   const midX = (arrow.fromX + arrow.toX) / 2;
   const midZ = (arrow.fromZ + arrow.toZ) / 2;
 
+  const arrowColor = isBounce ? "#fbbf24" : color;
+
   return (
-    <group>
+    <group onClick={(e) => { e.stopPropagation(); onSelect?.(); }}>
+      {/* Selection highlight */}
+      {isSelected && (
+        <mesh position={[midX, 0.02, midZ]} rotation={[-Math.PI / 2, 0, angle]}>
+          <planeGeometry args={[0.6, len]} />
+          <meshBasicMaterial color="#fbbf24" transparent opacity={0.25} side={THREE.DoubleSide} />
+        </mesh>
+      )}
       {/* Shaft */}
       <mesh position={[midX, 0.15, midZ]} rotation={[0, angle, 0]}>
         <boxGeometry args={[0.15, 0.1, len - 0.8]} />
-        <meshStandardMaterial color={color} transparent={dashed} opacity={dashed ? 0.5 : 0.9} />
+        <meshStandardMaterial color={arrowColor} transparent={dashed} opacity={dashed ? 0.5 : 0.9} />
       </mesh>
+      {/* Bounce indicator — small sphere at ground level */}
+      {isBounce && (
+        <mesh position={[midX, 0.05, midZ]}>
+          <sphereGeometry args={[0.25, 8, 8]} />
+          <meshStandardMaterial color="#fbbf24" transparent opacity={0.7} />
+        </mesh>
+      )}
       {/* Arrowhead */}
       <mesh position={[arrow.toX, 0.2, arrow.toZ]} rotation={[-Math.PI / 2, 0, -angle + Math.PI]}>
         <coneGeometry args={[0.4, 0.8, 6]} />
-        <meshStandardMaterial color={color} />
+        <meshStandardMaterial color={arrowColor} />
       </mesh>
     </group>
   );

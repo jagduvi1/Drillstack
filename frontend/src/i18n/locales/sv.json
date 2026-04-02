@@ -977,7 +977,8 @@
     "addBall": "Lägg till boll",
     "addCone": "Lägg till kon",
     "clickEndpoint": "Klicka för att placera pilens slutpunkt...",
-    "fullscreen": "Helskärm"
+    "fullscreen": "Helskärm",
+    "cycleStyle": "Byt pilstil (klicka för att ändra)"
   },
   "sketches": {
     "title": "3D Skisser",
