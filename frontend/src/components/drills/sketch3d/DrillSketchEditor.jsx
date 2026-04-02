@@ -203,9 +203,21 @@ export default function DrillSketchEditor({ sketch, onChange, readOnly = false, 
       pass.bounceZ = bouncePoint.z;
     }
 
-    const newSteps = steps.map((s, i) =>
-      i === currentStepIdx ? { ...s, passes: [...(s.passes || []), pass] } : s
-    );
+    const newSteps = steps.map((s, i) => {
+      if (i === currentStepIdx) {
+        return { ...s, passes: [...(s.passes || []), pass] };
+      }
+      // Auto-move the ball to the target position in the next step
+      if (i === currentStepIdx + 1) {
+        return {
+          ...s,
+          pieces: s.pieces.map((p) =>
+            p.id === ballId ? { ...p, x: point.x, z: point.z } : p
+          ),
+        };
+      }
+      return s;
+    });
     updateSteps(newSteps);
     setPassMode(null);
     if (controlsRef.current) controlsRef.current.enabled = true;
@@ -359,12 +371,16 @@ export default function DrillSketchEditor({ sketch, onChange, readOnly = false, 
               interpolated.z = pass.bounceZ + (pass.toZ - pass.bounceZ) * segT;
             }
           } else if (pass.type === "air") {
-            // Air pass: parabolic arc
+            // Air pass: parabolic arc + move x/z to target
+            interpolated.x = pass.fromX + (pass.toX - pass.fromX) * t;
+            interpolated.z = pass.fromZ + (pass.toZ - pass.fromZ) * t;
             const baseY = startY + (endY - startY) * t;
             const arcHeight = 1.0;
             interpolated.ballY = baseY + arcHeight * 4 * t * (1 - t);
           } else {
-            // Ground pass: stays low
+            // Ground pass: stays low + move x/z to target
+            interpolated.x = pass.fromX + (pass.toX - pass.fromX) * t;
+            interpolated.z = pass.fromZ + (pass.toZ - pass.fromZ) * t;
             interpolated.ballY = GROUND_Y;
           }
         } else if (sport === "handball") {
