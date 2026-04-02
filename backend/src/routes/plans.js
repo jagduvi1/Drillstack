@@ -3,6 +3,7 @@ const { body } = require("express-validator");
 const validate = require("../middleware/validate");
 const { authenticate } = require("../middleware/auth");
 const { resolveUserGroups } = require("../middleware/groupAuth");
+const { checkOwnership } = require("../middleware/checkOwnership");
 const Plan = require("../models/Plan");
 const TrainingSession = require("../models/TrainingSession");
 const { indexPlan } = require("../services/sync");
@@ -114,6 +115,7 @@ router.put(
   "/:id",
   authenticate,
   resolveUserGroups,
+  checkOwnership(Plan, { resourceName: "Plan", groupField: "followers" }),
   [
     body("name").optional().trim().notEmpty().isLength({ max: 200 }),
     body("startDate").optional().isISO8601(),
@@ -122,12 +124,7 @@ router.put(
   validate,
   async (req, res, next) => {
     try {
-      const plan = await Plan.findById(req.params.id);
-      if (!plan) return res.status(404).json({ error: "Plan not found" });
-      if (plan.createdBy.toString() !== req.user._id.toString()) {
-        return res.status(403).json({ error: "Not authorized" });
-      }
-
+      const plan = req.resource;
       const { name, sport, startDate, endDate, objective, phases, followers, visibility } = req.body;
       Object.assign(plan, {
         ...(name !== undefined && { name }),
@@ -151,13 +148,14 @@ router.put(
 
 // ── DELETE /api/plans/:id ───────────────────────────────────────────────────
 
-router.delete("/:id", authenticate, async (req, res, next) => {
+router.delete(
+  "/:id",
+  authenticate,
+  resolveUserGroups,
+  checkOwnership(Plan, { resourceName: "Plan", groupField: "followers" }),
+  async (req, res, next) => {
   try {
-    const plan = await Plan.findById(req.params.id);
-    if (!plan) return res.status(404).json({ error: "Plan not found" });
-    if (plan.createdBy.toString() !== req.user._id.toString()) {
-      return res.status(403).json({ error: "Not authorized" });
-    }
+    const plan = req.resource;
 
     // Unlink sessions that reference this plan
     await TrainingSession.updateMany(

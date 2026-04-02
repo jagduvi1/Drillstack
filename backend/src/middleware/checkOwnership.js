@@ -10,12 +10,14 @@
  * @param {string} [opts.resourceName] - Name for error messages (default: "Resource")
  * @param {boolean} [opts.allowAdmin] - Also allow req.user.role === "admin" (default: false)
  * @param {boolean} [opts.allowGroupTrainer] - Allow group trainers via req.userTrainerGroupIds (default: true)
+ * @param {string} [opts.groupField] - Field name for group access check: "group" (single ref) or "followers" (array of refs). Default: "group"
  */
 function checkOwnership(Model, opts = {}) {
   const {
     resourceName = "Resource",
     allowAdmin = false,
     allowGroupTrainer = true,
+    groupField = "group",
   } = opts;
 
   return async (req, res, next) => {
@@ -27,9 +29,22 @@ function checkOwnership(Model, opts = {}) {
 
       const isOwner = resource.createdBy.toString() === req.user._id.toString();
       const isAdmin = allowAdmin && req.user.role === "admin";
-      const isGroupMember = allowGroupTrainer && resource.group &&
-        req.userTrainerGroupIds &&
-        req.userTrainerGroupIds.some((gid) => gid.toString() === resource.group.toString());
+
+      let isGroupMember = false;
+      if (allowGroupTrainer && req.userTrainerGroupIds?.length) {
+        const fieldValue = resource[groupField];
+        if (Array.isArray(fieldValue)) {
+          // followers-style: array of group refs
+          isGroupMember = fieldValue.some((fid) =>
+            req.userTrainerGroupIds.some((gid) => gid.toString() === fid.toString())
+          );
+        } else if (fieldValue) {
+          // group-style: single group ref
+          isGroupMember = req.userTrainerGroupIds.some(
+            (gid) => gid.toString() === fieldValue.toString()
+          );
+        }
+      }
 
       if (!isOwner && !isAdmin && !isGroupMember) {
         return res.status(403).json({ error: "Not authorized" });
