@@ -2,7 +2,7 @@ import { useState, useEffect, memo } from "react";
 import { useTranslation } from "react-i18next";
 import { updateGroup, getSkillSuggestions } from "../../api/groups";
 import { getMetricsForSport } from "../../constants/sportMetrics";
-import { FiPlus, FiTrash2, FiChevronUp, FiChevronDown, FiSave, FiCheck } from "react-icons/fi";
+import { FiPlus, FiTrash2, FiSave, FiCheck } from "react-icons/fi";
 
 export default memo(function SkillsConfig({ group, onSaved }) {
   const { t } = useTranslation();
@@ -13,13 +13,13 @@ export default memo(function SkillsConfig({ group, onSaved }) {
     if (group.customSkills?.length > 0) {
       return group.customSkills
         .sort((a, b) => (a.order || 0) - (b.order || 0))
-        .map((s) => ({ key: s.key, name: s.name, type: s.type || "rating", weight: s.weight ?? 1 }));
+        .map((s) => ({ key: s.key, name: s.name, type: s.type || "rating", weight: s.weight ?? 5 }));
     }
     return sportDefaults.map((d) => ({
       key: d.key,
       name: t(`metrics.${d.key}`, d.key),
       type: d.type,
-      weight: 1,
+      weight: 5,
     }));
   });
   const [weightsEnabled, setWeightsEnabled] = useState(!!group.skillWeightsEnabled);
@@ -66,7 +66,7 @@ export default memo(function SkillsConfig({ group, onSaved }) {
   const addSkill = (name, type, key) => {
     const skillKey = key || name.toLowerCase().replace(/[^a-z0-9]/g, "");
     if (!skillKey || skills.some((s) => s.key === skillKey)) return;
-    setSkills([...skills, { key: skillKey, name: name.trim(), type, weight: 1 }]);
+    setSkills([...skills, { key: skillKey, name: name.trim(), type, weight: 5 }]);
     setNewName("");
     setFilteredSuggestions([]);
   };
@@ -75,18 +75,10 @@ export default memo(function SkillsConfig({ group, onSaved }) {
     setSkills(skills.filter((_, i) => i !== idx));
   };
 
-  const moveSkill = (idx, dir) => {
-    const target = idx + dir;
-    if (target < 0 || target >= skills.length) return;
-    const updated = [...skills];
-    [updated[idx], updated[target]] = [updated[target], updated[idx]];
-    setSkills(updated);
-  };
-
   const handleSave = async () => {
     setSaving(true);
     try {
-      const customSkills = skills.map((s, i) => ({ key: s.key, name: s.name, type: s.type, order: i, weight: s.weight ?? 1 }));
+      const customSkills = skills.map((s, i) => ({ key: s.key, name: s.name, type: s.type, order: i, weight: s.weight ?? 5 }));
       await updateGroup(group._id, { customSkills, skillWeightsEnabled: weightsEnabled });
       onSaved?.({ ...group, customSkills, skillWeightsEnabled: weightsEnabled });
       setSaved(true);
@@ -100,7 +92,7 @@ export default memo(function SkillsConfig({ group, onSaved }) {
       key: d.key,
       name: t(`metrics.${d.key}`, d.key),
       type: d.type,
-      weight: 1,
+      weight: 5,
     })));
     setWeightsEnabled(false);
   };
@@ -108,11 +100,35 @@ export default memo(function SkillsConfig({ group, onSaved }) {
   return (
     <div className="card mb-1">
       <div className="flex-between" style={{ marginBottom: "0.75rem" }}>
-        <h3>{t("skills.title")}</h3>
+        <div style={{ display: "flex", alignItems: "center", gap: "0.75rem" }}>
+          <h3 style={{ margin: 0 }}>{t("skills.title")}</h3>
+          <div style={{ display: "flex", alignItems: "center", gap: "0.4rem" }}>
+            <button type="button" onClick={() => {
+              const next = !weightsEnabled;
+              setWeightsEnabled(next);
+              // Auto-save the toggle
+              const customSkills = skills.map((s, i) => ({ key: s.key, name: s.name, type: s.type, order: i, weight: s.weight ?? 5 }));
+              updateGroup(group._id, { customSkills, skillWeightsEnabled: next })
+                .then(() => onSaved?.({ ...group, customSkills, skillWeightsEnabled: next }))
+                .catch((err) => console.error("Failed to save weights toggle:", err));
+            }}
+              style={{
+                width: 40, height: 22, borderRadius: 11, border: "none", cursor: "pointer", position: "relative",
+                background: weightsEnabled ? "var(--color-primary)" : "#ccc", transition: "background 0.2s",
+              }}>
+              <span style={{
+                width: 18, height: 18, borderRadius: "50%", background: "#fff", position: "absolute", top: 2,
+                left: weightsEnabled ? 20 : 2, transition: "left 0.2s",
+              }} />
+            </button>
+            <span className="text-xs text-muted">{t("skills.weights")}</span>
+          </div>
+        </div>
         <span className="text-sm text-muted">{t("skills.count", { count: skills.length })}</span>
       </div>
       <p className="text-sm text-muted" style={{ marginBottom: "0.75rem" }}>{t("skills.description")}</p>
 
+      {!weightsEnabled ? null : <>
       {/* Skills list */}
       <div style={{ display: "flex", flexDirection: "column", gap: "0.3rem", marginBottom: "0.75rem" }}>
         {skills.map((skill, idx) => (
@@ -120,26 +136,24 @@ export default memo(function SkillsConfig({ group, onSaved }) {
             display: "flex", alignItems: "center", gap: "0.5rem",
             background: "var(--color-bg)", borderRadius: "var(--radius)", padding: "0.4rem 0.6rem",
           }}>
-            <span style={{ flex: 1, fontWeight: 500, fontSize: "0.85rem" }}>{skill.name}</span>
-            <span className="tag" style={{ fontSize: "0.6rem" }}>{skill.type}</span>
+            <span style={{ minWidth: 80, fontWeight: 500, fontSize: "0.85rem" }}>{skill.name}</span>
             {weightsEnabled && skill.type === "rating" && (
               <input
-                type="number" min={0} max={10} step={0.5}
-                value={skill.weight ?? 1}
+                type="range" min={1} max={10} step={1}
+                value={skill.weight ?? 5}
                 onChange={(e) => {
                   const updated = [...skills];
-                  updated[idx] = { ...updated[idx], weight: Math.max(0, Math.min(10, Number(e.target.value) || 1)) };
+                  updated[idx] = { ...updated[idx], weight: Number(e.target.value) };
                   setSkills(updated);
                 }}
-                className="form-control form-control-sm"
-                style={{ width: 55, textAlign: "center", padding: "0.1rem" }}
+                style={{ flex: 1 }}
                 title={t("skills.weight")}
               />
             )}
-            <button className="btn btn-secondary btn-sm" onClick={() => moveSkill(idx, -1)} disabled={idx === 0}
-              style={{ padding: "0.1rem 0.3rem" }}><FiChevronUp /></button>
-            <button className="btn btn-secondary btn-sm" onClick={() => moveSkill(idx, 1)} disabled={idx === skills.length - 1}
-              style={{ padding: "0.1rem 0.3rem" }}><FiChevronDown /></button>
+            <span className="tag" style={{ fontSize: "0.6rem" }}>{skill.type}</span>
+            {weightsEnabled && skill.type === "rating" && (
+              <span className="text-xs" style={{ minWidth: 16, textAlign: "center", fontWeight: 600 }}>{skill.weight ?? 5}</span>
+            )}
             <button className="btn btn-danger btn-sm" onClick={() => removeSkill(idx)}
               style={{ padding: "0.1rem 0.3rem" }}><FiTrash2 /></button>
           </div>
@@ -196,14 +210,7 @@ export default memo(function SkillsConfig({ group, onSaved }) {
         )}
       </div>
 
-      {/* Weighted mode toggle */}
-      <label style={{ display: "flex", alignItems: "center", gap: "0.5rem", marginTop: "0.75rem", cursor: "pointer", fontSize: "0.85rem" }}>
-        <input type="checkbox" checked={weightsEnabled} onChange={(e) => setWeightsEnabled(e.target.checked)} />
-        {t("skills.enableWeights")}
-      </label>
-      {weightsEnabled && (
-        <p className="text-sm text-muted" style={{ marginTop: "0.25rem" }}>{t("skills.weightsHint")}</p>
-      )}
+      </>}
 
       {/* Actions */}
       <div className="flex gap-sm" style={{ marginTop: "0.75rem", alignItems: "center" }}>

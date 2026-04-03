@@ -365,7 +365,7 @@ export default function GroupDetailPage() {
       <PlayerRoster groupId={id} canEdit={isTrainer} sport={group.sport} members={group.members} />
 
       {/* Skills Config — admin only */}
-      {isAdmin && <SkillsConfig group={group} onSaved={(updated) => setGroup((g) => ({ ...g, customSkills: updated.customSkills }))} />}
+      {isAdmin && <SkillsConfig group={group} onSaved={(updated) => setGroup((g) => ({ ...g, customSkills: updated.customSkills, skillWeightsEnabled: updated.skillWeightsEnabled }))} />}
 
       {/* Starred Drills */}
       {isTrainer && (
