@@ -210,16 +210,31 @@ export function getEffectiveMetrics(group) {
   if (group?.customSkills?.length > 0) {
     return group.customSkills
       .sort((a, b) => (a.order || 0) - (b.order || 0))
-      .map((s) => ({ key: s.key, name: s.name, type: s.type || "rating", weight: s.weight ?? 1 }));
+      // Migration note: existing groups may have weight=1 from before the default
+      // changed to 5. Treat weight=1 as the old default and map it to the new
+      // default so that legacy groups behave the same as freshly created ones
+      // when all weights are at their default value.
+      .map((s) => ({ key: s.key, name: s.name, type: s.type || "rating", weight: migrateWeight(s.weight) }));
   }
   return getMetricsForSport(group?.sport);
+}
+
+/**
+ * Migrate legacy weight values: the default changed from 1 to 5.
+ * Existing groups that never touched weights will have weight=1 (or undefined)
+ * stored in the database. Map those to the new default (5) so the weighted
+ * average behaves identically to unweighted when all skills are at default.
+ */
+function migrateWeight(w) {
+  if (w === undefined || w === null || w === 1) return 5;
+  return w;
 }
 
 /** Compute weighted average skill from metric values and definitions. */
 export function computeWeightedAvg(metricDefs, metrics, weightsEnabled) {
   const ratings = metricDefs
     .filter((d) => d.type === "rating" && typeof metrics[d.key] === "number")
-    .map((d) => ({ value: metrics[d.key], weight: weightsEnabled ? (d.weight ?? 1) : 1 }));
+    .map((d) => ({ value: metrics[d.key], weight: weightsEnabled ? (d.weight ?? 5) : 1 }));
   if (ratings.length === 0) return null;
   const totalWeight = ratings.reduce((sum, r) => sum + r.weight, 0);
   if (totalWeight === 0) return null;

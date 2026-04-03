@@ -395,14 +395,14 @@ export default function PlayerProfilePage() {
                         if (ratedKeys.length === 0) return;
                         const ratings = {};
                         for (const k of ratedKeys) ratings[k] = metrics[k];
-                        updatePlayerMetrics(groupId, playerId, { ratings }).catch(() => {});
+                        updatePlayerMetrics(groupId, playerId, { ratings }).catch((err) => console.error("Failed to save metrics:", err));
                       }}
                       onTouchEnd={() => {
                         const ratedKeys = metricKeys.filter((k) => typeof metrics[k] === "number");
                         if (ratedKeys.length === 0) return;
                         const ratings = {};
                         for (const k of ratedKeys) ratings[k] = metrics[k];
-                        updatePlayerMetrics(groupId, playerId, { ratings }).catch(() => {});
+                        updatePlayerMetrics(groupId, playerId, { ratings }).catch((err) => console.error("Failed to save metrics:", err));
                       }}
                     />
                     <span className="text-xs" style={{ fontWeight: 700, minWidth: 24, textAlign: "right" }}>{avgSkill}</span>

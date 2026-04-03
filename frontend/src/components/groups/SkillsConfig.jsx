@@ -110,7 +110,7 @@ export default memo(function SkillsConfig({ group, onSaved }) {
               const customSkills = skills.map((s, i) => ({ key: s.key, name: s.name, type: s.type, order: i, weight: s.weight ?? 5 }));
               updateGroup(group._id, { customSkills, skillWeightsEnabled: next })
                 .then(() => onSaved?.({ ...group, customSkills, skillWeightsEnabled: next }))
-                .catch(() => {});
+                .catch((err) => console.error("Failed to save weights toggle:", err));
             }}
               style={{
                 width: 40, height: 22, borderRadius: 11, border: "none", cursor: "pointer", position: "relative",
@@ -150,7 +150,6 @@ export default memo(function SkillsConfig({ group, onSaved }) {
                 title={t("skills.weight")}
               />
             )}
-            {!weightsEnabled && <span style={{ flex: 1 }} />}
             <span className="tag" style={{ fontSize: "0.6rem" }}>{skill.type}</span>
             {weightsEnabled && skill.type === "rating" && (
               <span className="text-xs" style={{ minWidth: 16, textAlign: "center", fontWeight: 600 }}>{skill.weight ?? 5}</span>
