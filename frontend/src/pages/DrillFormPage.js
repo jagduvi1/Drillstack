@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useMemo } from "react";
 import { useNavigate, useParams, Link } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import useFormDirty from "../hooks/useFormDirty";
@@ -61,6 +61,12 @@ export default function DrillFormPage() {
   const aiChangeTimer = useRef(null);
   const [diagrams, setDiagrams] = useState([]);
   const [linkedTactics, setLinkedTactics] = useState([]);
+
+  // Pre-compute sport skill metrics once (used by tag display + suggestions)
+  const sportSkillMetrics = useMemo(
+    () => getMetricsForSport((form.sport || "").toLowerCase()).filter((m) => m.type === "rating"),
+    [form.sport]
+  );
 
   useEffect(() => {
     if (isEdit) {
@@ -369,14 +375,13 @@ export default function DrillFormPage() {
             <div className="form-group" style={{ marginTop: "0.5rem" }}>
               <label>{t("drills.tags")}</label>
               {(() => {
-                const sportMetrics = getMetricsForSport((form.sport || "").toLowerCase()).filter((m) => m.type === "rating");
-                const skillLabels = new Set(sportMetrics.map((m) => t(`metrics.${m.key}`, m.key)));
+                const skillLabels = new Set(sportSkillMetrics.map((m) => t(`metrics.${m.key}`, m.key)));
                 return (
                   <div className="flex gap-sm" style={{ flexWrap: "wrap", marginBottom: "0.75rem" }}>
                     {(form.tags || []).map((tag, i) => {
                       const isSkill = skillLabels.has(tag);
                       return (
-                        <span key={i} className="tag" style={{ cursor: "pointer", background: isSkill ? "#e0e7ff" : "#f3f4f6", color: isSkill ? "#3730a3" : "#374151" }}
+                        <span key={i} className="tag" style={{ cursor: "pointer", background: isSkill ? "var(--color-surface)" : "var(--color-bg)", color: isSkill ? "var(--color-primary)" : "var(--color-text)" }}
                           onClick={() => set("tags", form.tags.filter((_, j) => j !== i))}>
                           {tag} &times;
                         </span>
@@ -387,16 +392,15 @@ export default function DrillFormPage() {
               })()}
               {/* Predefined skill tags from sport metrics */}
               {(() => {
-                const sportMetrics = getMetricsForSport((form.sport || "").toLowerCase()).filter((m) => m.type === "rating");
                 const currentTags = form.tags || [];
-                const available = sportMetrics.filter((m) => !currentTags.includes(t(`metrics.${m.key}`, m.key)));
+                const available = sportSkillMetrics.filter((m) => !currentTags.includes(t(`metrics.${m.key}`, m.key)));
                 return available.length > 0 ? (
                   <div className="flex gap-sm" style={{ flexWrap: "wrap", marginBottom: "0.75rem" }}>
                     {available.map((m) => {
                       const label = t(`metrics.${m.key}`, m.key);
                       return (
-                        <span key={m.key} className="tag" style={{ cursor: "pointer", background: "var(--color-bg)", border: "1px dashed #aaa", fontSize: "0.7rem" }}
-                          onClick={() => set("tags", [...currentTags, label])}>
+                        <span key={m.key} className="tag" style={{ cursor: "pointer", background: "var(--color-bg)", border: "1px dashed var(--color-border)", fontSize: "0.7rem" }}
+                          onClick={() => { if (!currentTags.includes(label)) set("tags", [...currentTags, label]); }}>
                           + {label}
                         </span>
                       );
