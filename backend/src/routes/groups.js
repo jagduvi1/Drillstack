@@ -102,24 +102,8 @@ router.post(
   }
 );
 
-// GET /api/groups/:id — get group details
-router.get("/:id", standardLimiter, authenticate, async (req, res, next) => {
-  try {
-    const group = await Group.findById(req.params.id)
-      .populate("members.user", "name email")
-      .populate("parentClub", "name")
-      .populate("starredDrills", "title sport intensity");
-    if (!group) return res.status(404).json({ error: "Group not found" });
-    if (!getMemberRole(group, req.user._id)) {
-      return res.status(403).json({ error: "Not a member of this group" });
-    }
-    res.json(group);
-  } catch (err) {
-    next(err);
-  }
-});
-
 // GET /api/groups/skill-suggestions — unique skill names used by groups with a given sport
+// NOTE: must be defined BEFORE /:id to avoid matching "skill-suggestions" as an ObjectId
 router.get("/skill-suggestions", standardLimiter, authenticate, async (req, res, next) => {
   try {
     const sport = String(req.query.sport || "").trim();
@@ -132,6 +116,23 @@ router.get("/skill-suggestions", standardLimiter, authenticate, async (req, res,
       { $limit: 100 },
     ]);
     res.json(results.map((r) => ({ key: r._id.key, name: r._id.name, type: r._id.type, count: r.count })));
+  } catch (err) {
+    next(err);
+  }
+});
+
+// GET /api/groups/:id — get group details
+router.get("/:id", standardLimiter, authenticate, async (req, res, next) => {
+  try {
+    const group = await Group.findById(req.params.id)
+      .populate("members.user", "name email")
+      .populate("parentClub", "name")
+      .populate("starredDrills", "title sport intensity");
+    if (!group) return res.status(404).json({ error: "Group not found" });
+    if (!getMemberRole(group, req.user._id)) {
+      return res.status(403).json({ error: "Not a member of this group" });
+    }
+    res.json(group);
   } catch (err) {
     next(err);
   }

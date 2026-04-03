@@ -591,6 +591,7 @@
     "activeGoals": "Active goals",
     "overallRating": "Overall",
     "avgSkill": "Avg skill",
+    "weightedAvg": "Weighted avg",
     "autoSkills": "Auto from metrics",
     "noMetricsYet": "Rate skills first",
     "recentNotes": "Recent notes",
@@ -1025,7 +1026,8 @@
     "typeCert": "Cert",
     "resetToDefaults": "Reset to defaults",
     "enableWeights": "Enable weighted skill average (advanced)",
-    "weightsHint": "Set a weight per skill (0-10). Higher weight = more impact on the average skill rating. Default is 1 for all.",
+    "weights": "Weights",
+    "weightsHint": "Set a weight per skill (1-10). Higher weight = more impact on the average skill rating. Default is 5 for all.",
     "weight": "Weight"
   },
   "settings": {

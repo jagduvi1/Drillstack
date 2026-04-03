@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useParams, Link } from "react-router-dom";
 import { useTranslation } from "react-i18next";
-import { getPlayerOverview, updatePlayer } from "../api/players";
+import { getPlayerOverview, updatePlayer, updatePlayerMetrics } from "../api/players";
 import { getGroup } from "../api/groups";
 import { getMetricsForSport, getEffectiveMetrics, computeWeightedAvg, getPositionsForSport, getDualPositions, hasDualPositions, SPORTS_WITH_NUMBERS, SPORTS_WITH_FOOT, SPORTS_WITH_HAND } from "../constants/sportMetrics";
 import PlayerMetricsEditor from "../components/players/PlayerMetricsEditor";
@@ -52,8 +52,9 @@ export default function PlayerProfilePage() {
   const showFoot = SPORTS_WITH_FOOT.includes(sportBase);
   const showHand = SPORTS_WITH_HAND.includes(sportBase);
 
-  // Compute average skill from numeric rating metrics
-  const avgSkill = computeWeightedAvg(metricDefs, metrics, groupData?.skillWeightsEnabled);
+  // Compute average skill — simple (unweighted) and weighted
+  const avgSkill = computeWeightedAvg(metricDefs, metrics, false);
+  const weightedAvg = groupData?.skillWeightsEnabled ? computeWeightedAvg(metricDefs, metrics, true) : null;
 
   // Helper: get display name for a metric key (prefer custom name, fallback to i18n)
   const metricLabel = (key) => {
@@ -134,9 +135,14 @@ export default function PlayerProfilePage() {
               {player.weight > 0 && <span className="tag">{player.weight} kg</span>}
               {showFoot && player.preferredFoot && <span className="tag">{t(`playerProfile.foot.${player.preferredFoot}`)}</span>}
               {showHand && player.preferredHand && <span className="tag">{t(`playerProfile.hand.${player.preferredHand}`)}</span>}
-              {player.skillRating !== null && (
-                <span className="tag" style={{ background: "var(--color-primary)", color: "#fff" }}>
-                  {player.skillRating}/100
+              {avgSkill !== null && (
+                <span className="tag" style={{ background: "var(--color-primary)", color: "#fff", fontSize: "0.7rem" }}>
+                  {avgSkill}
+                </span>
+              )}
+              {weightedAvg !== null && (
+                <span className="tag" style={{ background: "#f59e0b", color: "#fff", fontSize: "0.7rem" }}>
+                  {weightedAvg}
                 </span>
               )}
               {autoStrengths[0] && <span className="tag tag-success" style={{ fontSize: "0.7rem" }}>{autoStrengths[0]}</span>}
@@ -336,7 +342,13 @@ export default function PlayerProfilePage() {
             {avgSkill !== null && (
               <div className="stat-card">
                 <span className="stat-value">{avgSkill}</span>
-                <span className="stat-label">{t("playerProfile.avgSkill", "Avg skill")}</span>
+                <span className="stat-label">{t("playerProfile.avgSkill")}</span>
+              </div>
+            )}
+            {weightedAvg !== null && (
+              <div className="stat-card">
+                <span className="stat-value" style={{ color: "#f59e0b" }}>{weightedAvg}</span>
+                <span className="stat-label">{t("playerProfile.weightedAvg")}</span>
               </div>
             )}
           </div>
@@ -360,7 +372,75 @@ export default function PlayerProfilePage() {
                   ))}
                 </div>
               )}
-              {/* Rating bars */}
+              {/* Average skill slider + weighted bar */}
+              {avgSkill !== null && (
+                <div style={{ marginBottom: "0.75rem", borderBottom: "1px solid var(--color-border, #e5e7eb)", paddingBottom: "0.75rem" }}>
+                  <div className="metric-summary-item">
+                    <span className="text-xs" style={{ fontWeight: 700 }}>{t("playerProfile.avgSkill")}</span>
+                    <input type="range" min={0} max={100} value={avgSkill}
+                      style={{ flex: 1 }}
+                      onChange={(e) => {
+                        const target = Number(e.target.value);
+                        const delta = target - avgSkill;
+                        const ratedKeys = metricKeys.filter((k) => typeof metrics[k] === "number");
+                        if (ratedKeys.length === 0) return;
+                        const newMetrics = { ...metrics };
+                        for (const k of ratedKeys) {
+                          newMetrics[k] = Math.max(0, Math.min(100, Math.round(metrics[k] + delta)));
+                        }
+                        setData((prev) => ({ ...prev, metrics: newMetrics }));
+                      }}
+                      onMouseUp={() => {
+                        const ratedKeys = metricKeys.filter((k) => typeof metrics[k] === "number");
+                        if (ratedKeys.length === 0) return;
+                        const ratings = {};
+                        for (const k of ratedKeys) ratings[k] = metrics[k];
+                        updatePlayerMetrics(groupId, playerId, { ratings }).catch(() => {});
+                      }}
+                      onTouchEnd={() => {
+                        const ratedKeys = metricKeys.filter((k) => typeof metrics[k] === "number");
+                        if (ratedKeys.length === 0) return;
+                        const ratings = {};
+                        for (const k of ratedKeys) ratings[k] = metrics[k];
+                        updatePlayerMetrics(groupId, playerId, { ratings }).catch(() => {});
+                      }}
+                    />
+                    <span className="text-xs" style={{ fontWeight: 700, minWidth: 24, textAlign: "right" }}>{avgSkill}</span>
+                  </div>
+                  {weightedAvg !== null && (
+                    <div className="metric-summary-item" style={{ marginTop: "0.3rem" }}>
+                      <span className="text-xs" style={{ fontWeight: 700 }}>{t("playerProfile.weightedAvg")}</span>
+                      <div className="metric-bar">
+                        <div className="metric-bar-fill" style={{ width: `${weightedAvg}%`, background: "#f59e0b" }} />
+                      </div>
+                      <span className="text-xs" style={{ fontWeight: 700 }}>{weightedAvg}</span>
+                    </div>
+                  )}
+                </div>
+              )}
+              {/* General metrics — stored on player but not in the sport's default set */}
+              {(() => {
+                const sportDefaultKeys = new Set(getMetricsForSport(sport).map((d) => d.key));
+                const allDefinedKeys = new Set(metricDefs.map((d) => d.key));
+                const extra = Object.entries(metrics).filter(([key, val]) => typeof val === "number" && !sportDefaultKeys.has(key) && !allDefinedKeys.has(key));
+                return extra.length > 0 ? (
+                  <>
+                    <div className="metrics-summary-grid">
+                      {extra.map(([key, val]) => (
+                        <div key={key} className="metric-summary-item">
+                          <span className="text-xs">{t(`metrics.${key}`, key)}</span>
+                          <div className="metric-bar">
+                            <div className="metric-bar-fill" style={{ width: `${val}%`, opacity: 0.6 }} />
+                          </div>
+                          <span className="text-xs" style={{ fontWeight: 600 }}>{val}</span>
+                        </div>
+                      ))}
+                    </div>
+                    <div style={{ borderBottom: "1px solid var(--color-border, #e5e7eb)", margin: "0.5rem 0" }} />
+                  </>
+                ) : null;
+              })()}
+              {/* Sport-specific rating bars */}
               <div className="metrics-summary-grid">
                 {metricKeys.map((key) => (
                   metrics[key] !== undefined ? (

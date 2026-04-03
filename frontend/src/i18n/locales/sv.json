@@ -591,6 +591,7 @@
     "activeGoals": "Aktiva mål",
     "overallRating": "Helhet",
     "avgSkill": "Snittbetyg",
+    "weightedAvg": "Viktat snitt",
     "autoSkills": "Auto från betyg",
     "noMetricsYet": "Betygsätt färdigheter först",
     "recentNotes": "Senaste anteckningar",
@@ -974,7 +975,8 @@
     "typeCert": "Cert",
     "resetToDefaults": "Återställ till standard",
     "enableWeights": "Aktivera viktad färdighetssnitt (avancerat)",
-    "weightsHint": "Sätt en vikt per färdighet (0-10). Högre vikt = mer påverkan på snittet. Standard är 1 för alla.",
+    "weights": "Vikter",
+    "weightsHint": "Sätt en vikt per färdighet (1-10). Högre vikt = mer påverkan på snittet. Standard är 5 för alla.",
     "weight": "Vikt"
   },
   "settings": {
