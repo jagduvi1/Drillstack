@@ -44,6 +44,7 @@
     "search": "Search",
     "pricing": "Pricing",
     "notifications": "Notifications",
+    "admin": "Admin",
     "superAdmin": "Super Admin",
     "logout": "Logout",
     "tactics": "Tactics",
@@ -832,6 +833,25 @@
     "proPlan": "Pro ($5/mo)",
     "manageUser": "Manage: {{name}} ({{email}})",
     "failedToLoad": "Failed to load"
+  },
+  "adminPage": {
+    "title": "Admin",
+    "description": "Manage reports and club verifications.",
+    "reports": "Reports",
+    "pendingClubs": "Pending Clubs",
+    "allStatuses": "All statuses",
+    "statusPending": "Pending",
+    "statusReviewed": "Reviewed",
+    "statusResolved": "Resolved",
+    "statusDismissed": "Dismissed",
+    "noReports": "No reports.",
+    "reportedBy": "Reported by",
+    "resolvedBy": "Resolved by",
+    "resolve": "Resolve",
+    "dismiss": "Dismiss",
+    "noClubs": "No pending clubs.",
+    "verify": "Verify",
+    "reject": "Reject"
   },
   "picker": {
     "pickADrill": "Pick a Drill",
