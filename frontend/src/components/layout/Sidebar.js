@@ -145,6 +145,11 @@ export default function Sidebar({ isOpen, onClose }) {
             <FiBell /> {t("nav.notifications")}
             {unread > 0 && <span className="notification-badge">{unread}</span>}
           </NavLink>
+          {(user?.role === "admin" || user?.isSuperAdmin) && (
+            <NavLink to="/admin">
+              <FiShield /> {t("nav.admin")}
+            </NavLink>
+          )}
           {user?.isSuperAdmin && (
             <NavLink to="/superadmin">
               <FiShield /> {t("nav.superAdmin")}

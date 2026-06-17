@@ -44,6 +44,7 @@
     "search": "Sök",
     "pricing": "Priser",
     "notifications": "Aviseringar",
+    "admin": "Admin",
     "superAdmin": "Superadmin",
     "logout": "Logga ut",
     "tactics": "Taktik",
@@ -832,6 +833,25 @@
     "proPlan": "Pro ($5/mån)",
     "manageUser": "Hantera: {{name}} ({{email}})",
     "failedToLoad": "Kunde inte ladda"
+  },
+  "adminPage": {
+    "title": "Admin",
+    "description": "Hantera rapporter och klubbverifieringar.",
+    "reports": "Rapporter",
+    "pendingClubs": "Väntande klubbar",
+    "allStatuses": "Alla statusar",
+    "statusPending": "Väntande",
+    "statusReviewed": "Granskad",
+    "statusResolved": "Åtgärdad",
+    "statusDismissed": "Avvisad",
+    "noReports": "Inga rapporter.",
+    "reportedBy": "Rapporterad av",
+    "resolvedBy": "Åtgärdad av",
+    "resolve": "Åtgärda",
+    "dismiss": "Avvisa",
+    "noClubs": "Inga väntande klubbar.",
+    "verify": "Verifiera",
+    "reject": "Avvisa"
   },
   "picker": {
     "pickADrill": "Välj en övning",

@@ -23,6 +23,7 @@ import PlanDetailPage from "./pages/PlanDetailPage";
 import TodayPage from "./pages/TodayPage";
 import SearchPage from "./pages/SearchPage";
 import SuperAdminPage from "./pages/SuperAdmin";
+import AdminPage from "./pages/AdminPage";
 import NotificationsPage from "./pages/NotificationsPage";
 import GroupsPage from "./pages/GroupsPage";
 import GroupDetailPage from "./pages/GroupDetailPage";
@@ -121,6 +122,9 @@ export default function App() {
           <Route path="/privacy" element={<PrivacyPolicyPage />} />
           <Route path="/search" element={<ProtectedRoute><SearchPage /></ProtectedRoute>} />
           <Route path="/notifications" element={<ProtectedRoute><NotificationsPage /></ProtectedRoute>} />
+          {(user.role === "admin" || user.isSuperAdmin) && (
+            <Route path="/admin" element={<ProtectedRoute><AdminPage /></ProtectedRoute>} />
+          )}
           {user.isSuperAdmin && (
             <Route path="/superadmin" element={<ProtectedRoute><SuperAdminPage /></ProtectedRoute>} />
           )}
